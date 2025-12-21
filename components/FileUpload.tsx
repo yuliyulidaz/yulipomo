@@ -19,7 +19,8 @@ export const FileUpload: React.FC<FileUploadProps> = ({ onImageSelected, current
         const img = new Image();
         img.onload = () => {
           const canvas = document.createElement('canvas');
-          const MAX_SIZE = 800;
+          // 저장 공간 최적화를 위해 최대 크기를 600px로 조정 (기존 800px)
+          const MAX_SIZE = 600;
           let width = img.width;
           let height = img.height;
 
@@ -40,7 +41,8 @@ export const FileUpload: React.FC<FileUploadProps> = ({ onImageSelected, current
           const ctx = canvas.getContext('2d');
           ctx?.drawImage(img, 0, 0, width, height);
           
-          const optimizedBase64 = canvas.toDataURL('image/jpeg', 0.8);
+          // 품질을 0.7로 미세 조정하여 용량 확보 (기존 0.8)
+          const optimizedBase64 = canvas.toDataURL('image/jpeg', 0.7);
           onImageSelected(optimizedBase64);
         };
         img.src = e.target?.result as string;
