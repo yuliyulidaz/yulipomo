@@ -244,7 +244,7 @@ const FALLBACK_TEMPLATES: Record<string, Record<string, string[]>> = {
       "잘하고 있소. 계속 정진하시게.",
       "조금만 더 힘내시오. 거의 다 되었소.",
       "집중하시는 모습이 보기 좋소.",
-      "마음 편히 가지시오. 지켜보고 있소.",
+      "마음 편히 가지하시오. 지켜보고 있소.",
       "포기하지 마시오. 곁에 있소.",
       "좋은 기운이오. 그대로 가하시게.",
       "쉬지 말고 정진하시오. 함께 있소.",
@@ -714,8 +714,9 @@ export const TimerScreen: React.FC<TimerScreenProps> = ({
 
       <main className="w-full h-full flex flex-col items-center justify-center relative z-10 p-4 md:p-8">
           
-          <div className="mb-[-1px] z-20 animate-in slide-in-from-top-4 duration-700">
-            <div className={`px-5 py-2 rounded-t-2xl border border-b-0 shadow-[0_-4px_12px_rgba(0,0,0,0.03)] flex items-center gap-2.5 ${isDarkMode ? 'bg-[#161B22] border-[#30363D]' : 'bg-surface border-border'}`}>
+          {/* Top Level Badge - Enhanced z-index and positioning */}
+          <div className="mb-[-1px] z-[40] animate-in slide-in-from-top-4 duration-700">
+            <div className={`px-5 py-2.5 rounded-t-2xl border border-b-0 shadow-[0_-4px_12px_rgba(0,0,0,0.05)] flex items-center gap-2.5 relative ${isDarkMode ? 'bg-[#161B22] border-[#30363D]' : 'bg-surface border-border'}`}>
                 <Heart size={12} className="text-accent fill-accent animate-pulse" />
                 <span className={`text-[11px] font-black tracking-tight ${isDarkMode ? 'text-slate-100' : 'text-text-primary'}`}>
                   Lv.{profile.level} <span className="ml-1 text-primary">{LEVEL_TITLES[profile.level] || "운명의 동반자"}</span>
@@ -723,7 +724,7 @@ export const TimerScreen: React.FC<TimerScreenProps> = ({
             </div>
           </div>
 
-          <div className={`w-full max-w-md backdrop-blur-xl border p-6 md:p-8 rounded-[40px] shadow-[0_20px_50px_rgba(74,95,122,0.1)] flex flex-col items-center gap-6 md:gap-8 animate-in fade-in zoom-in duration-500 relative transition-colors duration-700 ${isDarkMode ? 'bg-[#161B22]/90 border-[#30363D]' : 'bg-surface/90 border-border'}`}>
+          <div className={`w-full max-w-md backdrop-blur-xl border p-6 md:p-8 rounded-[40px] shadow-[0_20px_50px_rgba(74,95,122,0.1)] flex flex-col items-center gap-6 md:gap-8 animate-in fade-in zoom-in duration-500 relative transition-colors duration-700 z-10 ${isDarkMode ? 'bg-[#161B22]/90 border-[#30363D]' : 'bg-surface/90 border-border'}`}>
             
             <div className={`absolute top-0 left-0 w-full h-1.5 z-10 ${isDarkMode ? 'bg-slate-700/20' : 'bg-border/20'}`}>
               <div 
@@ -756,10 +757,10 @@ export const TimerScreen: React.FC<TimerScreenProps> = ({
                   </div>
                 ) : (
                   <div className="relative flex items-center justify-center">
-                    {/* SVG Cooldown Aura Gradient - Placed BEHIND (z-0) and flush with container */}
+                    {/* SVG Cooldown Aura Gradient - FIXED Distortion & Clipping */}
                     {cooldownRemaining > 0 && (
-                      <div className="absolute -inset-1.5 pointer-events-none z-0">
-                        <svg className="w-full h-full" viewBox="0 0 100 100" preserveAspectRatio="none">
+                      <div className="absolute -inset-[2px] pointer-events-none z-0 overflow-visible">
+                        <svg className="w-full h-full" preserveAspectRatio="none">
                           <defs>
                             <linearGradient id="auraGradient" x1="0%" y1="0%" x2="100%" y2="100%">
                               <stop offset="0%" stopColor="#4A5F7A" />
@@ -767,14 +768,15 @@ export const TimerScreen: React.FC<TimerScreenProps> = ({
                             </linearGradient>
                           </defs>
                           <rect 
-                            x="1.5" y="1.5" width="97" height="97" rx="14" 
+                            x="1.5" y="1.5" width="calc(100% - 3px)" height="calc(100% - 3px)" rx="20" 
                             fill="none" 
                             stroke="url(#auraGradient)" 
-                            strokeWidth="6"
-                            strokeDasharray="388"
-                            strokeDashoffset={388 - (388 * (cooldownRemaining / COOLDOWN_MS))}
+                            strokeWidth="5"
+                            strokeDasharray="1000"
+                            strokeDashoffset={1000 - (1000 * (cooldownRemaining / COOLDOWN_MS))}
                             strokeLinecap="round"
                             className="transition-all duration-150 ease-linear"
+                            style={{ vectorEffect: 'non-scaling-stroke' }}
                           />
                         </svg>
                       </div>
@@ -782,14 +784,14 @@ export const TimerScreen: React.FC<TimerScreenProps> = ({
                     
                     <div 
                       onClick={handleCharacterClick}
-                      className={`relative z-10 w-32 h-32 md:w-44 md:h-44 rounded-2xl border-4 overflow-hidden shadow-xl mx-auto transition-all duration-500 group-hover:scale-105 group-hover:border-primary cursor-pointer active:scale-95 ${isDarkMode ? 'border-slate-800' : 'border-border'}`}
+                      className={`relative z-10 w-32 h-32 md:w-44 md:h-44 rounded-2xl border-none overflow-hidden shadow-xl mx-auto transition-all duration-500 group-hover:scale-105 cursor-pointer active:scale-95 ${isDarkMode ? 'bg-slate-900' : 'bg-slate-100'}`}
                     >
                         <img src={profile.imageSrc || ''} alt={profile.name} className="w-full h-full object-cover" />
                     </div>
 
-                    {/* Staring Status Badge - Moved to TOP */}
+                    {/* Staring Status Badge - Moved TOP & Corrected z-index */}
                     {cooldownRemaining > 0 && (
-                        <div className="absolute -top-4 left-1/2 -translate-x-1/2 bg-primary/90 text-white text-[9px] font-black px-3 py-1 rounded-full whitespace-nowrap shadow-lg backdrop-blur-sm z-20 border border-white/20 animate-pulse pointer-events-none">
+                        <div className="absolute -top-6 left-1/2 -translate-x-1/2 bg-primary/90 text-white text-[9px] font-black px-3 py-1 rounded-full whitespace-nowrap shadow-lg backdrop-blur-sm z-20 border border-white/20 animate-pulse pointer-events-none">
                             가만히 바라보는 중...
                         </div>
                     )}
