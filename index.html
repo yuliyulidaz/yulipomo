@@ -11,6 +11,20 @@
       tailwind.config = {
         theme: {
           extend: {
+            colors: {
+              primary: '#4A5F7A',
+              'primary-light': '#6B7FA0',
+              'primary-dark': '#3A4F6A',
+              accent: '#FF6B9D',
+              'accent-soft': '#FFB3C7',
+              background: '#F8FAFB',
+              surface: '#FFFFFF',
+              border: '#E2E8F0',
+              'text-primary': '#2D3748',
+              'text-secondary': '#718096',
+              success: '#48BB78',
+              warning: '#F6AD55',
+            },
             animation: {
               'pulse-slow': 'pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite',
               'shake': 'shake 0.12s linear infinite',
@@ -31,7 +45,7 @@
     <style>
       body {
         font-family: 'Inter', sans-serif;
-        background-color: #f3f4f6;
+        background-color: #F8FAFB;
         overflow: hidden;
       }
       ::-webkit-scrollbar {
