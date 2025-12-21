@@ -309,7 +309,7 @@ const FALLBACK_TEMPLATES: Record<string, Record<string, string[]>> = {
   }
 };
 
-const COOLDOWN_MS = 10000; // 10 seconds cooldown
+const COOLDOWN_MS = 60000; // 1 minute cooldown
 
 export const TimerScreen: React.FC<TimerScreenProps> = ({ 
   profile, onReset, onTickXP, onUpdateProfile, onSessionComplete 
@@ -725,7 +725,7 @@ export const TimerScreen: React.FC<TimerScreenProps> = ({
             </div>
           </div>
 
-          <div className={`w-full max-md backdrop-blur-xl border p-6 md:p-8 rounded-[40px] shadow-[0_20px_50px_rgba(74,95,122,0.1)] flex flex-col items-center gap-6 md:gap-8 animate-in fade-in zoom-in duration-500 relative overflow-hidden transition-colors duration-700 ${isDarkMode ? 'bg-[#161B22]/90 border-[#30363D]' : 'bg-surface/90 border-border'}`}>
+          <div className={`w-full max-w-md backdrop-blur-xl border p-6 md:p-8 rounded-[40px] shadow-[0_20px_50px_rgba(74,95,122,0.1)] flex flex-col items-center gap-6 md:gap-8 animate-in fade-in zoom-in duration-500 relative overflow-hidden transition-colors duration-700 ${isDarkMode ? 'bg-[#161B22]/90 border-[#30363D]' : 'bg-surface/90 border-border'}`}>
             
             <div className={`absolute top-0 left-0 w-full h-1.5 z-10 ${isDarkMode ? 'bg-slate-700/20' : 'bg-border/20'}`}>
               <div 
@@ -776,7 +776,7 @@ export const TimerScreen: React.FC<TimerScreenProps> = ({
                             strokeDasharray="384"
                             strokeDashoffset={384 - (384 * (cooldownRemaining / COOLDOWN_MS))}
                             strokeLinecap="round"
-                            style={{ transition: 'stroke-dashoffset 0.1s linear' }}
+                            className="transition-all duration-150 ease-linear"
                           />
                         </svg>
                       </div>
@@ -785,7 +785,6 @@ export const TimerScreen: React.FC<TimerScreenProps> = ({
                     <div 
                       onClick={handleCharacterClick}
                       className={`w-32 h-32 md:w-44 md:h-44 rounded-2xl border-4 overflow-hidden shadow-xl mx-auto transition-all duration-500 group-hover:scale-105 group-hover:border-primary cursor-pointer active:scale-95 ${isDarkMode ? 'border-slate-800' : 'border-border'}`}
-                      style={{ transform: 'translateZ(0)', WebkitTransform: 'translateZ(0)' }}
                     >
                         <img src={profile.imageSrc || ''} alt={profile.name} className="w-full h-full object-cover" />
                     </div>
