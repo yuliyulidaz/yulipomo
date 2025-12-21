@@ -439,7 +439,7 @@ export const TimerScreen: React.FC<TimerScreenProps> = ({
                 </button>
             </div>
 
-            <div className="relative group mt-12 md:mt-16 min-h-[180px] md:min-h-[220px] flex items-center justify-center w-full">
+            <div className="relative group mt-8 md:mt-10 min-h-[180px] md:min-h-[220px] flex items-center justify-center w-full">
                 {shouldHideCharacter ? (
                   <div className="flex flex-col items-center gap-4 animate-pulse text-primary-light/40">
                     <Bed size={60} className="md:size-20" />
@@ -465,29 +465,34 @@ export const TimerScreen: React.FC<TimerScreenProps> = ({
                 )}
             </div>
 
-            <div className="text-center space-y-1 mt-4 md:mt-6">
+            <div className="text-center space-y-1 mt-2 md:mt-4">
                 <h2 className="text-3xl md:text-4xl font-bold text-text-primary tracking-tight">{profile.name}</h2>
                 <p className="text-text-secondary text-[10px] md:text-[11px] font-bold tracking-widest uppercase">To. {profile.honorific || profile.userName || "나"}</p>
             </div>
 
-            {/* 타이머 및 조작 섹션: 레이아웃 최적화 */}
-            <div className="w-full flex flex-col items-center gap-8 mt-4 pb-8">
+            {/* 타이머 섹션: 모드 표시기를 타이머 숫자 왼쪽에 정사각형으로 배치 */}
+            <div className="w-full flex flex-col items-center gap-6 mt-4 pb-4">
               
-              {/* 1. 타이머 그룹 (모드 표시기를 타이머 바로 위로 배치) */}
-              <div className="flex flex-col items-center gap-3">
-                <div className={`px-6 py-2 rounded-xl text-[10px] md:text-[11px] font-bold uppercase tracking-widest flex items-center gap-2 border transition-all duration-500 ${isBreak ? 'bg-success/10 border-success/20 text-success' : 'bg-primary/10 border-primary/20 text-primary'}`}>
-                    {isBreak ? <Coffee size={14} /> : <TimerIcon size={14} />}
-                    {isBreak ? "Break Time" : "Focus Mode"}
+              <div className="flex items-center gap-4 md:gap-6">
+                {/* 모드 표시기 정사각형 (이미지 하단 버튼과 동일 사양) */}
+                <div className={`w-16 h-16 md:w-20 md:h-20 rounded-2xl flex flex-col items-center justify-center gap-1 border transition-all duration-500 shadow-sm ${isBreak ? 'bg-success/10 border-success/20 text-success' : 'bg-primary/5 border-primary/10 text-primary'}`}>
+                    {isBreak ? <Coffee size={18} /> : <TimerIcon size={18} />}
+                    <div className="flex flex-col items-center leading-tight">
+                        <span className="text-[8px] md:text-[9px] font-black uppercase tracking-tighter">{isBreak ? "Break" : "Focus"}</span>
+                        <span className="text-[8px] md:text-[9px] font-black uppercase tracking-tighter">Mode</span>
+                    </div>
                 </div>
+
+                {/* 타이머 숫자 */}
                 <div className="text-6xl md:text-7xl font-bold tracking-tighter text-text-primary tabular-nums leading-none">
                     {formatTime(timeLeft)}
                 </div>
               </div>
 
-              {/* 2. 진행률 섹션 (글자를 게이지 왼편에 배치) */}
-              <div className="w-full max-w-[320px] flex items-center gap-4">
+              {/* 진행률 섹션 (수평 정렬) */}
+              <div className="w-full max-w-[320px] flex items-center gap-4 mt-2 px-2">
                   <span className="text-[10px] font-black text-text-secondary/60 uppercase tracking-widest shrink-0">
-                      {isBreak ? "휴식 중" : "진행률"}
+                      진행률
                   </span>
                   <div className="relative h-2 flex-1 bg-border/40 rounded-full overflow-visible">
                       <div 
@@ -523,8 +528,8 @@ export const TimerScreen: React.FC<TimerScreenProps> = ({
                   </div>
               </div>
 
-              {/* 3. 조작 버튼 (모서리에서 충분히 떨어지도록 상향 조정) */}
-              <div className="flex items-center gap-6 md:gap-8">
+              {/* 조작 버튼 */}
+              <div className="flex items-center gap-6 md:gap-8 mt-4">
                   {!isBreak && (
                     <button 
                         onClick={() => {
