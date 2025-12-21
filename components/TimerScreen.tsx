@@ -368,7 +368,6 @@ export const TimerScreen: React.FC<TimerScreenProps> = ({
   const progressPercent = Math.min(100, (profile.xp / currentXpTarget) * 100);
   const shouldHideCharacter = isBreak && timeLeft > 60;
 
-  // --- 게이지 바 진행률 계산 ---
   const focusTimeTotal = 25 * 60;
   const currentSegmentProgress = !isBreak ? (focusTimeTotal - timeLeft) / focusTimeTotal : 0;
   const overallProgressPercent = ((sessionInCycle + currentSegmentProgress) / 4) * 100;
@@ -416,7 +415,6 @@ export const TimerScreen: React.FC<TimerScreenProps> = ({
 
       <main className="w-full h-full flex flex-col items-center justify-center relative z-10 p-4 md:p-8">
           
-          {/* 상태 배지 (카드 외부 상단) */}
           <div className="mb-[-1px] z-20 animate-in slide-in-from-top-4 duration-700">
             <div className="bg-surface px-5 py-2 rounded-t-2xl border border-b-0 border-border shadow-[0_-4px_12px_rgba(0,0,0,0.03)] flex items-center gap-2.5">
                 <Heart size={12} className="text-accent fill-accent animate-pulse" />
@@ -428,7 +426,6 @@ export const TimerScreen: React.FC<TimerScreenProps> = ({
 
           <div className="w-full max-w-md bg-surface/90 backdrop-blur-xl border border-border p-6 md:p-8 rounded-[40px] shadow-[0_20px_50px_rgba(74,95,122,0.1)] flex flex-col items-center gap-6 md:gap-8 animate-in fade-in zoom-in duration-500 relative overflow-hidden">
             
-            {/* 호감도 게이지 (카드 내부 상단) */}
             <div className="absolute top-0 left-0 w-full h-1.5 bg-border/20 z-10">
               <div 
                 className="h-full bg-gradient-to-r from-primary to-accent transition-all duration-1000 ease-out" 
@@ -473,80 +470,86 @@ export const TimerScreen: React.FC<TimerScreenProps> = ({
                 <p className="text-text-secondary text-[10px] md:text-[11px] font-bold tracking-widest uppercase">To. {profile.honorific || profile.userName || "나"}</p>
             </div>
 
-            <div className="text-6xl md:text-7xl font-bold tracking-tighter text-text-primary tabular-nums">
-                {formatTime(timeLeft)}
-            </div>
+            {/* 타이머 및 조작 섹션: 모드 표시기를 위로 올리고 간격 조정 */}
+            <div className="w-full flex flex-col items-center gap-8 mt-4">
+              
+              {/* 1. 모드 표시기 (위치 변경) */}
+              <div className={`px-6 py-2 rounded-xl text-[10px] md:text-[11px] font-bold uppercase tracking-widest flex items-center gap-2 border transition-all duration-500 ${isBreak ? 'bg-success/10 border-success/20 text-success' : 'bg-primary/10 border-primary/20 text-primary'}`}>
+                  {isBreak ? <Coffee size={14} /> : <TimerIcon size={14} />}
+                  {isBreak ? "Break Time" : "Focus Mode"}
+              </div>
 
-            {/* --- 신규 사이클 진행 게이지 바 --- */}
-            <div className="w-full max-w-[280px] space-y-3 mt-1">
-                <div className="relative h-2 bg-border/40 rounded-full overflow-visible">
-                    {/* 진행 중인 게이지 바 */}
-                    <div 
-                        className={`absolute top-0 left-0 h-full rounded-full transition-all duration-1000 ease-out ${
-                            isBreak 
-                            ? 'bg-gradient-to-r from-success to-emerald-400 animate-pulse-slow' 
-                            : 'bg-gradient-to-r from-primary to-primary-light'
-                        }`}
-                        style={{ width: `${overallProgressPercent}%` }}
-                    />
-                    
-                    {/* 마일스톤 다이아몬드 아이콘들 */}
-                    {[1, 2, 3, 4].map((i) => {
-                        const pos = i * 25;
-                        const isReached = overallProgressPercent >= pos;
-                        const isLast = i === 4;
-                        return (
-                            <div 
-                                key={i}
-                                className="absolute top-1/2 -translate-y-1/2 -translate-x-1/2 flex flex-col items-center gap-1.5"
-                                style={{ left: `${pos}%` }}
-                            >
-                                <div className={`transform rotate-45 transition-all duration-700 border-2 ${
-                                    isReached 
-                                    ? (isBreak && sessionInCycle === i ? 'bg-success border-success scale-125 shadow-lg' : 'bg-primary border-primary scale-110') 
-                                    : 'bg-surface border-border scale-100'
-                                } ${isLast ? 'w-3 h-3' : 'w-2 h-2'}`} />
-                                <span className={`text-[9px] font-black transition-colors duration-500 ${isReached ? 'text-primary' : 'text-text-secondary/40'}`}>
-                                    {i}
-                                </span>
-                            </div>
-                        );
-                    })}
-                </div>
-                <div className="w-full text-center">
-                    <span className="text-[9px] font-black text-text-secondary/60 uppercase tracking-widest">
-                        {isBreak ? "Break Time Shimmer" : "Path to Productivity"}
-                    </span>
-                </div>
-            </div>
+              {/* 2. 타이머 숫자 */}
+              <div className="text-6xl md:text-7xl font-bold tracking-tighter text-text-primary tabular-nums leading-none">
+                  {formatTime(timeLeft)}
+              </div>
 
-            <div className="flex items-center gap-6 md:gap-8 mt-2">
-                {!isBreak && (
+              {/* 3. 진행률 게이지 바 */}
+              <div className="w-full max-w-[280px] space-y-3">
+                  <div className="relative h-2 bg-border/40 rounded-full overflow-visible">
+                      <div 
+                          className={`absolute top-0 left-0 h-full rounded-full transition-all duration-1000 ease-out ${
+                              isBreak 
+                              ? 'bg-gradient-to-r from-success to-emerald-400 animate-pulse-slow' 
+                              : 'bg-gradient-to-r from-primary to-primary-light'
+                          }`}
+                          style={{ width: `${overallProgressPercent}%` }}
+                      />
+                      
+                      {[1, 2, 3, 4].map((i) => {
+                          const pos = i * 25;
+                          const isReached = overallProgressPercent >= pos;
+                          const isLast = i === 4;
+                          return (
+                              <div 
+                                  key={i}
+                                  className="absolute top-1/2 -translate-y-1/2 -translate-x-1/2 flex flex-col items-center gap-1.5"
+                                  style={{ left: `${pos}%` }}
+                              >
+                                  <div className={`transform rotate-45 transition-all duration-700 border-2 ${
+                                      isReached 
+                                      ? (isBreak && sessionInCycle === i ? 'bg-success border-success scale-125 shadow-lg' : 'bg-primary border-primary scale-110') 
+                                      : 'bg-surface border-border scale-100'
+                                  } ${isLast ? 'w-3 h-3' : 'w-2 h-2'}`} />
+                                  <span className={`text-[9px] font-black transition-colors duration-500 ${isReached ? 'text-primary' : 'text-text-secondary/40'}`}>
+                                      {i}
+                                  </span>
+                              </div>
+                          );
+                      })}
+                  </div>
+                  <div className="w-full text-center">
+                      <span className="text-[9px] font-black text-text-secondary/60 uppercase tracking-widest">
+                          {isBreak ? "Break Time Shimmer" : "진행률"}
+                      </span>
+                  </div>
+              </div>
+
+              {/* 4. 조작 버튼 */}
+              <div className="flex items-center gap-6 md:gap-8">
+                  {!isBreak && (
+                    <button 
+                        onClick={() => {
+                            if(!isActive) triggerAIResponse('START');
+                            else triggerAIResponse('PAUSE');
+                            setIsActive(!isActive);
+                        }}
+                        className={`w-16 h-16 md:w-20 md:h-20 rounded-2xl flex items-center justify-center shadow-lg transition-all active:scale-90 group relative overflow-hidden ${isActive ? 'bg-warning text-white' : 'bg-primary text-white hover:bg-primary-light'}`}
+                    >
+                        {isActive ? <Pause className="w-7 h-7 md:w-8 md:h-8" fill="currentColor" /> : <Play className="w-7 h-7 md:w-8 md:h-8 ml-1" fill="currentColor" />}
+                    </button>
+                  )}
                   <button 
                       onClick={() => {
-                          if(!isActive) triggerAIResponse('START');
-                          else triggerAIResponse('PAUSE');
-                          setIsActive(!isActive);
+                          setIsActive(false);
+                          setTimeLeft(isBreak ? (sessionInCycle === 0 ? 30 * 60 : 5 * 60) : 25 * 60);
                       }}
-                      className={`w-16 h-16 md:w-20 md:h-20 rounded-2xl flex items-center justify-center shadow-lg transition-all active:scale-90 group relative overflow-hidden ${isActive ? 'bg-warning text-white' : 'bg-primary text-white hover:bg-primary-light'}`}
+                      className="w-12 h-12 md:w-14 md:h-14 rounded-xl bg-background hover:bg-border flex items-center justify-center transition-all border border-border text-text-secondary hover:text-text-primary active:scale-95 shadow-sm"
                   >
-                      {isActive ? <Pause className="w-7 h-7 md:w-8 md:h-8" fill="currentColor" /> : <Play className="w-7 h-7 md:w-8 md:h-8 ml-1" fill="currentColor" />}
+                      <RotateCcw className="w-5 h-5 md:w-6 md:h-6" />
                   </button>
-                )}
-                <button 
-                    onClick={() => {
-                        setIsActive(false);
-                        setTimeLeft(isBreak ? (sessionInCycle === 0 ? 30 * 60 : 5 * 60) : 25 * 60);
-                    }}
-                    className="w-12 h-12 md:w-14 md:h-14 rounded-xl bg-background hover:bg-border flex items-center justify-center transition-all border border-border text-text-secondary hover:text-text-primary active:scale-95 shadow-sm"
-                >
-                    <RotateCcw className="w-5 h-5 md:w-6 md:h-6" />
-                </button>
-            </div>
+              </div>
 
-            <div className={`mt-2 px-6 py-2 rounded-xl text-[10px] md:text-[11px] font-bold uppercase tracking-widest flex items-center gap-2 border ${isBreak ? 'bg-success/10 border-success/20 text-success' : 'bg-primary/10 border-primary/20 text-primary'}`}>
-                {isBreak ? <Coffee size={14} /> : <TimerIcon size={14} />}
-                {isBreak ? "Break Time" : "Focus Mode"}
             </div>
           </div>
       </main>
