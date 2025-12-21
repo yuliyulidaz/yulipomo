@@ -3,7 +3,8 @@ import React, { useState, useRef, useEffect } from 'react';
 import { ArrowRight, AlertCircle, Loader2, Sparkles, RefreshCw, ArrowLeft, RotateCcw, MessageSquareHeart, Key, User, Camera, Heart, ExternalLink } from 'lucide-react';
 import { CharacterProfile, DialogueStyles } from '../types';
 import { FileUpload } from './FileUpload';
-import { GoogleGenAI, Type } from "@google/genai";
+// Import HarmCategory and HarmBlockThreshold to fix type errors
+import { GoogleGenAI, Type, HarmCategory, HarmBlockThreshold } from "@google/genai";
 
 const GREETING_TEMPLATES: Record<string, string> = {
   "반말": "{honorific}, 시작 버튼 눌러. 기다리고 있어.",
@@ -12,6 +13,14 @@ const GREETING_TEMPLATES: Record<string, string> = {
   "사극/하오체": "준비가 되었으면 시작 버튼을 누르시오, {honorific}.",
   "다나까": "{honorific}, 시작 버튼 안 누릅니까? 기다리고 있습니다."
 };
+
+// Use HarmCategory and HarmBlockThreshold enums for correct typing
+const SAFETY_SETTINGS = [
+  { category: HarmCategory.HARM_CATEGORY_HARASSMENT, threshold: HarmBlockThreshold.BLOCK_LOW_AND_ABOVE },
+  { category: HarmCategory.HARM_CATEGORY_HATE_SPEECH, threshold: HarmBlockThreshold.BLOCK_LOW_AND_ABOVE },
+  { category: HarmCategory.HARM_CATEGORY_SEXUALLY_EXPLICIT, threshold: HarmBlockThreshold.BLOCK_LOW_AND_ABOVE },
+  { category: HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT, threshold: HarmBlockThreshold.BLOCK_LOW_AND_ABOVE },
+];
 
 interface SetupScreenProps {
   onComplete: (profile: CharacterProfile) => void;
@@ -104,9 +113,14 @@ export const SetupScreen: React.FC<SetupScreenProps> = ({ onComplete }) => {
       const prompt = `
         Character: ${name}, User: ${userName}, Tone: ${selectedTone}, Personality: ${selectedPersonalities.join(', ')}
         Task: Create 3 NEW immersive roleplay dialogue options in Korean for ONLY this situation: "${situations[currentQuizStep]}".
-        Format: JSON Object with single key: "${targetKey}" (Array of 3 strings).
+        
+        Constraints:
+        - Length: Each option must be at least 10 characters and within 20 characters.
+        - Safety: This app is for students. NO sexual, 18+, violent, or inappropriate content.
+        - Format: JSON Object with single key: "${targetKey}" (Array of 3 strings).
       `;
 
+      // Fixed: Move safetySettings inside config
       const response = await ai.models.generateContent({
         model: 'gemini-3-flash-preview',
         contents: prompt,
@@ -115,8 +129,9 @@ export const SetupScreen: React.FC<SetupScreenProps> = ({ onComplete }) => {
           responseSchema: {
             type: Type.OBJECT,
             properties: { [targetKey]: { type: Type.ARRAY, items: { type: Type.STRING } } }
-          }
-        }
+          },
+          safetySettings: SAFETY_SETTINGS
+        },
       });
 
       const parsed = JSON.parse(response.text || '{}');
@@ -147,8 +162,13 @@ export const SetupScreen: React.FC<SetupScreenProps> = ({ onComplete }) => {
         Character Name: ${name}, User Name: ${userName}, Bias calls user: ${honorific || userName}
         Gender: ${gender}, TMI: ${processedTmi}, Style: ${selectedTone}, Personality: [${selectedPersonalities.join(', ')}]
         Task: Create 3 immersive roleplay dialogue options in Korean for 3 situations: 1. late_options, 2. gift_options, 3. lazy_options.
-        Format: JSON Object.
+        
+        Constraints:
+        - Length: Each sentence must be at least 10 characters and within 20 characters.
+        - Safety: This app is for students. STRICTLY FORBID sexual, 18+, or inappropriate content.
+        - Format: JSON Object.
       `;
+      // Fixed: Move safetySettings inside config
       const response = await ai.models.generateContent({
         model: 'gemini-3-flash-preview',
         contents: prompt,
@@ -161,8 +181,9 @@ export const SetupScreen: React.FC<SetupScreenProps> = ({ onComplete }) => {
                gift_options: { type: Type.ARRAY, items: { type: Type.STRING } },
                lazy_options: { type: Type.ARRAY, items: { type: Type.STRING } },
             }
-          }
-        }
+          },
+          safetySettings: SAFETY_SETTINGS
+        },
       });
       const parsed = JSON.parse(response.text || '{}');
       setQuizData(parsed);
