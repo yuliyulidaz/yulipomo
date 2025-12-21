@@ -368,6 +368,11 @@ export const TimerScreen: React.FC<TimerScreenProps> = ({
   const progressPercent = Math.min(100, (profile.xp / currentXpTarget) * 100);
   const shouldHideCharacter = isBreak && timeLeft > 60;
 
+  // --- 게이지 바 진행률 계산 ---
+  const focusTimeTotal = 25 * 60;
+  const currentSegmentProgress = !isBreak ? (focusTimeTotal - timeLeft) / focusTimeTotal : 0;
+  const overallProgressPercent = ((sessionInCycle + currentSegmentProgress) / 4) * 100;
+
   return (
     <div className="relative w-full h-screen flex bg-background text-text-primary overflow-hidden font-sans">
       {profile.imageSrc && (
@@ -468,20 +473,51 @@ export const TimerScreen: React.FC<TimerScreenProps> = ({
                 <p className="text-text-secondary text-[10px] md:text-[11px] font-bold tracking-widest uppercase">To. {profile.honorific || profile.userName || "나"}</p>
             </div>
 
-            <div className="flex flex-col items-center gap-2">
-                <div className="flex gap-1.5">
-                  {[1, 2, 3, 4].map((i) => (
-                    <div 
-                      key={i} 
-                      className={`w-2 h-2 rounded-full transition-all duration-500 ${i <= sessionInCycle ? 'bg-primary scale-125' : 'bg-border'}`} 
-                    />
-                  ))}
-                </div>
-                <span className="text-[9px] font-bold text-text-secondary uppercase tracking-widest">Current Cycle</span>
-            </div>
-
             <div className="text-6xl md:text-7xl font-bold tracking-tighter text-text-primary tabular-nums">
                 {formatTime(timeLeft)}
+            </div>
+
+            {/* --- 신규 사이클 진행 게이지 바 --- */}
+            <div className="w-full max-w-[280px] space-y-3 mt-1">
+                <div className="relative h-2 bg-border/40 rounded-full overflow-visible">
+                    {/* 진행 중인 게이지 바 */}
+                    <div 
+                        className={`absolute top-0 left-0 h-full rounded-full transition-all duration-1000 ease-out ${
+                            isBreak 
+                            ? 'bg-gradient-to-r from-success to-emerald-400 animate-pulse-slow' 
+                            : 'bg-gradient-to-r from-primary to-primary-light'
+                        }`}
+                        style={{ width: `${overallProgressPercent}%` }}
+                    />
+                    
+                    {/* 마일스톤 다이아몬드 아이콘들 */}
+                    {[1, 2, 3, 4].map((i) => {
+                        const pos = i * 25;
+                        const isReached = overallProgressPercent >= pos;
+                        const isLast = i === 4;
+                        return (
+                            <div 
+                                key={i}
+                                className="absolute top-1/2 -translate-y-1/2 -translate-x-1/2 flex flex-col items-center gap-1.5"
+                                style={{ left: `${pos}%` }}
+                            >
+                                <div className={`transform rotate-45 transition-all duration-700 border-2 ${
+                                    isReached 
+                                    ? (isBreak && sessionInCycle === i ? 'bg-success border-success scale-125 shadow-lg' : 'bg-primary border-primary scale-110') 
+                                    : 'bg-surface border-border scale-100'
+                                } ${isLast ? 'w-3 h-3' : 'w-2 h-2'}`} />
+                                <span className={`text-[9px] font-black transition-colors duration-500 ${isReached ? 'text-primary' : 'text-text-secondary/40'}`}>
+                                    {i}
+                                </span>
+                            </div>
+                        );
+                    })}
+                </div>
+                <div className="w-full text-center">
+                    <span className="text-[9px] font-black text-text-secondary/60 uppercase tracking-widest">
+                        {isBreak ? "Break Time Shimmer" : "Path to Productivity"}
+                    </span>
+                </div>
             </div>
 
             <div className="flex items-center gap-6 md:gap-8 mt-2">
