@@ -74,28 +74,29 @@ export const TimerScreen: React.FC<TimerScreenProps> = ({
   const [isActive, setIsActive] = useState(false);
   const [isBreak, setIsBreak] = useState(false);
   const [message, setMessage] = useState(profile.initialGreeting || "시작할까?");
-  const [sessionInCycle, setSessionInCycle] = useState(0); // 0~4
+  const [sessionInCycle, setSessionInCycle] = useState(0); 
   const [showChoiceModal, setShowChoiceModal] = useState(false);
   
   const isRefillingRef = useRef<Record<string, boolean>>({});
-  const randomEncouragementTimerRef = useRef<NodeJS.Timeout | null>(null);
+  // 브라우저 호환성을 위해 number 타입 사용
+  const randomEncouragementTimerRef = useRef<number | null>(null);
 
   useEffect(() => {
     if (message) {
-      const timer = setTimeout(() => {
+      const timer = window.setTimeout(() => {
         setMessage(""); 
       }, 7000);
-      return () => clearTimeout(timer);
+      return () => window.clearTimeout(timer);
     }
   }, [message]);
 
   const refillCategory = useCallback(async (category: keyof typeof profile.dialogueCache, count: number = 5) => {
-    const activeKey = profile.apiKey || process.env.API_KEY;
-    if (isRefillingRef.current[category] || !activeKey) return;
-    isRefillingRef.current[category] = true;
+    const categoryKey = String(category);
+    if (isRefillingRef.current[categoryKey]) return;
+    isRefillingRef.current[categoryKey] = true;
 
     try {
-      const ai = new GoogleGenAI({ apiKey: activeKey });
+      const ai = new GoogleGenAI({ apiKey: profile.apiKey });
       const getMood = () => {
         if (profile.level <= 3) return "Cold, Strict, Minimalist";
         if (profile.level <= 7) return "Friendly, Warm, Helpful";
@@ -112,7 +113,7 @@ export const TimerScreen: React.FC<TimerScreenProps> = ({
       };
 
       const prompt = `Roleplay as ${profile.name}. User: ${profile.userName}. Mood: ${getMood()}. 
-        Personality: ${profile.personality.join(', ')}. Situation: ${situations[category]}. 
+        Personality: ${profile.personality.join(', ')}. Situation: ${situations[categoryKey]}. 
         Task: Write ${count} DIFFERENT short immersive Korean sentences. 
         Use {honorific} for the user's name/title. No numbers, no quotes. Separate by Newline.
         Make them unique and creative, never repeat existing ones.`;
@@ -132,9 +133,9 @@ export const TimerScreen: React.FC<TimerScreenProps> = ({
         });
       }
     } catch (e) {
-      console.error(`Refill failed for ${category}`, e);
+      console.error(`Refill failed for ${categoryKey}`, e);
     } finally {
-      isRefillingRef.current[category] = false;
+      isRefillingRef.current[categoryKey] = false;
     }
   }, [profile, onUpdateProfile]);
 
@@ -213,16 +214,16 @@ export const TimerScreen: React.FC<TimerScreenProps> = ({
     if (isActive && !isBreak) {
       const startTimer = () => {
         const randomMinutes = Math.floor(Math.random() * 6) + 5;
-        randomEncouragementTimerRef.current = setTimeout(() => {
+        randomEncouragementTimerRef.current = window.setTimeout(() => {
           triggerAIResponse('IDLE');
           startTimer();
-        }, randomMinutes * 60 * 1000);
+        }, randomMinutes * 60 * 1000) as unknown as number;
       };
       startTimer();
     } else {
-      if (randomEncouragementTimerRef.current) clearTimeout(randomEncouragementTimerRef.current);
+      if (randomEncouragementTimerRef.current) window.clearTimeout(randomEncouragementTimerRef.current);
     }
-    return () => { if (randomEncouragementTimerRef.current) clearTimeout(randomEncouragementTimerRef.current); };
+    return () => { if (randomEncouragementTimerRef.current) window.clearTimeout(randomEncouragementTimerRef.current); };
   }, [isActive, isBreak, triggerAIResponse, refillCategory]);
 
   useEffect(() => {
@@ -270,11 +271,11 @@ export const TimerScreen: React.FC<TimerScreenProps> = ({
     
     if (option === 'LONG') {
       setTimeLeft(30 * 60);
-      onTickXP(5); // 기본 XP 외 추가 (총 10정도 유도)
+      onTickXP(5); 
       triggerAIResponse('CYCLE_LONG');
     } else {
       setTimeLeft(5 * 60);
-      onTickXP(25); // 대폭 상승 보너스 (총 30)
+      onTickXP(25); 
       triggerAIResponse('CYCLE_SHORT');
     }
   };
