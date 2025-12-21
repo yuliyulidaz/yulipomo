@@ -309,7 +309,7 @@ const FALLBACK_TEMPLATES: Record<string, Record<string, string[]>> = {
   }
 };
 
-const COOLDOWN_MS = 60000; // 1 minute cooldown
+const COOLDOWN_MS = 10000; // 10 seconds cooldown
 
 export const TimerScreen: React.FC<TimerScreenProps> = ({ 
   profile, onReset, onTickXP, onUpdateProfile, onSessionComplete 
@@ -776,7 +776,7 @@ export const TimerScreen: React.FC<TimerScreenProps> = ({
                             strokeDasharray="384"
                             strokeDashoffset={384 - (384 * (cooldownRemaining / COOLDOWN_MS))}
                             strokeLinecap="round"
-                            className="transition-all duration-150 ease-linear"
+                            style={{ transition: 'stroke-dashoffset 0.1s linear' }}
                           />
                         </svg>
                       </div>
@@ -785,6 +785,7 @@ export const TimerScreen: React.FC<TimerScreenProps> = ({
                     <div 
                       onClick={handleCharacterClick}
                       className={`w-32 h-32 md:w-44 md:h-44 rounded-2xl border-4 overflow-hidden shadow-xl mx-auto transition-all duration-500 group-hover:scale-105 group-hover:border-primary cursor-pointer active:scale-95 ${isDarkMode ? 'border-slate-800' : 'border-border'}`}
+                      style={{ transform: 'translateZ(0)', WebkitTransform: 'translateZ(0)' }}
                     >
                         <img src={profile.imageSrc || ''} alt={profile.name} className="w-full h-full object-cover" />
                     </div>
