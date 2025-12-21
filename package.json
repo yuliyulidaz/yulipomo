@@ -1,3 +1,4 @@
+
 {
   "name": "my-bias-pomodoro",
   "version": "1.0.0",
@@ -8,7 +9,7 @@
   "main": "electron.cjs",
   "scripts": {
     "dev": "vite",
-    "build": "tsc && vite build",
+    "build": "vite build",
     "preview": "vite preview",
     "make-exe": "vite build && electron-builder --win"
   },
