@@ -70,15 +70,55 @@ const FALLBACK_TEMPLATES: Record<string, Record<string, string>> = {
 export const TimerScreen: React.FC<TimerScreenProps> = ({ 
   profile, onReset, onTickXP, onUpdateProfile, onSessionComplete 
 }) => {
-  const [timeLeft, setTimeLeft] = useState(25 * 60);
-  const [isActive, setIsActive] = useState(false);
-  const [isBreak, setIsBreak] = useState(false);
+  // 초기값 복구 로직
+  const [timeLeft, setTimeLeft] = useState(profile.savedTimeLeft ?? 25 * 60);
+  const [isActive, setIsActive] = useState(profile.savedIsActive ?? false);
+  const [isBreak, setIsBreak] = useState(profile.savedIsBreak ?? false);
+  const [sessionInCycle, setSessionInCycle] = useState(profile.savedSessionInCycle ?? 0); 
   const [message, setMessage] = useState(profile.initialGreeting || "시작할까?");
-  const [sessionInCycle, setSessionInCycle] = useState(0); 
   const [showChoiceModal, setShowChoiceModal] = useState(false);
   
   const isRefillingRef = useRef<Record<string, boolean>>({});
   const randomEncouragementTimerRef = useRef<any>(null);
+  const wakeLockRef = useRef<any>(null);
+
+  // --- 모바일 화면 유지 (Wake Lock) ---
+  useEffect(() => {
+    const requestWakeLock = async () => {
+      if ('wakeLock' in navigator && isActive) {
+        try {
+          wakeLockRef.current = await (navigator as any).wakeLock.request('screen');
+        } catch (err) {
+          console.error("Wake Lock failed", err);
+        }
+      }
+    };
+    
+    if (isActive) {
+      requestWakeLock();
+    } else {
+      if (wakeLockRef.current) {
+        wakeLockRef.current.release().then(() => {
+          wakeLockRef.current = null;
+        });
+      }
+    }
+
+    return () => {
+      if (wakeLockRef.current) wakeLockRef.current.release();
+    };
+  }, [isActive]);
+
+  // --- 상태 로컬 저장 (새로고침 대비) ---
+  useEffect(() => {
+    onUpdateProfile({
+      savedTimeLeft: timeLeft,
+      savedIsActive: isActive,
+      savedIsBreak: isBreak,
+      savedSessionInCycle: sessionInCycle,
+      lastActive: Date.now()
+    });
+  }, [timeLeft, isActive, isBreak, sessionInCycle, onUpdateProfile]);
 
   useEffect(() => {
     if (message) {
@@ -227,7 +267,7 @@ export const TimerScreen: React.FC<TimerScreenProps> = ({
 
   useEffect(() => {
     if (isBreak) {
-      setIsActive(true);
+      // 휴식 시간 중에는 API 캐시 보충
       ['click', 'idle', 'scolding', 'praising', 'start', 'pause'].forEach(cat => {
         refillCategory(cat as any, 5);
       });
@@ -242,6 +282,7 @@ export const TimerScreen: React.FC<TimerScreenProps> = ({
 
   const handleTimerFinish = () => {
     if (!isBreak) {
+      // 집중 세션 종료
       onSessionComplete(true);
       const nextSessionCount = sessionInCycle + 1;
       setSessionInCycle(nextSessionCount);
@@ -255,10 +296,18 @@ export const TimerScreen: React.FC<TimerScreenProps> = ({
         setTimeLeft(5 * 60); 
       }
     } else {
+      // 휴식 세션 종료
       setIsBreak(false);
-      setIsActive(false);
       setTimeLeft(25 * 60);
-      triggerAIResponse('IDLE');
+      
+      // --- 자동 시작 로직 (2번째 세션부터) ---
+      if (sessionInCycle > 0) {
+        setIsActive(true);
+        triggerAIResponse('START');
+      } else {
+        setIsActive(false);
+        triggerAIResponse('IDLE');
+      }
     }
   };
 
