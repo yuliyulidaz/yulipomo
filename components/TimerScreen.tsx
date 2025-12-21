@@ -70,7 +70,6 @@ const FALLBACK_TEMPLATES: Record<string, Record<string, string>> = {
 export const TimerScreen: React.FC<TimerScreenProps> = ({ 
   profile, onReset, onTickXP, onUpdateProfile, onSessionComplete 
 }) => {
-  // 초기값 복구 로직
   const [timeLeft, setTimeLeft] = useState(profile.savedTimeLeft ?? 25 * 60);
   const [isActive, setIsActive] = useState(profile.savedIsActive ?? false);
   const [isBreak, setIsBreak] = useState(profile.savedIsBreak ?? false);
@@ -82,7 +81,6 @@ export const TimerScreen: React.FC<TimerScreenProps> = ({
   const randomEncouragementTimerRef = useRef<any>(null);
   const wakeLockRef = useRef<any>(null);
 
-  // --- 모바일 화면 유지 (Wake Lock) ---
   useEffect(() => {
     const requestWakeLock = async () => {
       if ('wakeLock' in navigator && isActive) {
@@ -109,7 +107,6 @@ export const TimerScreen: React.FC<TimerScreenProps> = ({
     };
   }, [isActive]);
 
-  // --- 상태 로컬 저장 (새로고침 대비) ---
   useEffect(() => {
     onUpdateProfile({
       savedTimeLeft: timeLeft,
@@ -209,7 +206,6 @@ export const TimerScreen: React.FC<TimerScreenProps> = ({
     if (cachedList && cachedList.length > 0) {
         const randomIndex = Math.floor(Math.random() * cachedList.length);
         const randomMsg = cachedList[randomIndex];
-        // {honorific}, {이름}, {user} 등 다양한 형태의 플레이스홀더를 유저의 호칭으로 치환
         const finalMsg = randomMsg
           .replace(/{honorific}/g, userDisplayName)
           .replace(/{이름}/g, userDisplayName)
@@ -227,7 +223,6 @@ export const TimerScreen: React.FC<TimerScreenProps> = ({
         const toneKey = profile.personality.find(p => FALLBACK_TEMPLATES[p]) || "존댓말";
         const template = FALLBACK_TEMPLATES[toneKey];
         const rawMsg = template[type] || "...";
-        // {honorific}, {이름}, {user} 등 다양한 형태의 플레이스홀더를 유저의 호칭으로 치환
         const finalMsg = rawMsg
           .replace(/{honorific}/g, userDisplayName)
           .replace(/{이름}/g, userDisplayName)
@@ -275,7 +270,6 @@ export const TimerScreen: React.FC<TimerScreenProps> = ({
 
   useEffect(() => {
     if (isBreak) {
-      // 휴식 시간 중에는 API 캐시 보충
       ['click', 'idle', 'scolding', 'praising', 'start', 'pause'].forEach(cat => {
         refillCategory(cat as any, 5);
       });
@@ -290,7 +284,6 @@ export const TimerScreen: React.FC<TimerScreenProps> = ({
 
   const handleTimerFinish = () => {
     if (!isBreak) {
-      // 집중 세션 종료
       onSessionComplete(true);
       const nextSessionCount = sessionInCycle + 1;
       setSessionInCycle(nextSessionCount);
@@ -304,11 +297,9 @@ export const TimerScreen: React.FC<TimerScreenProps> = ({
         setTimeLeft(5 * 60); 
       }
     } else {
-      // 휴식 세션 종료
       setIsBreak(false);
       setTimeLeft(25 * 60);
       
-      // --- 자동 시작 로직 (2번째 세션부터) ---
       if (sessionInCycle > 0) {
         setIsActive(true);
         triggerAIResponse('START');
@@ -365,22 +356,22 @@ export const TimerScreen: React.FC<TimerScreenProps> = ({
   const shouldHideCharacter = isBreak && timeLeft > 60;
 
   return (
-    <div className="relative w-full h-screen flex bg-gray-900 text-white overflow-hidden font-sans">
+    <div className="relative w-full h-screen flex bg-background text-text-primary overflow-hidden font-sans">
       {profile.imageSrc && (
-        <div className="absolute inset-0 z-0 opacity-30">
-          <img src={profile.imageSrc} alt="Background" className="w-full h-full object-cover blur-sm scale-110" />
+        <div className="absolute inset-0 z-0 opacity-10">
+          <img src={profile.imageSrc} alt="Background" className="w-full h-full object-cover blur-md scale-110" />
         </div>
       )}
 
       {showChoiceModal && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-md animate-in fade-in duration-300">
-          <div className="w-full max-w-sm bg-gray-900 border border-white/20 p-8 rounded-[40px] shadow-2xl text-center space-y-6 transform animate-in zoom-in-95 duration-300">
-            <div className="w-20 h-20 bg-indigo-500/20 rounded-3xl flex items-center justify-center mx-auto text-indigo-400">
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-primary-dark/40 backdrop-blur-md animate-in fade-in duration-300">
+          <div className="w-full max-w-sm bg-surface border border-border p-8 rounded-3xl shadow-2xl text-center space-y-6 transform animate-in zoom-in-95 duration-300">
+            <div className="w-20 h-20 bg-primary/10 rounded-3xl flex items-center justify-center mx-auto text-primary">
               <CheckCircle2 size={48} />
             </div>
             <div className="space-y-2">
-              <h3 className="text-xl font-black text-white">1사이클(4세트) 달성!</h3>
-              <p className="text-sm text-gray-400 leading-relaxed">
+              <h3 className="text-xl font-bold text-text-primary">1사이클(4세트) 달성!</h3>
+              <p className="text-sm text-text-secondary leading-relaxed">
                 정말 대단해요! 이제 어떻게 할까요?<br/>
                 열심히 한 당신을 위해 선택지를 준비했어요.
               </p>
@@ -388,17 +379,17 @@ export const TimerScreen: React.FC<TimerScreenProps> = ({
             <div className="grid grid-cols-1 gap-3 pt-2">
               <button 
                 onClick={() => handleCycleChoice('LONG')}
-                className="w-full py-4 px-6 bg-white/5 hover:bg-white/10 border border-white/10 rounded-2xl text-sm font-bold transition-all active:scale-95 flex flex-col items-center gap-1 group"
+                className="w-full py-4 px-6 bg-background hover:bg-border border border-border rounded-2xl text-sm font-bold transition-all active:scale-95 flex flex-col items-center gap-1 group"
               >
-                <span>푹 쉴게 (30분 휴식)</span>
-                <span className="text-[10px] text-indigo-400 font-black uppercase tracking-widest opacity-60 group-hover:opacity-100">Reward: XP +10</span>
+                <span className="text-text-primary">푹 쉴게 (30분 휴식)</span>
+                <span className="text-[10px] text-primary font-black uppercase tracking-widest opacity-60">Reward: XP +10</span>
               </button>
               <button 
                 onClick={() => handleCycleChoice('SHORT')}
-                className="w-full py-4 px-6 bg-indigo-600 hover:bg-indigo-500 border border-indigo-400/30 rounded-2xl text-sm font-bold transition-all active:scale-95 flex flex-col items-center gap-1 group shadow-lg shadow-indigo-600/20"
+                className="w-full py-4 px-6 bg-primary hover:bg-primary-light border border-primary-dark/10 rounded-2xl text-sm font-bold transition-all active:scale-95 flex flex-col items-center gap-1 group shadow-lg shadow-primary/20"
               >
-                <span>아냐, 5분만 쉴래 (열공 모드)</span>
-                <span className="text-[10px] text-white/90 font-black uppercase tracking-widest">Bonus: XP +30 🔥</span>
+                <span className="text-white">아냐, 5분만 쉴래 (열공 모드)</span>
+                <span className="text-[10px] text-accent-soft font-black uppercase tracking-widest">Bonus: XP +30 🔥</span>
               </button>
             </div>
           </div>
@@ -406,68 +397,74 @@ export const TimerScreen: React.FC<TimerScreenProps> = ({
       )}
 
       <main className="w-full h-full flex flex-col items-center justify-center relative z-10 p-4 md:p-8">
-          <div className="w-full max-w-md bg-white/10 backdrop-blur-2xl border border-white/20 p-6 md:p-8 rounded-[48px] shadow-2xl flex flex-col items-center gap-6 md:gap-8 animate-in fade-in zoom-in duration-500 relative">
+          <div className="w-full max-w-md bg-surface/90 backdrop-blur-xl border border-border p-6 md:p-8 rounded-[40px] shadow-[0_20px_50px_rgba(74,95,122,0.1)] flex flex-col items-center gap-6 md:gap-8 animate-in fade-in zoom-in duration-500 relative">
             <div className="w-full flex justify-between items-center">
-                <div className="flex items-center gap-2 bg-black/40 px-4 py-2 rounded-full border border-white/10 shadow-inner">
-                    <Heart size={14} className="text-rose-400 fill-rose-400 animate-pulse" />
-                    <span className="text-sm font-black tracking-tight">Lv.{profile.level}</span>
+                <div className="flex items-center gap-2 bg-background px-4 py-2 rounded-full border border-border shadow-inner">
+                    <Heart size={14} className="text-accent fill-accent animate-pulse" />
+                    <span className="text-sm font-bold tracking-tight text-text-primary">Lv.{profile.level}</span>
                 </div>
-                <button onClick={onReset} className="p-2.5 bg-black/20 hover:bg-rose-500/20 rounded-full transition-all text-white/30 hover:text-rose-400 border border-transparent hover:border-rose-500/30">
+                <button onClick={onReset} className="p-2.5 hover:bg-rose-50 rounded-full transition-all text-text-secondary hover:text-rose-500 border border-transparent hover:border-rose-100">
                     <X size={20} />
                 </button>
             </div>
 
-            <div className="relative group mt-2 md:mt-6 min-h-[180px] md:min-h-[220px] flex items-center justify-center w-full">
+            <div className="relative group mt-2 md:mt-4 min-h-[180px] md:min-h-[220px] flex items-center justify-center w-full">
                 {shouldHideCharacter ? (
-                  <div className="flex flex-col items-center gap-4 animate-pulse text-indigo-300/80">
-                    <Bed size={60} className="md:size-20 drop-shadow-glow" />
+                  <div className="flex flex-col items-center gap-4 animate-pulse text-primary-light/40">
+                    <Bed size={60} className="md:size-20" />
+                    <p className="text-[10px] font-bold uppercase tracking-widest">Sleeping...</p>
                   </div>
                 ) : (
                   <>
                     <div 
                       onClick={() => !isBreak && triggerAIResponse('CLICK')}
-                      className="w-32 h-32 md:w-44 md:h-44 rounded-full border-4 border-indigo-400/30 overflow-hidden shadow-2xl mx-auto ring-8 ring-white/5 transition-all duration-500 group-hover:scale-105 group-hover:border-indigo-400/60 cursor-pointer active:scale-95"
+                      className="w-32 h-32 md:w-44 md:h-44 rounded-2xl border-4 border-border overflow-hidden shadow-xl mx-auto transition-all duration-500 group-hover:scale-105 group-hover:border-primary cursor-pointer active:scale-95"
                     >
                         <img src={profile.imageSrc || ''} alt={profile.name} className="w-full h-full object-cover" />
                     </div>
-                    <div key={message} className={`absolute -top-12 md:-top-16 left-1/2 transform -translate-x-1/2 w-64 md:w-72 text-center z-20 transition-all duration-500 animate-in fade-in slide-in-from-bottom-2 pointer-events-none ${message ? 'opacity-100 translate-y-0 scale-100' : 'opacity-0 translate-y-4 scale-95'}`}>
-                        <div className="bg-black/70 backdrop-blur-xl border border-white/10 text-white/90 text-xs md:text-sm font-bold px-6 md:px-8 py-3 md:py-4 rounded-[28px] shadow-2xl ring-1 ring-white/5 leading-relaxed">
-                            "{message}"
-                        </div>
-                    </div>
+                    {message && (
+                      <div className="absolute -top-14 md:-top-16 left-1/2 transform -translate-x-1/2 w-64 md:w-72 text-center z-20 transition-all duration-500 animate-in fade-in slide-in-from-bottom-2 pointer-events-none">
+                          <div className="bg-text-primary text-surface text-xs md:text-sm font-medium px-6 md:px-8 py-3 md:py-4 rounded-2xl shadow-xl leading-relaxed relative">
+                              "{message}"
+                              <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 w-4 h-4 bg-text-primary rotate-45"></div>
+                          </div>
+                      </div>
+                    )}
                   </>
                 )}
             </div>
 
             <div className="text-center space-y-1">
-                <h2 className="text-3xl md:text-4xl font-black text-white drop-shadow-lg tracking-tight">{profile.name}</h2>
-                <p className="text-white/50 text-[11px] md:text-sm font-bold tracking-widest uppercase">To. {profile.honorific || profile.userName || "나"}</p>
+                <h2 className="text-3xl md:text-4xl font-bold text-text-primary tracking-tight">{profile.name}</h2>
+                <p className="text-text-secondary text-[10px] md:text-[11px] font-bold tracking-widest uppercase">To. {profile.honorific || profile.userName || "나"}</p>
             </div>
 
             <div className="flex flex-col items-center gap-2">
-                <div className="flex gap-2">
+                <div className="flex gap-1.5">
                   {[1, 2, 3, 4].map((i) => (
-                    <Pencil 
+                    <div 
                       key={i} 
-                      size={16} 
-                      className={`transition-all duration-500 ${i <= sessionInCycle ? 'text-white fill-white scale-110 drop-shadow-[0_0_5px_rgba(255,255,255,0.5)]' : 'text-white/20'}`} 
+                      className={`w-2 h-2 rounded-full transition-all duration-500 ${i <= sessionInCycle ? 'bg-primary scale-125' : 'bg-border'}`} 
                     />
                   ))}
                 </div>
-                <span className="text-[10px] font-bold text-white/40 uppercase tracking-widest">이번 사이클</span>
+                <span className="text-[9px] font-bold text-text-secondary uppercase tracking-widest">Current Cycle</span>
             </div>
 
-            <div className="text-6xl md:text-8xl font-mono font-black tracking-tighter text-white drop-shadow-[0_10px_20px_rgba(0,0,0,0.5)] tabular-nums">
+            <div className="text-6xl md:text-7xl font-bold tracking-tighter text-text-primary tabular-nums">
                 {formatTime(timeLeft)}
             </div>
 
-            <div className="w-full space-y-2.5">
-                <div className="flex justify-between text-[10px] md:text-[11px] font-black text-white/40 uppercase tracking-widest">
-                    <span>호감도 진행률</span>
-                    <span>{progressPercent.toFixed(0)}%</span>
+            <div className="w-full space-y-2">
+                <div className="flex justify-between text-[9px] font-bold text-text-secondary uppercase tracking-widest">
+                    <span>Affinity Progress</span>
+                    <span className="text-accent">{progressPercent.toFixed(0)}%</span>
                 </div>
-                <div className="h-2.5 md:h-3 w-full bg-black/40 rounded-full overflow-hidden p-[2px] border border-white/5 shadow-inner">
-                    <div className="h-full bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 rounded-full transition-all duration-1000 ease-out shadow-[0_0_15px_rgba(99,102,241,0.5)]" style={{ width: `${progressPercent}%` }} />
+                <div className="h-1.5 w-full bg-background rounded-full overflow-hidden border border-border">
+                    <div 
+                      className="h-full bg-gradient-to-r from-primary to-accent transition-all duration-1000 ease-out" 
+                      style={{ width: `${progressPercent}%` }} 
+                    />
                 </div>
             </div>
 
@@ -479,10 +476,9 @@ export const TimerScreen: React.FC<TimerScreenProps> = ({
                           else triggerAIResponse('PAUSE');
                           setIsActive(!isActive);
                       }}
-                      className={`w-20 h-20 md:w-24 md:h-24 rounded-[28px] md:rounded-[32px] flex items-center justify-center shadow-2xl transition-all active:scale-90 group relative overflow-hidden ${isActive ? 'bg-amber-500 hover:bg-amber-600 text-white shadow-amber-500/20' : 'bg-indigo-600 hover:bg-indigo-700 text-white shadow-indigo-500/20'}`}
+                      className={`w-16 h-16 md:w-20 md:h-20 rounded-2xl flex items-center justify-center shadow-lg transition-all active:scale-90 group relative overflow-hidden ${isActive ? 'bg-warning text-white' : 'bg-primary text-white hover:bg-primary-light'}`}
                   >
-                      {isActive ? <Pause className="w-8 h-8 md:w-10 md:h-10" fill="currentColor" /> : <Play className="w-8 h-8 md:w-10 md:h-10 ml-1 md:ml-2" fill="currentColor" />}
-                      <div className="absolute inset-0 bg-white/10 opacity-0 group-hover:opacity-100 transition-opacity"></div>
+                      {isActive ? <Pause className="w-7 h-7 md:w-8 md:h-8" fill="currentColor" /> : <Play className="w-7 h-7 md:w-8 md:h-8 ml-1" fill="currentColor" />}
                   </button>
                 )}
                 <button 
@@ -490,22 +486,22 @@ export const TimerScreen: React.FC<TimerScreenProps> = ({
                         setIsActive(false);
                         setTimeLeft(isBreak ? (sessionInCycle === 0 ? 30 * 60 : 5 * 60) : 25 * 60);
                     }}
-                    className="w-14 h-14 md:w-16 md:h-16 rounded-[20px] md:rounded-[24px] bg-white/5 hover:bg-white/10 flex items-center justify-center backdrop-blur-md transition-all border border-white/10 text-white/60 hover:text-white active:scale-95 shadow-xl"
+                    className="w-12 h-12 md:w-14 md:h-14 rounded-xl bg-background hover:bg-border flex items-center justify-center transition-all border border-border text-text-secondary hover:text-text-primary active:scale-95 shadow-sm"
                 >
-                    <RotateCcw className="w-6 h-6 md:w-7 md:h-7" />
+                    <RotateCcw className="w-5 h-5 md:w-6 md:h-6" />
                 </button>
             </div>
 
-            <div className={`mt-2 px-6 py-2 rounded-2xl text-[10px] md:text-[11px] font-black uppercase tracking-[0.15em] md:tracking-[0.2em] flex items-center gap-3 shadow-lg border border-white/5 ${isBreak ? 'bg-emerald-500/20 text-emerald-400' : 'bg-indigo-500/20 text-indigo-400'}`}>
+            <div className={`mt-2 px-6 py-2 rounded-xl text-[10px] md:text-[11px] font-bold uppercase tracking-widest flex items-center gap-2 border ${isBreak ? 'bg-success/10 border-success/20 text-success' : 'bg-primary/10 border-primary/20 text-primary'}`}>
                 {isBreak ? <Coffee size={14} /> : <TimerIcon size={14} />}
-                {isBreak ? "휴식 시간" : "집중 모드"}
+                {isBreak ? "Break Time" : "Focus Mode"}
             </div>
           </div>
       </main>
 
       <style>{`
         .drop-shadow-glow {
-          filter: drop-shadow(0 0 15px rgba(99, 102, 241, 0.4));
+          filter: drop-shadow(0 0 10px rgba(74, 95, 122, 0.3));
         }
       `}</style>
     </div>
