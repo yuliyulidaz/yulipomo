@@ -2,7 +2,8 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { Play, Pause, RotateCcw, X, Heart, Timer as TimerIcon, Coffee, Bed, CheckCircle2, Moon, Sun } from 'lucide-react';
 import { CharacterProfile } from '../types';
-import { GoogleGenAI } from "@google/genai";
+// Import HarmCategory and HarmBlockThreshold for correct typing
+import { GoogleGenAI, HarmCategory, HarmBlockThreshold } from "@google/genai";
 
 interface TimerScreenProps {
   profile: CharacterProfile;
@@ -26,6 +27,14 @@ const LEVEL_TITLES: Record<number, string> = {
   9: "애틋한 연인",
   10: "영원한 반려"
 };
+
+// Use HarmCategory and HarmBlockThreshold enums for correct typing
+const SAFETY_SETTINGS = [
+  { category: HarmCategory.HARM_CATEGORY_HARASSMENT, threshold: HarmBlockThreshold.BLOCK_LOW_AND_ABOVE },
+  { category: HarmCategory.HARM_CATEGORY_HATE_SPEECH, threshold: HarmBlockThreshold.BLOCK_LOW_AND_ABOVE },
+  { category: HarmCategory.HARM_CATEGORY_SEXUALLY_EXPLICIT, threshold: HarmBlockThreshold.BLOCK_LOW_AND_ABOVE },
+  { category: HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT, threshold: HarmBlockThreshold.BLOCK_LOW_AND_ABOVE },
+];
 
 const FALLBACK_TEMPLATES: Record<string, Record<string, string[]>> = {
   "반말": {
@@ -291,7 +300,7 @@ const FALLBACK_TEMPLATES: Record<string, Record<string, string[]>> = {
       "집중력 유지 중. 좋습니다.",
       "후방 지원 중입니다. 계속하십시오.",
       "거의 완료 단계입니다. 조금만 더!",
-      "상황 양호. 그대로 가십시오.",
+      "상황 양호. 그대로 가하십시오.",
       "지원 사격 중입니다. 힘내십시오.",
       "임무 진행 순조롭습니다. 파이팅!",
       "제가 지키고 있습니다. 끝까지 가십시오."
@@ -299,6 +308,8 @@ const FALLBACK_TEMPLATES: Record<string, Record<string, string[]>> = {
     READY: ["휴식 종료 임박! 위치로 돌아가십시오."]
   }
 };
+
+const COOLDOWN_MS = 12000; // 12 seconds cooldown
 
 export const TimerScreen: React.FC<TimerScreenProps> = ({ 
   profile, onReset, onTickXP, onUpdateProfile, onSessionComplete 
@@ -311,7 +322,13 @@ export const TimerScreen: React.FC<TimerScreenProps> = ({
   const [showChoiceModal, setShowChoiceModal] = useState(false);
   const [isDarkMode, setIsDarkMode] = useState(false);
   
+  // Click Cooldown State
+  const [cooldownRemaining, setCooldownRemaining] = useState(0);
+  const cooldownIntervalRef = useRef<any>(null);
+
   const isRefillingRef = useRef<Record<string, boolean>>({});
+  const isGlobalApiLockedRef = useRef<boolean>(false);
+  const refillQueueRef = useRef<Array<keyof typeof profile.dialogueCache>>([]);
   const randomEncouragementTimerRef = useRef<any>(null);
   const wakeLockRef = useRef<any>(null);
 
@@ -384,17 +401,25 @@ export const TimerScreen: React.FC<TimerScreenProps> = ({
 
       const prompt = `Roleplay as ${profile.name}. User: ${profile.userName}. Mood: ${getMood()}. 
         Personality: ${profile.personality.join(', ')}. Situation: ${situations[categoryKey]}. 
-        Task: Write ${count} DIFFERENT short immersive Korean sentences. 
-        Use {honorific} for the user's name/title. No numbers, no quotes. Separate by Newline.
+        Task: Write ${count} DIFFERENT immersive Korean sentences. 
+        
+        Constraints:
+        - Length: Each sentence must be AT LEAST 10 characters and AT MOST 20 characters long.
+        - Safety: This is an educational app for students. ABSOLUTELY FORBID sexual, 18+, violent, or inappropriate content.
+        - Format: Use {honorific} for the user's name/title. No numbers, no quotes. Separate by Newline.
         Make them unique and creative, never repeat existing ones.`;
 
+      // Fixed: Move safetySettings inside config
       const result = await ai.models.generateContent({
         model: 'gemini-3-flash-preview',
-        contents: prompt
+        contents: prompt,
+        config: {
+          safetySettings: SAFETY_SETTINGS
+        }
       });
 
       if (result.text) {
-        const newLines = result.text.split('\n').map(l => l.trim()).filter(l => l.length > 2);
+        const newLines = result.text.split('\n').map(l => l.trim()).filter(l => l.length >= 8);
         onUpdateProfile({
           dialogueCache: {
             ...profile.dialogueCache,
@@ -408,6 +433,33 @@ export const TimerScreen: React.FC<TimerScreenProps> = ({
       isRefillingRef.current[categoryKey] = false;
     }
   }, [profile, onUpdateProfile]);
+
+  const processRefillQueue = useCallback(async () => {
+    if (isGlobalApiLockedRef.current || refillQueueRef.current.length === 0) return;
+
+    let targetIndex = refillQueueRef.current.indexOf('click');
+    if (targetIndex === -1) targetIndex = 0;
+
+    const category = refillQueueRef.current.splice(targetIndex, 1)[0];
+    
+    isGlobalApiLockedRef.current = true;
+    await refillCategory(category, 5);
+
+    setTimeout(() => {
+      isGlobalApiLockedRef.current = false;
+    }, 12000);
+  }, [refillCategory]);
+
+  useEffect(() => {
+    const queueTimer = setInterval(processRefillQueue, 2000);
+    return () => clearInterval(queueTimer);
+  }, [processRefillQueue]);
+
+  const addToRefillQueue = useCallback((category: keyof typeof profile.dialogueCache) => {
+    if (!refillQueueRef.current.includes(category)) {
+      refillQueueRef.current.push(category);
+    }
+  }, []);
 
   const triggerAIResponse = useCallback((type: 'START' | 'FINISH' | 'DISTRACTION' | 'IDLE' | 'CLICK' | 'PAUSE' | 'READY' | 'RETURN' | 'CYCLE_LONG' | 'CYCLE_SHORT') => {
     const cacheKeyMap: Record<string, keyof typeof profile.dialogueCache> = {
@@ -451,7 +503,7 @@ export const TimerScreen: React.FC<TimerScreenProps> = ({
         onUpdateProfile({ dialogueCache: { ...profile.dialogueCache, [key]: newCacheList } });
 
         if (newCacheList.length <= 2) {
-          refillCategory(key, 3);
+          addToRefillQueue(key);
         }
     } else {
         const toneKey = profile.personality.find(p => FALLBACK_TEMPLATES[p]) || "존댓말";
@@ -464,9 +516,33 @@ export const TimerScreen: React.FC<TimerScreenProps> = ({
           .replace(/{user}/g, userDisplayName);
         
         setMessage(finalMsg);
-        refillCategory(key, 5);
+        addToRefillQueue(key);
     }
-  }, [profile, onUpdateProfile, refillCategory]);
+  }, [profile, onUpdateProfile, addToRefillQueue]);
+
+  // Click handler with Cooldown and Staring mode
+  const handleCharacterClick = () => {
+    if (isBreak) return;
+    
+    if (cooldownRemaining > 0) {
+      setMessage("가만히 바라보는 중...");
+      return;
+    }
+    
+    triggerAIResponse('CLICK');
+    
+    // Start Cooldown Logic
+    setCooldownRemaining(COOLDOWN_MS);
+    const start = Date.now();
+    
+    if (cooldownIntervalRef.current) clearInterval(cooldownIntervalRef.current);
+    cooldownIntervalRef.current = setInterval(() => {
+      const now = Date.now();
+      const left = Math.max(0, COOLDOWN_MS - (now - start));
+      setCooldownRemaining(left);
+      if (left <= 0) clearInterval(cooldownIntervalRef.current);
+    }, 100);
+  };
 
   useEffect(() => {
     let interval: any = null;
@@ -483,8 +559,9 @@ export const TimerScreen: React.FC<TimerScreenProps> = ({
 
   useEffect(() => {
     Object.keys(profile.dialogueCache).forEach(cat => {
-      if (profile.dialogueCache[cat as keyof typeof profile.dialogueCache].length < 3) {
-        refillCategory(cat as keyof typeof profile.dialogueCache, 5);
+      const category = cat as keyof typeof profile.dialogueCache;
+      if (profile.dialogueCache[category].length < 3) {
+        addToRefillQueue(category);
       }
     });
 
@@ -501,15 +578,15 @@ export const TimerScreen: React.FC<TimerScreenProps> = ({
       if (randomEncouragementTimerRef.current) window.clearTimeout(randomEncouragementTimerRef.current);
     }
     return () => { if (randomEncouragementTimerRef.current) window.clearTimeout(randomEncouragementTimerRef.current); };
-  }, [isActive, isBreak, triggerAIResponse, refillCategory]);
+  }, [isActive, isBreak, triggerAIResponse, addToRefillQueue]);
 
   useEffect(() => {
     if (isBreak) {
       ['click', 'idle', 'scolding', 'praising', 'start', 'pause'].forEach(cat => {
-        refillCategory(cat as any, 5);
+        addToRefillQueue(cat as any);
       });
     }
-  }, [isBreak, refillCategory]);
+  }, [isBreak, addToRefillQueue]);
 
   useEffect(() => {
     if (isBreak && timeLeft === 60) {
@@ -678,13 +755,45 @@ export const TimerScreen: React.FC<TimerScreenProps> = ({
                     <p className="text-[10px] font-bold uppercase tracking-widest">Sleeping...</p>
                   </div>
                 ) : (
-                  <>
+                  <div className="relative">
+                    {/* SVG Cooldown Staring Animation */}
+                    {cooldownRemaining > 0 && (
+                      <div className="absolute -inset-3 pointer-events-none z-10">
+                        <svg className="w-full h-full drop-shadow-[0_0_8px_rgba(74,95,122,0.5)]" viewBox="0 0 100 100" preserveAspectRatio="none">
+                          <rect 
+                            x="2" y="2" width="96" height="96" rx="12" 
+                            fill="none" 
+                            stroke={isDarkMode ? 'rgba(255,107,157,0.1)' : 'rgba(74,95,122,0.1)'} 
+                            strokeWidth="2"
+                          />
+                          <rect 
+                            x="2" y="2" width="96" height="96" rx="12" 
+                            fill="none" 
+                            stroke={isDarkMode ? '#FF6B9D' : '#4A5F7A'} 
+                            strokeWidth="3"
+                            strokeDasharray="384"
+                            strokeDashoffset={384 - (384 * (cooldownRemaining / COOLDOWN_MS))}
+                            strokeLinecap="round"
+                            className="transition-all duration-150 ease-linear"
+                          />
+                        </svg>
+                      </div>
+                    )}
+                    
                     <div 
-                      onClick={() => !isBreak && triggerAIResponse('CLICK')}
+                      onClick={handleCharacterClick}
                       className={`w-32 h-32 md:w-44 md:h-44 rounded-2xl border-4 overflow-hidden shadow-xl mx-auto transition-all duration-500 group-hover:scale-105 group-hover:border-primary cursor-pointer active:scale-95 ${isDarkMode ? 'border-slate-800' : 'border-border'}`}
                     >
                         <img src={profile.imageSrc || ''} alt={profile.name} className="w-full h-full object-cover" />
                     </div>
+
+                    {/* Staring Status Badge */}
+                    {cooldownRemaining > 0 && (
+                        <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 bg-primary/90 text-white text-[9px] font-black px-3 py-1 rounded-full whitespace-nowrap shadow-lg backdrop-blur-sm z-20 border border-white/20 animate-pulse">
+                            가만히 바라보는 중...
+                        </div>
+                    )}
+
                     {message && (
                       <div className="absolute -top-14 md:-top-16 left-1/2 transform -translate-x-1/2 w-64 md:w-72 text-center z-20 transition-all duration-500 animate-in fade-in slide-in-from-bottom-2 pointer-events-none">
                           <div className={`text-xs md:text-sm font-medium px-6 md:px-8 py-3 md:py-4 rounded-[20px] shadow-2xl leading-relaxed relative backdrop-blur-lg border transition-colors duration-500 ${isDarkMode ? 'bg-slate-900/80 border-white/10 text-slate-100 shadow-slate-900/50' : 'bg-surface/80 border-white/50 text-text-primary shadow-slate-200/50'}`}>
@@ -692,7 +801,7 @@ export const TimerScreen: React.FC<TimerScreenProps> = ({
                           </div>
                       </div>
                     )}
-                  </>
+                  </div>
                 )}
             </div>
 
