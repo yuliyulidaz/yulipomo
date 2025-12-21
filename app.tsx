@@ -14,7 +14,7 @@ function App() {
       const saved = localStorage.getItem('pomodoro_profile');
       if (!saved) return null;
       
-      const parsed = JSON.parse(saved);
+      const parsed = JSON.parse(saved) as CharacterProfile;
       const defaults = {
         userName: "유저",
         dialogueCache: { 
@@ -36,8 +36,20 @@ function App() {
       };
 
       const dialogueCache = { ...defaults.dialogueCache, ...parsed.dialogueCache };
+      let restoredProfile = { ...defaults, ...parsed, dialogueCache };
+
+      // --- 시간 복구 로직 (1시간 기준) ---
+      const now = Date.now();
+      const oneHourInMs = 60 * 60 * 1000;
       
-      return { ...defaults, ...parsed, dialogueCache };
+      if (restoredProfile.lastActive && (now - restoredProfile.lastActive > oneHourInMs)) {
+        // 1시간 초과: 시간 리셋 (호감도, 사이클은 유지)
+        restoredProfile.savedTimeLeft = 25 * 60;
+        restoredProfile.savedIsBreak = false;
+        restoredProfile.savedIsActive = false;
+      }
+      
+      return restoredProfile;
     } catch (e) {
       return null;
     }
@@ -71,7 +83,6 @@ function App() {
         localStorage.setItem('pomodoro_profile', JSON.stringify(lightProfile));
         console.warn("Cleared dialogue cache to save space.");
       } catch (e2) {
-        // 이미지 용량이 너무 커서 캐시를 비워도 안 되는 경우
         alert("저장 공간이 부족하여 설정을 저장할 수 없습니다. 이미지가 너무 크거나 브라우저 저장소가 가득 찼습니다.");
       }
     }
@@ -93,12 +104,11 @@ function App() {
       if (!prev) return null;
       let newProfile = { ...prev, ...updates };
 
-      // 대사 캐시 용량 제한 강제 적용 (FIFO: 최신 20개 유지)
+      // 대사 캐시 용량 제한 강제 적용
       if (updates.dialogueCache) {
         const currentCache = { ...newProfile.dialogueCache };
         (Object.keys(currentCache) as Array<keyof typeof currentCache>).forEach(key => {
           if (Array.isArray(currentCache[key]) && currentCache[key].length > MAX_CACHE_PER_CATEGORY) {
-            // 오래된 데이터를 버리고 최신 데이터만 남김
             currentCache[key] = currentCache[key].slice(-MAX_CACHE_PER_CATEGORY);
           }
         });
