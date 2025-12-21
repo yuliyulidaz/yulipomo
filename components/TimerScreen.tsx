@@ -466,9 +466,8 @@ export const TimerScreen: React.FC<TimerScreenProps> = ({
                     </div>
                     {message && (
                       <div className="absolute -top-14 md:-top-16 left-1/2 transform -translate-x-1/2 w-64 md:w-72 text-center z-20 transition-all duration-500 animate-in fade-in slide-in-from-bottom-2 pointer-events-none">
-                          <div className={`text-xs md:text-sm font-medium px-6 md:px-8 py-3 md:py-4 rounded-2xl shadow-xl leading-relaxed relative ${isDarkMode ? 'bg-slate-100 text-slate-900' : 'bg-text-primary text-surface'}`}>
+                          <div className={`text-xs md:text-sm font-medium px-6 md:px-8 py-3 md:py-4 rounded-[20px] shadow-2xl leading-relaxed relative backdrop-blur-lg border transition-colors duration-500 ${isDarkMode ? 'bg-slate-900/80 border-white/10 text-slate-100 shadow-slate-900/50' : 'bg-surface/80 border-white/50 text-text-primary shadow-slate-200/50'}`}>
                               "{message}"
-                              <div className={`absolute -bottom-2 left-1/2 -translate-x-1/2 w-4 h-4 rotate-45 ${isDarkMode ? 'bg-slate-100' : 'bg-text-primary'}`}></div>
                           </div>
                       </div>
                     )}
