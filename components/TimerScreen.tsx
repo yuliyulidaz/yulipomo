@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { Play, Pause, RotateCcw, X, Heart, Timer as TimerIcon, Coffee, Bed, CheckCircle2 } from 'lucide-react';
+import { Play, Pause, RotateCcw, X, Heart, Timer as TimerIcon, Coffee, Bed, CheckCircle2, Pencil } from 'lucide-react';
 import { CharacterProfile } from '../types';
 import { GoogleGenAI } from "@google/genai";
 
@@ -244,12 +244,12 @@ export const TimerScreen: React.FC<TimerScreenProps> = ({
     if (!isBreak) {
       onSessionComplete(true);
       const nextSessionCount = sessionInCycle + 1;
+      setSessionInCycle(nextSessionCount);
       
       if (nextSessionCount === 4) {
         setIsActive(false);
         setShowChoiceModal(true);
       } else {
-        setSessionInCycle(nextSessionCount);
         triggerAIResponse('FINISH');
         setIsBreak(true);
         setTimeLeft(5 * 60); 
@@ -390,10 +390,10 @@ export const TimerScreen: React.FC<TimerScreenProps> = ({
             <div className="flex flex-col items-center gap-2">
                 <div className="flex gap-2">
                   {[1, 2, 3, 4].map((i) => (
-                    <Heart 
+                    <Pencil 
                       key={i} 
                       size={16} 
-                      className={`transition-all duration-500 ${i <= sessionInCycle ? 'text-rose-500 fill-rose-500 scale-110' : 'text-white/20'}`} 
+                      className={`transition-all duration-500 ${i <= sessionInCycle ? 'text-white fill-white scale-110 drop-shadow-[0_0_5px_rgba(255,255,255,0.5)]' : 'text-white/20'}`} 
                     />
                   ))}
                 </div>
