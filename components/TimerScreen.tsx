@@ -477,7 +477,7 @@ export const TimerScreen: React.FC<TimerScreenProps> = ({
             </div>
 
             {/* 이름 섹션: 위로 올림 (여백 제거) */}
-            <div className="text-center space-y-1 -mt-1 md:-mt-1">
+            <div className="text-center space-y-1 -mt-3 md:-mt-3">
                 <h2 className={`text-3xl md:text-4xl font-bold tracking-tight ${isDarkMode ? 'text-slate-100' : 'text-text-primary'}`}>{profile.name}</h2>
                 <p className={`text-[10px] md:text-[11px] font-bold tracking-widest uppercase ${isDarkMode ? 'text-slate-400' : 'text-text-secondary'}`}>To. {profile.honorific || profile.userName || "나"}</p>
             </div>
