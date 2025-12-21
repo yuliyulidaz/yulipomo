@@ -209,7 +209,11 @@ export const TimerScreen: React.FC<TimerScreenProps> = ({
     if (cachedList && cachedList.length > 0) {
         const randomIndex = Math.floor(Math.random() * cachedList.length);
         const randomMsg = cachedList[randomIndex];
-        const finalMsg = randomMsg.replace(/{honorific}/g, userDisplayName);
+        // {honorific}, {이름}, {user} 등 다양한 형태의 플레이스홀더를 유저의 호칭으로 치환
+        const finalMsg = randomMsg
+          .replace(/{honorific}/g, userDisplayName)
+          .replace(/{이름}/g, userDisplayName)
+          .replace(/{user}/g, userDisplayName);
         setMessage(finalMsg);
         
         const newCacheList = [...cachedList];
@@ -223,7 +227,11 @@ export const TimerScreen: React.FC<TimerScreenProps> = ({
         const toneKey = profile.personality.find(p => FALLBACK_TEMPLATES[p]) || "존댓말";
         const template = FALLBACK_TEMPLATES[toneKey];
         const rawMsg = template[type] || "...";
-        const finalMsg = rawMsg.replace(/{honorific}/g, userDisplayName);
+        // {honorific}, {이름}, {user} 등 다양한 형태의 플레이스홀더를 유저의 호칭으로 치환
+        const finalMsg = rawMsg
+          .replace(/{honorific}/g, userDisplayName)
+          .replace(/{이름}/g, userDisplayName)
+          .replace(/{user}/g, userDisplayName);
         
         setMessage(finalMsg);
         refillCategory(key, 5);
