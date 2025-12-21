@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { Play, Pause, RotateCcw, X, Heart, Timer as TimerIcon, Coffee, Bed, CheckCircle2 } from 'lucide-react';
+import { Play, Pause, RotateCcw, X, Heart, Timer as TimerIcon, Coffee, Bed, CheckCircle2, Moon, Sun } from 'lucide-react';
 import { CharacterProfile } from '../types';
 import { GoogleGenAI } from "@google/genai";
 
@@ -89,6 +89,7 @@ export const TimerScreen: React.FC<TimerScreenProps> = ({
   const [sessionInCycle, setSessionInCycle] = useState(profile.savedSessionInCycle ?? 0); 
   const [message, setMessage] = useState(profile.initialGreeting || "시작할까?");
   const [showChoiceModal, setShowChoiceModal] = useState(false);
+  const [isDarkMode, setIsDarkMode] = useState(false);
   
   const isRefillingRef = useRef<Record<string, boolean>>({});
   const randomEncouragementTimerRef = useRef<any>(null);
@@ -373,22 +374,22 @@ export const TimerScreen: React.FC<TimerScreenProps> = ({
   const overallProgressPercent = ((sessionInCycle + currentSegmentProgress) / 4) * 100;
 
   return (
-    <div className="relative w-full h-screen flex bg-background text-text-primary overflow-hidden font-sans">
+    <div className={`relative w-full h-screen flex transition-colors duration-700 overflow-hidden font-sans ${isDarkMode ? 'bg-[#0B0E14] text-slate-100' : 'bg-background text-text-primary'}`}>
       {profile.imageSrc && (
-        <div className="absolute inset-0 z-0 opacity-10">
+        <div className={`absolute inset-0 z-0 transition-opacity duration-700 ${isDarkMode ? 'opacity-5' : 'opacity-10'}`}>
           <img src={profile.imageSrc} alt="Background" className="w-full h-full object-cover blur-md scale-110" />
         </div>
       )}
 
       {showChoiceModal && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-primary-dark/40 backdrop-blur-md animate-in fade-in duration-300">
-          <div className="w-full max-w-sm bg-surface border border-border p-8 rounded-3xl shadow-2xl text-center space-y-6 transform animate-in zoom-in-95 duration-300">
+          <div className={`w-full max-w-sm border p-8 rounded-3xl shadow-2xl text-center space-y-6 transform animate-in zoom-in-95 duration-300 ${isDarkMode ? 'bg-[#161B22] border-[#30363D]' : 'bg-surface border-border'}`}>
             <div className="w-20 h-20 bg-primary/10 rounded-3xl flex items-center justify-center mx-auto text-primary">
               <CheckCircle2 size={48} />
             </div>
             <div className="space-y-2">
-              <h3 className="text-xl font-bold text-text-primary">1사이클(4세트) 달성!</h3>
-              <p className="text-sm text-text-secondary leading-relaxed">
+              <h3 className={`text-xl font-bold ${isDarkMode ? 'text-slate-100' : 'text-text-primary'}`}>1사이클(4세트) 달성!</h3>
+              <p className={`text-sm leading-relaxed ${isDarkMode ? 'text-slate-400' : 'text-text-secondary'}`}>
                 정말 대단해요! 이제 어떻게 할까요?<br/>
                 열심히 한 당신을 위해 선택지를 준비했어요.
               </p>
@@ -396,9 +397,9 @@ export const TimerScreen: React.FC<TimerScreenProps> = ({
             <div className="grid grid-cols-1 gap-3 pt-2">
               <button 
                 onClick={() => handleCycleChoice('LONG')}
-                className="w-full py-4 px-6 bg-background hover:bg-border border border-border rounded-2xl text-sm font-bold transition-all active:scale-95 flex flex-col items-center gap-1 group"
+                className={`w-full py-4 px-6 border rounded-2xl text-sm font-bold transition-all active:scale-95 flex flex-col items-center gap-1 group ${isDarkMode ? 'bg-[#0B0E14] border-[#30363D] hover:bg-slate-800' : 'bg-background border-border hover:bg-border'}`}
               >
-                <span className="text-text-primary">푹 쉴게 (30분 휴식)</span>
+                <span className={isDarkMode ? 'text-slate-100' : 'text-text-primary'}>푹 쉴게 (30분 휴식)</span>
                 <span className="text-[10px] text-primary font-black uppercase tracking-widest opacity-60">Reward: XP +10</span>
               </button>
               <button 
@@ -416,25 +417,35 @@ export const TimerScreen: React.FC<TimerScreenProps> = ({
       <main className="w-full h-full flex flex-col items-center justify-center relative z-10 p-4 md:p-8">
           
           <div className="mb-[-1px] z-20 animate-in slide-in-from-top-4 duration-700">
-            <div className="bg-surface px-5 py-2 rounded-t-2xl border border-b-0 border-border shadow-[0_-4px_12px_rgba(0,0,0,0.03)] flex items-center gap-2.5">
+            <div className={`px-5 py-2 rounded-t-2xl border border-b-0 shadow-[0_-4px_12px_rgba(0,0,0,0.03)] flex items-center gap-2.5 ${isDarkMode ? 'bg-[#161B22] border-[#30363D]' : 'bg-surface border-border'}`}>
                 <Heart size={12} className="text-accent fill-accent animate-pulse" />
-                <span className="text-[11px] font-black tracking-tight text-text-primary">
+                <span className={`text-[11px] font-black tracking-tight ${isDarkMode ? 'text-slate-100' : 'text-text-primary'}`}>
                   Lv.{profile.level} <span className="ml-1 text-primary">{LEVEL_TITLES[profile.level] || "운명의 동반자"}</span>
                 </span>
             </div>
           </div>
 
-          <div className="w-full max-w-md bg-surface/90 backdrop-blur-xl border border-border p-6 md:p-8 rounded-[40px] shadow-[0_20px_50px_rgba(74,95,122,0.1)] flex flex-col items-center gap-6 md:gap-8 animate-in fade-in zoom-in duration-500 relative overflow-hidden">
+          <div className={`w-full max-w-md backdrop-blur-xl border p-6 md:p-8 rounded-[40px] shadow-[0_20px_50px_rgba(74,95,122,0.1)] flex flex-col items-center gap-6 md:gap-8 animate-in fade-in zoom-in duration-500 relative overflow-hidden transition-colors duration-700 ${isDarkMode ? 'bg-[#161B22]/90 border-[#30363D]' : 'bg-surface/90 border-border'}`}>
             
-            <div className="absolute top-0 left-0 w-full h-1.5 bg-border/20 z-10">
+            <div className={`absolute top-0 left-0 w-full h-1.5 z-10 ${isDarkMode ? 'bg-slate-700/20' : 'bg-border/20'}`}>
               <div 
                 className="h-full bg-gradient-to-r from-primary to-accent transition-all duration-1000 ease-out" 
                 style={{ width: `${progressPercent}%` }} 
               />
             </div>
 
-            <div className="w-full flex justify-end items-center mt-2">
-                <button onClick={onReset} className="p-2.5 hover:bg-rose-50 rounded-full transition-all text-text-secondary hover:text-rose-500 border border-transparent hover:border-rose-100">
+            <div className="w-full flex justify-between items-center mt-2 px-2">
+                <button 
+                  onClick={() => setIsDarkMode(!isDarkMode)} 
+                  className={`p-2.5 rounded-full transition-all border ${isDarkMode ? 'bg-slate-800 text-yellow-400 border-slate-700 hover:bg-slate-700' : 'bg-slate-50 text-slate-500 border-slate-200 hover:bg-slate-100'}`}
+                  title={isDarkMode ? "주간 모드" : "야간 모드"}
+                >
+                    {isDarkMode ? <Sun size={20} /> : <Moon size={20} />}
+                </button>
+                <button 
+                  onClick={onReset} 
+                  className={`p-2.5 rounded-full transition-all border border-transparent ${isDarkMode ? 'text-slate-400 hover:bg-rose-900/30 hover:text-rose-400 hover:border-rose-900/50' : 'text-text-secondary hover:bg-rose-50 hover:text-rose-500 hover:border-rose-100'}`}
+                >
                     <X size={20} />
                 </button>
             </div>
@@ -449,15 +460,15 @@ export const TimerScreen: React.FC<TimerScreenProps> = ({
                   <>
                     <div 
                       onClick={() => !isBreak && triggerAIResponse('CLICK')}
-                      className="w-32 h-32 md:w-44 md:h-44 rounded-2xl border-4 border-border overflow-hidden shadow-xl mx-auto transition-all duration-500 group-hover:scale-105 group-hover:border-primary cursor-pointer active:scale-95"
+                      className={`w-32 h-32 md:w-44 md:h-44 rounded-2xl border-4 overflow-hidden shadow-xl mx-auto transition-all duration-500 group-hover:scale-105 group-hover:border-primary cursor-pointer active:scale-95 ${isDarkMode ? 'border-slate-800' : 'border-border'}`}
                     >
                         <img src={profile.imageSrc || ''} alt={profile.name} className="w-full h-full object-cover" />
                     </div>
                     {message && (
                       <div className="absolute -top-14 md:-top-16 left-1/2 transform -translate-x-1/2 w-64 md:w-72 text-center z-20 transition-all duration-500 animate-in fade-in slide-in-from-bottom-2 pointer-events-none">
-                          <div className="bg-text-primary text-surface text-xs md:text-sm font-medium px-6 md:px-8 py-3 md:py-4 rounded-2xl shadow-xl leading-relaxed relative">
+                          <div className={`text-xs md:text-sm font-medium px-6 md:px-8 py-3 md:py-4 rounded-2xl shadow-xl leading-relaxed relative ${isDarkMode ? 'bg-slate-100 text-slate-900' : 'bg-text-primary text-surface'}`}>
                               "{message}"
-                              <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 w-4 h-4 bg-text-primary rotate-45"></div>
+                              <div className={`absolute -bottom-2 left-1/2 -translate-x-1/2 w-4 h-4 rotate-45 ${isDarkMode ? 'bg-slate-100' : 'bg-text-primary'}`}></div>
                           </div>
                       </div>
                     )}
@@ -465,17 +476,20 @@ export const TimerScreen: React.FC<TimerScreenProps> = ({
                 )}
             </div>
 
-            <div className="text-center space-y-1 mt-2 md:mt-4">
-                <h2 className="text-3xl md:text-4xl font-bold text-text-primary tracking-tight">{profile.name}</h2>
-                <p className="text-text-secondary text-[10px] md:text-[11px] font-bold tracking-widest uppercase">To. {profile.honorific || profile.userName || "나"}</p>
+            {/* 이름 섹션: 위로 올림 (여백 제거) */}
+            <div className="text-center space-y-1 mt-0 md:mt-0">
+                <h2 className={`text-3xl md:text-4xl font-bold tracking-tight ${isDarkMode ? 'text-slate-100' : 'text-text-primary'}`}>{profile.name}</h2>
+                <p className={`text-[10px] md:text-[11px] font-bold tracking-widest uppercase ${isDarkMode ? 'text-slate-400' : 'text-text-secondary'}`}>To. {profile.honorific || profile.userName || "나"}</p>
             </div>
 
-            {/* 타이머 섹션: 모드 표시기를 타이머 숫자 왼쪽에 정사각형으로 배치 */}
             <div className="w-full flex flex-col items-center gap-6 mt-4 pb-4">
               
               <div className="flex items-center gap-4 md:gap-6">
-                {/* 모드 표시기 정사각형 (이미지 하단 버튼과 동일 사양) */}
-                <div className={`w-16 h-16 md:w-20 md:h-20 rounded-2xl flex flex-col items-center justify-center gap-1 border transition-all duration-500 shadow-sm ${isBreak ? 'bg-success/10 border-success/20 text-success' : 'bg-primary/5 border-primary/10 text-primary'}`}>
+                <div className={`w-16 h-16 md:w-20 md:h-20 rounded-2xl flex flex-col items-center justify-center gap-1 border transition-all duration-500 shadow-sm ${
+                    isBreak 
+                    ? (isDarkMode ? 'bg-emerald-900/20 border-emerald-800 text-emerald-400' : 'bg-success/10 border-success/20 text-success') 
+                    : (isDarkMode ? 'bg-slate-800/50 border-slate-700 text-primary-light' : 'bg-primary/5 border-primary/10 text-primary')
+                }`}>
                     {isBreak ? <Coffee size={18} /> : <TimerIcon size={18} />}
                     <div className="flex flex-col items-center leading-tight">
                         <span className="text-[8px] md:text-[9px] font-black uppercase tracking-tighter">{isBreak ? "Break" : "Focus"}</span>
@@ -483,18 +497,16 @@ export const TimerScreen: React.FC<TimerScreenProps> = ({
                     </div>
                 </div>
 
-                {/* 타이머 숫자 */}
-                <div className="text-6xl md:text-7xl font-bold tracking-tighter text-text-primary tabular-nums leading-none">
+                <div className={`text-6xl md:text-7xl font-bold tracking-tighter tabular-nums leading-none transition-colors duration-700 ${isDarkMode ? 'text-slate-100' : 'text-text-primary'}`}>
                     {formatTime(timeLeft)}
                 </div>
               </div>
 
-              {/* 진행률 섹션 (수평 정렬) */}
               <div className="w-full max-w-[320px] flex items-center gap-4 mt-2 px-2">
-                  <span className="text-[10px] font-black text-text-secondary/60 uppercase tracking-widest shrink-0">
+                  <span className={`text-[10px] font-black uppercase tracking-widest shrink-0 ${isDarkMode ? 'text-slate-500' : 'text-text-secondary/60'}`}>
                       진행률
                   </span>
-                  <div className="relative h-2 flex-1 bg-border/40 rounded-full overflow-visible">
+                  <div className={`relative h-2 flex-1 rounded-full overflow-visible ${isDarkMode ? 'bg-slate-800' : 'bg-border/40'}`}>
                       <div 
                           className={`absolute top-0 left-0 h-full rounded-full transition-all duration-1000 ease-out ${
                               isBreak 
@@ -517,9 +529,9 @@ export const TimerScreen: React.FC<TimerScreenProps> = ({
                                   <div className={`transform rotate-45 transition-all duration-700 border-2 ${
                                       isReached 
                                       ? (isBreak && sessionInCycle === i ? 'bg-success border-success scale-125 shadow-lg' : 'bg-primary border-primary scale-110') 
-                                      : 'bg-surface border-border scale-100'
+                                      : (isDarkMode ? 'bg-slate-900 border-slate-700' : 'bg-surface border-border')
                                   } ${isLast ? 'w-3 h-3' : 'w-2 h-2'}`} />
-                                  <span className={`text-[9px] font-black transition-colors duration-500 ${isReached ? 'text-primary' : 'text-text-secondary/40'}`}>
+                                  <span className={`text-[9px] font-black transition-colors duration-500 ${isReached ? 'text-primary' : (isDarkMode ? 'text-slate-600' : 'text-text-secondary/40')}`}>
                                       {i}
                                   </span>
                               </div>
@@ -528,7 +540,6 @@ export const TimerScreen: React.FC<TimerScreenProps> = ({
                   </div>
               </div>
 
-              {/* 조작 버튼 */}
               <div className="flex items-center gap-6 md:gap-8 mt-4">
                   {!isBreak && (
                     <button 
@@ -547,7 +558,7 @@ export const TimerScreen: React.FC<TimerScreenProps> = ({
                           setIsActive(false);
                           setTimeLeft(isBreak ? (sessionInCycle === 0 ? 30 * 60 : 5 * 60) : 25 * 60);
                       }}
-                      className="w-12 h-12 md:w-14 md:h-14 rounded-xl bg-background hover:bg-border flex items-center justify-center transition-all border border-border text-text-secondary hover:text-text-primary active:scale-95 shadow-sm"
+                      className={`w-12 h-12 md:w-14 md:h-14 rounded-xl flex items-center justify-center transition-all border active:scale-95 shadow-sm ${isDarkMode ? 'bg-slate-800 border-slate-700 text-slate-400 hover:bg-slate-700 hover:text-slate-200' : 'bg-background border-border text-text-secondary hover:bg-border hover:text-text-primary'}`}
                   >
                       <RotateCcw className="w-5 h-5 md:w-6 md:h-6" />
                   </button>
