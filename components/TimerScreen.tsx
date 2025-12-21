@@ -439,7 +439,7 @@ export const TimerScreen: React.FC<TimerScreenProps> = ({
                 </button>
             </div>
 
-            <div className="relative group mt-2 md:mt-4 min-h-[180px] md:min-h-[220px] flex items-center justify-center w-full">
+            <div className="relative group mt-12 md:mt-16 min-h-[180px] md:min-h-[220px] flex items-center justify-center w-full">
                 {shouldHideCharacter ? (
                   <div className="flex flex-col items-center gap-4 animate-pulse text-primary-light/40">
                     <Bed size={60} className="md:size-20" />
@@ -465,7 +465,7 @@ export const TimerScreen: React.FC<TimerScreenProps> = ({
                 )}
             </div>
 
-            <div className="text-center space-y-1">
+            <div className="text-center space-y-1 mt-4 md:mt-6">
                 <h2 className="text-3xl md:text-4xl font-bold text-text-primary tracking-tight">{profile.name}</h2>
                 <p className="text-text-secondary text-[10px] md:text-[11px] font-bold tracking-widest uppercase">To. {profile.honorific || profile.userName || "나"}</p>
             </div>
