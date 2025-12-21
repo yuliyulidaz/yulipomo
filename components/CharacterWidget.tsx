@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { Maximize2, Minimize2, Play, Pause, X, Coffee, MessageSquareHeart } from 'lucide-react';
-import { CharacterProfile, SurpriseNote } from '../types';
+import { CharacterProfile } from '../types';
 import { GoogleGenAI } from "@google/genai";
 
 const INITIAL_SEEDS: Record<string, string[]> = {
@@ -39,10 +39,10 @@ export const CharacterWidget: React.FC<CharacterWidgetProps> = ({ profile, simul
   const [isCharacterAway, setIsCharacterAway] = useState(false);
   const [isDisappointed, setIsDisappointed] = useState(false);
 
-  const distractionTimeoutRef = useRef<number | null>(null);
-  const messageTimeoutRef = useRef<number | null>(null);
-  const preFetchIntervalRef = useRef<number | null>(null);
-  const proactiveTriggerTimeRef = useRef<number | null>(null);
+  const distractionTimeoutRef = useRef<any>(null);
+  const messageTimeoutRef = useRef<any>(null);
+  const preFetchIntervalRef = useRef<any>(null);
+  const proactiveTriggerTimeRef = useRef<any>(null);
   const isCallingAPI = useRef(false);
 
   const setTimedMessage = (msg: string, duration = 7000) => {
@@ -86,11 +86,10 @@ export const CharacterWidget: React.FC<CharacterWidgetProps> = ({ profile, simul
   }, [mode, profile?.dialogueCache]);
 
   const backgroundFetchDialogue = async (type: 'scolding' | 'praising' | 'idle') => {
-    const activeKey = profile.apiKey || process.env.API_KEY;
-    if (!activeKey || isCallingAPI.current) return;
+    if (isCallingAPI.current) return;
     isCallingAPI.current = true;
     try {
-        const ai = new GoogleGenAI({ apiKey: activeKey });
+        const ai = new GoogleGenAI({ apiKey: profile.apiKey || process.env.API_KEY });
         const levelMood = getLevelMood();
         const prompt = `Roleplay as ${profile.name} (${levelMood}). 
             Speech Style: ${profile.personality[0]}. Type: ${type} message for user. 
@@ -120,7 +119,7 @@ export const CharacterWidget: React.FC<CharacterWidgetProps> = ({ profile, simul
   }, [timerActive, mode]);
 
   useEffect(() => {
-    let interval: number;
+    let interval: any;
     if (timerActive) {
       interval = window.setInterval(() => {
         setTimeLeft(prev => {
@@ -189,13 +188,10 @@ export const CharacterWidget: React.FC<CharacterWidgetProps> = ({ profile, simul
   };
 
   const fetchNewDialogue = async (triggerType: TriggerType, scenario: string) => {
-    const activeKey = profile.apiKey || process.env.API_KEY;
-    if (!activeKey) return;
-
     isCallingAPI.current = true;
     setIsThinking(true);
     try {
-        const ai = new GoogleGenAI({ apiKey: activeKey });
+        const ai = new GoogleGenAI({ apiKey: profile.apiKey || process.env.API_KEY });
         const style = profile.personality[0] || "존댓말";
         const mood = getLevelMood();
         const prompt = `Roleplay as ${profile.name}. User: ${profile.honorific}. Current Level: ${profile.level}. Mood: ${mood}. Personality: ${profile.personality.join(',')}. Use ${style}. Situation: ${scenario}. Short 1 Korean sentence.`;
