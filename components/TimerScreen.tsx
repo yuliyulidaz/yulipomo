@@ -470,23 +470,26 @@ export const TimerScreen: React.FC<TimerScreenProps> = ({
                 <p className="text-text-secondary text-[10px] md:text-[11px] font-bold tracking-widest uppercase">To. {profile.honorific || profile.userName || "나"}</p>
             </div>
 
-            {/* 타이머 및 조작 섹션: 모드 표시기를 위로 올리고 간격 조정 */}
-            <div className="w-full flex flex-col items-center gap-8 mt-4">
+            {/* 타이머 및 조작 섹션: 레이아웃 최적화 */}
+            <div className="w-full flex flex-col items-center gap-8 mt-4 pb-8">
               
-              {/* 1. 모드 표시기 (위치 변경) */}
-              <div className={`px-6 py-2 rounded-xl text-[10px] md:text-[11px] font-bold uppercase tracking-widest flex items-center gap-2 border transition-all duration-500 ${isBreak ? 'bg-success/10 border-success/20 text-success' : 'bg-primary/10 border-primary/20 text-primary'}`}>
-                  {isBreak ? <Coffee size={14} /> : <TimerIcon size={14} />}
-                  {isBreak ? "Break Time" : "Focus Mode"}
+              {/* 1. 타이머 그룹 (모드 표시기를 타이머 바로 위로 배치) */}
+              <div className="flex flex-col items-center gap-3">
+                <div className={`px-6 py-2 rounded-xl text-[10px] md:text-[11px] font-bold uppercase tracking-widest flex items-center gap-2 border transition-all duration-500 ${isBreak ? 'bg-success/10 border-success/20 text-success' : 'bg-primary/10 border-primary/20 text-primary'}`}>
+                    {isBreak ? <Coffee size={14} /> : <TimerIcon size={14} />}
+                    {isBreak ? "Break Time" : "Focus Mode"}
+                </div>
+                <div className="text-6xl md:text-7xl font-bold tracking-tighter text-text-primary tabular-nums leading-none">
+                    {formatTime(timeLeft)}
+                </div>
               </div>
 
-              {/* 2. 타이머 숫자 */}
-              <div className="text-6xl md:text-7xl font-bold tracking-tighter text-text-primary tabular-nums leading-none">
-                  {formatTime(timeLeft)}
-              </div>
-
-              {/* 3. 진행률 게이지 바 */}
-              <div className="w-full max-w-[280px] space-y-3">
-                  <div className="relative h-2 bg-border/40 rounded-full overflow-visible">
+              {/* 2. 진행률 섹션 (글자를 게이지 왼편에 배치) */}
+              <div className="w-full max-w-[320px] flex items-center gap-4">
+                  <span className="text-[10px] font-black text-text-secondary/60 uppercase tracking-widest shrink-0">
+                      {isBreak ? "휴식 중" : "진행률"}
+                  </span>
+                  <div className="relative h-2 flex-1 bg-border/40 rounded-full overflow-visible">
                       <div 
                           className={`absolute top-0 left-0 h-full rounded-full transition-all duration-1000 ease-out ${
                               isBreak 
@@ -518,14 +521,9 @@ export const TimerScreen: React.FC<TimerScreenProps> = ({
                           );
                       })}
                   </div>
-                  <div className="w-full text-center">
-                      <span className="text-[9px] font-black text-text-secondary/60 uppercase tracking-widest">
-                          {isBreak ? "Break Time Shimmer" : "진행률"}
-                      </span>
-                  </div>
               </div>
 
-              {/* 4. 조작 버튼 */}
+              {/* 3. 조작 버튼 (모서리에서 충분히 떨어지도록 상향 조정) */}
               <div className="flex items-center gap-6 md:gap-8">
                   {!isBreak && (
                     <button 
