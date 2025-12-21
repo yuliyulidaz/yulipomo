@@ -370,21 +370,6 @@ export const TimerScreen: React.FC<TimerScreenProps> = ({
 
   return (
     <div className="relative w-full h-screen flex bg-background text-text-primary overflow-hidden font-sans">
-      {/* 1. 화면 최상단 호감도 게이지 */}
-      <div className="fixed top-0 left-0 w-full h-1 bg-border/30 z-[60]">
-        <div 
-          className="h-full bg-gradient-to-r from-primary to-accent transition-all duration-1000 ease-out" 
-          style={{ width: `${progressPercent}%` }} 
-        />
-        {/* 2. 게이지 하단 중앙 레벨 배지 */}
-        <div className="absolute top-0 left-1/2 -translate-x-1/2 bg-surface px-5 py-1.5 rounded-b-2xl border border-t-0 border-border shadow-md flex items-center gap-2.5 animate-in slide-in-from-top-2 duration-500">
-            <Heart size={12} className="text-accent fill-accent animate-pulse" />
-            <span className="text-[11px] font-black tracking-tight text-text-primary">
-              Lv.{profile.level} <span className="ml-1 text-primary">{LEVEL_TITLES[profile.level] || "운명의 동반자"}</span>
-            </span>
-        </div>
-      </div>
-
       {profile.imageSrc && (
         <div className="absolute inset-0 z-0 opacity-10">
           <img src={profile.imageSrc} alt="Background" className="w-full h-full object-cover blur-md scale-110" />
@@ -425,8 +410,28 @@ export const TimerScreen: React.FC<TimerScreenProps> = ({
       )}
 
       <main className="w-full h-full flex flex-col items-center justify-center relative z-10 p-4 md:p-8">
-          <div className="w-full max-w-md bg-surface/90 backdrop-blur-xl border border-border p-6 md:p-8 rounded-[40px] shadow-[0_20px_50px_rgba(74,95,122,0.1)] flex flex-col items-center gap-6 md:gap-8 animate-in fade-in zoom-in duration-500 relative">
-            <div className="w-full flex justify-end items-center">
+          
+          {/* 상태 배지 (카드 외부 상단) */}
+          <div className="mb-[-1px] z-20 animate-in slide-in-from-top-4 duration-700">
+            <div className="bg-surface px-5 py-2 rounded-t-2xl border border-b-0 border-border shadow-[0_-4px_12px_rgba(0,0,0,0.03)] flex items-center gap-2.5">
+                <Heart size={12} className="text-accent fill-accent animate-pulse" />
+                <span className="text-[11px] font-black tracking-tight text-text-primary">
+                  Lv.{profile.level} <span className="ml-1 text-primary">{LEVEL_TITLES[profile.level] || "운명의 동반자"}</span>
+                </span>
+            </div>
+          </div>
+
+          <div className="w-full max-w-md bg-surface/90 backdrop-blur-xl border border-border p-6 md:p-8 rounded-[40px] shadow-[0_20px_50px_rgba(74,95,122,0.1)] flex flex-col items-center gap-6 md:gap-8 animate-in fade-in zoom-in duration-500 relative overflow-hidden">
+            
+            {/* 호감도 게이지 (카드 내부 상단) */}
+            <div className="absolute top-0 left-0 w-full h-1.5 bg-border/20 z-10">
+              <div 
+                className="h-full bg-gradient-to-r from-primary to-accent transition-all duration-1000 ease-out" 
+                style={{ width: `${progressPercent}%` }} 
+              />
+            </div>
+
+            <div className="w-full flex justify-end items-center mt-2">
                 <button onClick={onReset} className="p-2.5 hover:bg-rose-50 rounded-full transition-all text-text-secondary hover:text-rose-500 border border-transparent hover:border-rose-100">
                     <X size={20} />
                 </button>
