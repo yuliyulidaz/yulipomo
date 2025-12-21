@@ -450,7 +450,7 @@ export const TimerScreen: React.FC<TimerScreenProps> = ({
                 </button>
             </div>
 
-            <div className="relative group mt-8 md:mt-10 min-h-[180px] md:min-h-[220px] flex items-center justify-center w-full">
+            <div className="relative group mt-9 md:mt-11 min-h-[180px] md:min-h-[220px] flex items-center justify-center w-full">
                 {shouldHideCharacter ? (
                   <div className="flex flex-col items-center gap-4 animate-pulse text-primary-light/40">
                     <Bed size={60} className="md:size-20" />
@@ -477,7 +477,7 @@ export const TimerScreen: React.FC<TimerScreenProps> = ({
             </div>
 
             {/* 이름 섹션: 위로 올림 (여백 제거) */}
-            <div className="text-center space-y-1 mt-0 md:mt-0">
+            <div className="text-center space-y-1 -mt-1 md:-mt-1">
                 <h2 className={`text-3xl md:text-4xl font-bold tracking-tight ${isDarkMode ? 'text-slate-100' : 'text-text-primary'}`}>{profile.name}</h2>
                 <p className={`text-[10px] md:text-[11px] font-bold tracking-widest uppercase ${isDarkMode ? 'text-slate-400' : 'text-text-secondary'}`}>To. {profile.honorific || profile.userName || "나"}</p>
             </div>
