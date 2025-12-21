@@ -303,7 +303,7 @@ const FALLBACK_TEMPLATES: Record<string, Record<string, string[]>> = {
       "상황 양호. 그대로 가하십시오.",
       "지원 사격 중입니다. 힘내십시오.",
       "임무 진행 순조롭습니다. 파이팅!",
-      "제가 지키고 있습니다. 끝까지 가십시오."
+      "제가 지키고 있습니다. 끝까지 가하십시오."
     ],
     READY: ["휴식 종료 임박! 위치로 돌아가십시오."]
   }
@@ -723,7 +723,7 @@ export const TimerScreen: React.FC<TimerScreenProps> = ({
             </div>
           </div>
 
-          <div className={`w-full max-w-md backdrop-blur-xl border p-6 md:p-8 rounded-[40px] shadow-[0_20px_50px_rgba(74,95,122,0.1)] flex flex-col items-center gap-6 md:gap-8 animate-in fade-in zoom-in duration-500 relative overflow-hidden transition-colors duration-700 ${isDarkMode ? 'bg-[#161B22]/90 border-[#30363D]' : 'bg-surface/90 border-border'}`}>
+          <div className={`w-full max-w-md backdrop-blur-xl border p-6 md:p-8 rounded-[40px] shadow-[0_20px_50px_rgba(74,95,122,0.1)] flex flex-col items-center gap-6 md:gap-8 animate-in fade-in zoom-in duration-500 relative transition-colors duration-700 ${isDarkMode ? 'bg-[#161B22]/90 border-[#30363D]' : 'bg-surface/90 border-border'}`}>
             
             <div className={`absolute top-0 left-0 w-full h-1.5 z-10 ${isDarkMode ? 'bg-slate-700/20' : 'bg-border/20'}`}>
               <div 
@@ -732,7 +732,7 @@ export const TimerScreen: React.FC<TimerScreenProps> = ({
               />
             </div>
 
-            <div className="w-full flex justify-between items-center mt-2 px-2">
+            <div className="w-full flex justify-between items-center mt-2 px-2 z-10">
                 <button 
                   onClick={() => setIsDarkMode(!isDarkMode)} 
                   className={`p-2.5 rounded-full transition-all border ${isDarkMode ? 'bg-slate-800 text-yellow-400 border-slate-700 hover:bg-slate-700' : 'bg-slate-50 text-slate-500 border-slate-200 hover:bg-slate-100'}`}
@@ -756,46 +756,53 @@ export const TimerScreen: React.FC<TimerScreenProps> = ({
                   </div>
                 ) : (
                   <div className="relative">
-                    {/* SVG Cooldown Staring Animation */}
+                    {/* Glow SVG Moved Behind (z-0) and made flush (inset-0) */}
                     {cooldownRemaining > 0 && (
-                      <div className="absolute -inset-3 pointer-events-none z-10">
-                        <svg className="w-full h-full drop-shadow-[0_0_8px_rgba(74,95,122,0.5)]" viewBox="0 0 100 100" preserveAspectRatio="none">
+                      <div className="absolute inset-0 pointer-events-none z-0">
+                        <svg className="w-full h-full" viewBox="0 0 100 100" preserveAspectRatio="none">
+                          <defs>
+                            <linearGradient id="glowGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                              <stop offset="0%" stopColor="#4A5F7A" />
+                              <stop offset="100%" stopColor="#FF6B9D" />
+                            </linearGradient>
+                            <filter id="auraGlow">
+                                <feGaussianBlur stdDeviation="1.5" result="blur" />
+                                <feComposite in="SourceGraphic" in2="blur" operator="over" />
+                            </filter>
+                          </defs>
                           <rect 
-                            x="2" y="2" width="96" height="96" rx="12" 
+                            x="0.5" y="0.5" width="99" height="99" rx="12" 
                             fill="none" 
-                            stroke={isDarkMode ? 'rgba(255,107,157,0.1)' : 'rgba(74,95,122,0.1)'} 
-                            strokeWidth="2"
-                          />
-                          <rect 
-                            x="2" y="2" width="96" height="96" rx="12" 
-                            fill="none" 
-                            stroke={isDarkMode ? '#FF6B9D' : '#4A5F7A'} 
-                            strokeWidth="3"
-                            strokeDasharray="384"
-                            strokeDashoffset={384 - (384 * (cooldownRemaining / COOLDOWN_MS))}
+                            stroke="url(#glowGradient)" 
+                            strokeWidth="3.5"
+                            strokeDasharray="396"
+                            strokeDashoffset={396 - (396 * (cooldownRemaining / COOLDOWN_MS))}
                             strokeLinecap="round"
+                            filter="url(#auraGlow)"
                             className="transition-all duration-150 ease-linear"
                           />
                         </svg>
                       </div>
                     )}
                     
+                    {/* Image Layer (z-10) with explicit pointer events */}
                     <div 
                       onClick={handleCharacterClick}
-                      className={`w-32 h-32 md:w-44 md:h-44 rounded-2xl border-4 overflow-hidden shadow-xl mx-auto transition-all duration-500 group-hover:scale-105 group-hover:border-primary cursor-pointer active:scale-95 ${isDarkMode ? 'border-slate-800' : 'border-border'}`}
+                      className={`relative z-10 w-32 h-32 md:w-44 md:h-44 rounded-2xl border-2 overflow-hidden shadow-xl mx-auto transition-all duration-500 group-hover:scale-105 group-hover:border-primary/50 cursor-pointer active:scale-95 ${isDarkMode ? 'border-slate-800' : 'border-border'}`}
                     >
                         <img src={profile.imageSrc || ''} alt={profile.name} className="w-full h-full object-cover" />
                     </div>
 
-                    {/* Staring Status Badge */}
+                    {/* Staring Status Badge (z-20) with pointer-events-none to fix click bug */}
                     {cooldownRemaining > 0 && (
-                        <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 bg-primary/90 text-white text-[9px] font-black px-3 py-1 rounded-full whitespace-nowrap shadow-lg backdrop-blur-sm z-20 border border-white/20 animate-pulse">
+                        <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 bg-primary/90 text-white text-[9px] font-black px-3 py-1 rounded-full whitespace-nowrap shadow-lg backdrop-blur-sm z-20 border border-white/20 animate-pulse pointer-events-none">
                             가만히 바라보는 중...
                         </div>
                     )}
 
+                    {/* Dialogue Bubble (z-30) */}
                     {message && (
-                      <div className="absolute -top-20 md:-top-20 left-1/2 transform -translate-x-1/2 w-64 md:w-72 text-center z-20 transition-all duration-500 animate-in fade-in slide-in-from-bottom-2 pointer-events-none">
+                      <div className="absolute -top-24 md:-top-28 left-1/2 transform -translate-x-1/2 w-64 md:w-72 text-center z-30 transition-all duration-500 animate-in fade-in slide-in-from-bottom-2 pointer-events-none">
                           <div className={`text-xs md:text-sm font-medium px-6 md:px-8 py-3 md:py-4 rounded-[20px] shadow-2xl leading-relaxed relative backdrop-blur-lg border transition-colors duration-500 ${isDarkMode ? 'bg-slate-900/80 border-white/10 text-slate-100 shadow-slate-900/50' : 'bg-surface/80 border-white/50 text-text-primary shadow-slate-200/50'}`}>
                               "{message}"
                           </div>
@@ -805,12 +812,12 @@ export const TimerScreen: React.FC<TimerScreenProps> = ({
                 )}
             </div>
 
-            <div className="text-center space-y-1 -mt-10 md:-mt-10">
+            <div className="text-center space-y-1 -mt-10 md:-mt-10 z-10">
                 <h2 className={`text-3xl md:text-4xl font-bold tracking-tight ${isDarkMode ? 'text-slate-100' : 'text-text-primary'}`}>{profile.name}</h2>
                 <p className={`text-[10px] md:text-[11px] font-bold tracking-widest uppercase ${isDarkMode ? 'text-slate-400' : 'text-text-secondary'}`}>To. {profile.honorific || profile.userName || "나"}</p>
             </div>
 
-            <div className="w-full flex flex-col items-center gap-6 mt-4 pb-4">
+            <div className="w-full flex flex-col items-center gap-6 mt-4 pb-4 z-10">
               
               <div className="flex items-center gap-4 md:gap-6">
                 <div className={`w-16 h-16 md:w-20 md:h-20 rounded-2xl flex flex-col items-center justify-center gap-1 border transition-all duration-500 shadow-sm ${
