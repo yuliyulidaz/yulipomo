@@ -714,187 +714,189 @@ export const TimerScreen: React.FC<TimerScreenProps> = ({
 
       <main className="w-full h-full flex flex-col items-center justify-center relative z-10 p-4 md:p-8">
           
-          {/* Top Level Badge - Enhanced visibility and Z-axis position */}
-          <div className="mb-[-1.5px] z-[50] animate-in slide-in-from-top-4 duration-700">
-            <div className={`px-5 py-2.5 rounded-t-2xl border border-b-0 shadow-[0_-4px_16px_rgba(0,0,0,0.08)] flex items-center gap-2.5 relative transition-all duration-500 ${isDarkMode ? 'bg-[#161B22] border-[#30363D]' : 'bg-surface border-border'}`}>
-                <Heart size={12} className="text-accent fill-accent animate-pulse" />
-                <span className={`text-[11px] font-black tracking-tight ${isDarkMode ? 'text-slate-100' : 'text-text-primary'}`}>
-                  Lv.{profile.level} <span className="ml-1 text-primary">{LEVEL_TITLES[profile.level] || "운명의 동반자"}</span>
-                </span>
-            </div>
-          </div>
-
-          <div className={`w-full max-w-md backdrop-blur-xl border p-6 md:p-8 rounded-[40px] shadow-[0_20px_50px_rgba(74,95,122,0.1)] flex flex-col items-center gap-6 md:gap-8 animate-in fade-in zoom-in duration-500 relative transition-colors duration-700 z-10 ${isDarkMode ? 'bg-[#161B22]/90 border-[#30363D]' : 'bg-surface/90 border-border'}`}>
-            
-            <div className={`absolute top-0 left-0 w-full h-1.5 z-10 ${isDarkMode ? 'bg-slate-700/20' : 'bg-border/20'}`}>
-              <div 
-                className="h-full bg-gradient-to-r from-primary to-accent transition-all duration-1000 ease-out" 
-                style={{ width: `${progressPercent}%` }} 
-              />
-            </div>
-
-            <div className="w-full flex justify-between items-center mt-2 px-2">
-                <button 
-                  onClick={() => setIsDarkMode(!isDarkMode)} 
-                  className={`p-2.5 rounded-full transition-all border ${isDarkMode ? 'bg-slate-800 text-yellow-400 border-slate-700 hover:bg-slate-700' : 'bg-slate-50 text-slate-500 border-slate-200 hover:bg-slate-100'}`}
-                  title={isDarkMode ? "주간 모드" : "야간 모드"}
-                >
-                    {isDarkMode ? <Sun size={20} /> : <Moon size={20} />}
-                </button>
-                <button 
-                  onClick={onReset} 
-                  className={`p-2.5 rounded-full transition-all border border-transparent ${isDarkMode ? 'text-slate-400 hover:bg-rose-900/30 hover:text-rose-400 hover:border-rose-900/50' : 'text-text-secondary hover:bg-rose-50 hover:text-rose-500 hover:border-rose-100'}`}
-                >
-                    <X size={20} />
-                </button>
-            </div>
-
-            <div className="relative group mt-9 md:mt-11 min-h-[180px] md:min-h-[220px] flex items-center justify-center w-full">
-                {shouldHideCharacter ? (
-                  <div className="flex flex-col items-center gap-4 animate-pulse text-primary-light/40">
-                    <Bed size={60} className="md:size-20" />
-                    <p className="text-[10px] font-bold uppercase tracking-widest">Sleeping...</p>
-                  </div>
-                ) : (
-                  <div className="relative flex items-center justify-center">
-                    {/* SVG Cooldown Aura Gradient - Much THICKER Line (-inset-[5px], strokeWidth: 10) */}
-                    {cooldownRemaining > 0 && (
-                      <div className="absolute -inset-[5px] pointer-events-none z-0 overflow-visible">
-                        <svg className="w-full h-full" preserveAspectRatio="none">
-                          <defs>
-                            <linearGradient id="auraGradient" x1="0%" y1="0%" x2="100%" y2="100%">
-                              <stop offset="0%" stopColor="#4A5F7A" />
-                              <stop offset="100%" stopColor="#FF6B9D" />
-                            </linearGradient>
-                          </defs>
-                          <rect 
-                            x="5" y="5" width="calc(100% - 10px)" height="calc(100% - 10px)" rx="24" 
-                            fill="none" 
-                            stroke="url(#auraGradient)" 
-                            strokeWidth="10"
-                            strokeDasharray="1200"
-                            strokeDashoffset={1200 - (1200 * (cooldownRemaining / COOLDOWN_MS))}
-                            strokeLinecap="round"
-                            className="transition-all duration-150 ease-linear"
-                            style={{ vectorEffect: 'non-scaling-stroke' }}
-                          />
-                        </svg>
-                      </div>
-                    )}
-                    
-                    <div 
-                      onClick={handleCharacterClick}
-                      className={`relative z-10 w-32 h-32 md:w-44 md:h-44 rounded-2xl border-none overflow-hidden shadow-xl mx-auto transition-all duration-500 group-hover:scale-105 cursor-pointer active:scale-95 ${isDarkMode ? 'bg-slate-900' : 'bg-slate-100'}`}
-                    >
-                        <img src={profile.imageSrc || ''} alt={profile.name} className="w-full h-full object-cover" />
-                    </div>
-
-                    {/* Staring Status Badge - Position and Z-index */}
-                    {cooldownRemaining > 0 && (
-                        <div className="absolute -top-7 left-1/2 -translate-x-1/2 bg-primary/90 text-white text-[9px] font-black px-3 py-1 rounded-full whitespace-nowrap shadow-lg backdrop-blur-sm z-20 border border-white/20 animate-pulse pointer-events-none">
-                            가만히 바라보는 중...
-                        </div>
-                    )}
-
-                    {message && (
-                      <div className="absolute -top-24 md:-top-24 left-1/2 transform -translate-x-1/2 w-64 md:w-72 text-center z-30 transition-all duration-500 animate-in fade-in slide-in-from-bottom-2 pointer-events-none">
-                          <div className={`text-xs md:text-sm font-medium px-6 md:px-8 py-3 md:py-4 rounded-[20px] shadow-2xl leading-relaxed relative backdrop-blur-lg border transition-colors duration-500 ${isDarkMode ? 'bg-slate-900/80 border-white/10 text-slate-100 shadow-slate-900/50' : 'bg-surface/80 border-white/50 text-text-primary shadow-slate-200/50'}`}>
-                              "{message}"
-                          </div>
-                      </div>
-                    )}
-                  </div>
-                )}
-            </div>
-
-            <div className="text-center space-y-1 -mt-10 md:-mt-10">
-                <h2 className={`text-3xl md:text-4xl font-bold tracking-tight ${isDarkMode ? 'text-slate-100' : 'text-text-primary'}`}>{profile.name}</h2>
-                <p className={`text-[10px] md:text-[11px] font-bold tracking-widest uppercase ${isDarkMode ? 'text-slate-400' : 'text-text-secondary'}`}>To. {profile.honorific || profile.userName || "나"}</p>
-            </div>
-
-            <div className="w-full flex flex-col items-center gap-6 mt-4 pb-4">
-              
-              <div className="flex items-center gap-4 md:gap-6">
-                <div className={`w-16 h-16 md:w-20 md:h-20 rounded-2xl flex flex-col items-center justify-center gap-1 border transition-all duration-500 shadow-sm ${
-                    isBreak 
-                    ? (isDarkMode ? 'bg-emerald-900/20 border-emerald-800 text-emerald-400' : 'bg-success/10 border-success/20 text-success') 
-                    : (isDarkMode ? 'bg-slate-800/50 border-slate-700 text-primary-light' : 'bg-primary/5 border-primary/10 text-primary')
-                }`}>
-                    {isBreak ? <Coffee size={18} /> : <TimerIcon size={18} />}
-                    <div className="flex flex-col items-center leading-tight">
-                        <span className="text-[8px] md:text-[9px] font-black uppercase tracking-tighter">{isBreak ? "Break" : "Focus"}</span>
-                        <span className="text-[8px] md:text-[9px] font-black uppercase tracking-tighter">Mode</span>
-                    </div>
-                </div>
-
-                <div className={`text-6xl md:text-7xl font-bold tracking-tighter tabular-nums leading-none transition-colors duration-700 ${isDarkMode ? 'text-slate-100' : 'text-text-primary'}`}>
-                    {formatTime(timeLeft)}
+          {/* Main Content Area with Fixed Layering */}
+          <div className="relative isolate flex flex-col items-center">
+              {/* Affinity Level Badge - ABSOLUTE TOP (z-50 within isolation) */}
+              <div className="mb-[-1px] z-[50] animate-in slide-in-from-top-4 duration-700 pointer-events-none">
+                <div className={`px-5 py-2.5 rounded-t-2xl border border-b-0 shadow-[0_-4px_20px_rgba(0,0,0,0.1)] flex items-center gap-2.5 relative transition-all duration-500 ${isDarkMode ? 'bg-[#161B22] border-[#30363D]' : 'bg-surface border-border'}`}>
+                    <Heart size={12} className="text-accent fill-accent animate-pulse" />
+                    <span className={`text-[11px] font-black tracking-tight ${isDarkMode ? 'text-slate-100' : 'text-text-primary'}`}>
+                      Lv.{profile.level} <span className="ml-1 text-primary">{LEVEL_TITLES[profile.level] || "운명의 동반자"}</span>
+                    </span>
                 </div>
               </div>
 
-              <div className="w-full max-w-[320px] flex items-center gap-4 mt-2 px-2">
-                  <span className={`text-[10px] font-black uppercase tracking-widest shrink-0 ${isDarkMode ? 'text-slate-500' : 'text-text-secondary/60'}`}>
-                      진행률
-                  </span>
-                  <div className={`relative h-2 flex-1 rounded-full overflow-visible ${isDarkMode ? 'bg-slate-800' : 'bg-border/40'}`}>
-                      <div 
-                          className={`absolute top-0 left-0 h-full rounded-full transition-all duration-1000 ease-out ${
-                              isBreak 
-                              ? 'bg-gradient-to-r from-success to-emerald-400 animate-pulse-slow' 
-                              : 'bg-gradient-to-r from-primary to-primary-light'
-                          }`}
-                          style={{ width: `${overallProgressPercent}%` }}
-                      />
-                      
-                      {[1, 2, 3, 4].map((i) => {
-                          const pos = i * 25;
-                          const isReached = overallProgressPercent >= pos;
-                          const isLast = i === 4;
-                          return (
-                              <div 
-                                  key={i}
-                                  className="absolute top-1/2 -translate-y-1/2 -translate-x-1/2 flex flex-col items-center gap-1.5"
-                                  style={{ left: `${pos}%` }}
-                              >
-                                  <div className={`transform rotate-45 transition-all duration-700 border-2 ${
-                                      isReached 
-                                      ? (isBreak && sessionInCycle === i ? 'bg-success border-success scale-125 shadow-lg' : 'bg-primary border-primary scale-110') 
-                                      : (isDarkMode ? 'bg-slate-900 border-slate-700' : 'bg-surface border-border')
-                                  } ${isLast ? 'w-3 h-3' : 'w-2 h-2'}`} />
-                                  <span className={`text-[9px] font-black transition-colors duration-500 ${isReached ? 'text-primary' : (isDarkMode ? 'text-slate-600' : 'text-text-secondary/40')}`}>
-                                      {i}
-                                  </span>
-                              </div>
-                          );
-                      })}
-                  </div>
-              </div>
+              {/* Main Timer Card - z-0 within isolation */}
+              <div className={`w-full max-w-md backdrop-blur-xl border p-6 md:p-8 rounded-[40px] shadow-[0_20px_50px_rgba(0,0,0,0.15)] flex flex-col items-center gap-6 md:gap-8 animate-in fade-in zoom-in duration-500 relative transition-colors duration-700 z-0 ${isDarkMode ? 'bg-[#161B22]/90 border-[#30363D]' : 'bg-surface/90 border-border'}`}>
+                
+                <div className={`absolute top-0 left-0 w-full h-1.5 z-10 ${isDarkMode ? 'bg-slate-700/20' : 'bg-border/20'}`}>
+                  <div 
+                    className="h-full bg-gradient-to-r from-primary to-accent transition-all duration-1000 ease-out" 
+                    style={{ width: `${progressPercent}%` }} 
+                  />
+                </div>
 
-              <div className="flex items-center gap-6 md:gap-8 mt-4">
-                  {!isBreak && (
+                <div className="w-full flex justify-between items-center mt-2 px-2">
                     <button 
-                        onClick={() => {
-                            if(!isActive) triggerAIResponse('START');
-                            else triggerAIResponse('PAUSE');
-                            setIsActive(!isActive);
-                        }}
-                        className={`w-16 h-16 md:w-20 md:h-20 rounded-2xl flex items-center justify-center shadow-lg transition-all active:scale-90 group relative overflow-hidden ${isActive ? 'bg-warning text-white' : 'bg-primary text-white hover:bg-primary-light'}`}
+                      onClick={() => setIsDarkMode(!isDarkMode)} 
+                      className={`p-2.5 rounded-full transition-all border ${isDarkMode ? 'bg-slate-800 text-yellow-400 border-slate-700 hover:bg-slate-700' : 'bg-slate-50 text-slate-500 border-slate-200 hover:bg-slate-100'}`}
+                      title={isDarkMode ? "주간 모드" : "야간 모드"}
                     >
-                        {isActive ? <Pause className="w-7 h-7 md:w-8 md:h-8" fill="currentColor" /> : <Play className="w-7 h-7 md:w-8 md:h-8 ml-1" fill="currentColor" />}
+                        {isDarkMode ? <Sun size={20} /> : <Moon size={20} />}
                     </button>
-                  )}
-                  <button 
-                      onClick={() => {
-                          setIsActive(false);
-                          setTimeLeft(isBreak ? (sessionInCycle === 0 ? 30 * 60 : 5 * 60) : 25 * 60);
-                      }}
-                      className={`w-12 h-12 md:w-14 md:h-14 rounded-xl flex items-center justify-center transition-all border active:scale-95 shadow-sm ${isDarkMode ? 'bg-slate-800 border-slate-700 text-slate-400 hover:bg-slate-700 hover:text-slate-200' : 'bg-background border-border text-text-secondary hover:bg-border hover:text-text-primary'}`}
-                  >
-                      <RotateCcw className="w-5 h-5 md:w-6 md:h-6" />
-                  </button>
-              </div>
+                    <button 
+                      onClick={onReset} 
+                      className={`p-2.5 rounded-full transition-all border border-transparent ${isDarkMode ? 'text-slate-400 hover:bg-rose-900/30 hover:text-rose-400 hover:border-rose-900/50' : 'text-text-secondary hover:bg-rose-50 hover:text-rose-500 hover:border-rose-100'}`}
+                    >
+                        <X size={20} />
+                    </button>
+                </div>
 
-            </div>
+                <div className="relative group mt-9 md:mt-11 min-h-[180px] md:min-h-[220px] flex items-center justify-center w-full">
+                    {shouldHideCharacter ? (
+                      <div className="flex flex-col items-center gap-4 animate-pulse text-primary-light/40">
+                        <Bed size={60} className="md:size-20" />
+                        <p className="text-[10px] font-bold uppercase tracking-widest">Sleeping...</p>
+                      </div>
+                    ) : (
+                      <div className="relative flex items-center justify-center">
+                        {/* SVG Cooldown Aura Gradient - SUPER THICK (strokeWidth: 24, -inset-[10px]) */}
+                        {cooldownRemaining > 0 && (
+                          <div className="absolute -inset-[10px] pointer-events-none z-0 overflow-visible">
+                            <svg className="w-full h-full" style={{ overflow: 'visible' }}>
+                              <defs>
+                                <linearGradient id="auraGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                                  <stop offset="0%" stopColor="#4A5F7A" />
+                                  <stop offset="100%" stopColor="#FF6B9D" />
+                                </linearGradient>
+                              </defs>
+                              <rect 
+                                x="0" y="0" width="100%" height="100%" rx="28" 
+                                fill="none" 
+                                stroke="url(#auraGradient)" 
+                                strokeWidth="24"
+                                strokeDasharray="1500"
+                                strokeDashoffset={1500 - (1500 * (cooldownRemaining / COOLDOWN_MS))}
+                                strokeLinecap="round"
+                                className="transition-all duration-150 ease-linear"
+                                style={{ vectorEffect: 'non-scaling-stroke' }}
+                              />
+                            </svg>
+                          </div>
+                        )}
+                        
+                        <div 
+                          onClick={handleCharacterClick}
+                          className={`relative z-10 w-32 h-32 md:w-44 md:h-44 rounded-2xl border-none overflow-hidden shadow-2xl mx-auto transition-all duration-500 group-hover:scale-105 cursor-pointer active:scale-95 ${isDarkMode ? 'bg-slate-900' : 'bg-slate-100'}`}
+                        >
+                            <img src={profile.imageSrc || ''} alt={profile.name} className="w-full h-full object-cover" />
+                        </div>
+
+                        {/* Staring Status Badge - Always on Top */}
+                        {cooldownRemaining > 0 && (
+                            <div className="absolute -top-8 left-1/2 -translate-x-1/2 bg-primary/95 text-white text-[9px] font-black px-4 py-1.5 rounded-full whitespace-nowrap shadow-xl backdrop-blur-md z-20 border border-white/30 animate-pulse pointer-events-none">
+                                가만히 바라보는 중...
+                            </div>
+                        )}
+
+                        {message && (
+                          <div className="absolute -top-28 md:-top-28 left-1/2 transform -translate-x-1/2 w-64 md:w-72 text-center z-30 transition-all duration-500 animate-in fade-in slide-in-from-bottom-2 pointer-events-none">
+                              <div className={`text-xs md:text-sm font-medium px-6 md:px-8 py-3 md:py-4 rounded-[20px] shadow-2xl leading-relaxed relative backdrop-blur-lg border transition-colors duration-500 ${isDarkMode ? 'bg-slate-900/80 border-white/10 text-slate-100 shadow-slate-900/50' : 'bg-surface/80 border-white/50 text-text-primary shadow-slate-200/50'}`}>
+                                  "{message}"
+                              </div>
+                          </div>
+                        )}
+                      </div>
+                    )}
+                </div>
+
+                <div className="text-center space-y-1 -mt-10 md:-mt-10">
+                    <h2 className={`text-3xl md:text-4xl font-bold tracking-tight ${isDarkMode ? 'text-slate-100' : 'text-text-primary'}`}>{profile.name}</h2>
+                    <p className={`text-[10px] md:text-[11px] font-bold tracking-widest uppercase ${isDarkMode ? 'text-slate-400' : 'text-text-secondary'}`}>To. {profile.honorific || profile.userName || "나"}</p>
+                </div>
+
+                <div className="w-full flex flex-col items-center gap-6 mt-4 pb-4">
+                  <div className="flex items-center gap-4 md:gap-6">
+                    <div className={`w-16 h-16 md:w-20 md:h-20 rounded-2xl flex flex-col items-center justify-center gap-1 border transition-all duration-500 shadow-sm ${
+                        isBreak 
+                        ? (isDarkMode ? 'bg-emerald-900/20 border-emerald-800 text-emerald-400' : 'bg-success/10 border-success/20 text-success') 
+                        : (isDarkMode ? 'bg-slate-800/50 border-slate-700 text-primary-light' : 'bg-primary/5 border-primary/10 text-primary')
+                    }`}>
+                        {isBreak ? <Coffee size={18} /> : <TimerIcon size={18} />}
+                        <div className="flex flex-col items-center leading-tight">
+                            <span className="text-[8px] md:text-[9px] font-black uppercase tracking-tighter">{isBreak ? "Break" : "Focus"}</span>
+                            <span className="text-[8px] md:text-[9px] font-black uppercase tracking-tighter">Mode</span>
+                        </div>
+                    </div>
+
+                    <div className={`text-6xl md:text-7xl font-bold tracking-tighter tabular-nums leading-none transition-colors duration-700 ${isDarkMode ? 'text-slate-100' : 'text-text-primary'}`}>
+                        {formatTime(timeLeft)}
+                    </div>
+                  </div>
+
+                  <div className="w-full max-w-[320px] flex items-center gap-4 mt-2 px-2">
+                      <span className={`text-[10px] font-black uppercase tracking-widest shrink-0 ${isDarkMode ? 'text-slate-500' : 'text-text-secondary/60'}`}>
+                          진행률
+                      </span>
+                      <div className={`relative h-2 flex-1 rounded-full overflow-visible ${isDarkMode ? 'bg-slate-800' : 'bg-border/40'}`}>
+                          <div 
+                              className={`absolute top-0 left-0 h-full rounded-full transition-all duration-1000 ease-out ${
+                                  isBreak 
+                                  ? 'bg-gradient-to-r from-success to-emerald-400 animate-pulse-slow' 
+                                  : 'bg-gradient-to-r from-primary to-primary-light'
+                              }`}
+                              style={{ width: `${overallProgressPercent}%` }}
+                          />
+                          
+                          {[1, 2, 3, 4].map((i) => {
+                              const pos = i * 25;
+                              const isReached = overallProgressPercent >= pos;
+                              const isLast = i === 4;
+                              return (
+                                  <div 
+                                      key={i}
+                                      className="absolute top-1/2 -translate-y-1/2 -translate-x-1/2 flex flex-col items-center gap-1.5"
+                                      style={{ left: `${pos}%` }}
+                                  >
+                                      <div className={`transform rotate-45 transition-all duration-700 border-2 ${
+                                          isReached 
+                                          ? (isBreak && sessionInCycle === i ? 'bg-success border-success scale-125 shadow-lg' : 'bg-primary border-primary scale-110') 
+                                          : (isDarkMode ? 'bg-slate-900 border-slate-700' : 'bg-surface border-border')
+                                      } ${isLast ? 'w-3 h-3' : 'w-2 h-2'}`} />
+                                      <span className={`text-[9px] font-black transition-colors duration-500 ${isReached ? 'text-primary' : (isDarkMode ? 'text-slate-600' : 'text-text-secondary/40')}`}>
+                                          {i}
+                                      </span>
+                                  </div>
+                              );
+                          })}
+                      </div>
+                  </div>
+
+                  <div className="flex items-center gap-6 md:gap-8 mt-4">
+                      {!isBreak && (
+                        <button 
+                            onClick={() => {
+                                if(!isActive) triggerAIResponse('START');
+                                else triggerAIResponse('PAUSE');
+                                setIsActive(!isActive);
+                            }}
+                            className={`w-16 h-16 md:w-20 md:h-20 rounded-2xl flex items-center justify-center shadow-lg transition-all active:scale-90 group relative overflow-hidden ${isActive ? 'bg-warning text-white' : 'bg-primary text-white hover:bg-primary-light'}`}
+                        >
+                            {isActive ? <Pause className="w-7 h-7 md:w-8 md:h-8" fill="currentColor" /> : <Play className="w-7 h-7 md:w-8 md:h-8 ml-1" fill="currentColor" />}
+                        </button>
+                      )}
+                      <button 
+                          onClick={() => {
+                              setIsActive(false);
+                              setTimeLeft(isBreak ? (sessionInCycle === 0 ? 30 * 60 : 5 * 60) : 25 * 60);
+                          }}
+                          className={`w-12 h-12 md:w-14 md:h-14 rounded-xl flex items-center justify-center transition-all border active:scale-95 shadow-sm ${isDarkMode ? 'bg-slate-800 border-slate-700 text-slate-400 hover:bg-slate-700 hover:text-slate-200' : 'bg-background border-border text-text-secondary hover:bg-border hover:text-text-primary'}`}
+                      >
+                          <RotateCcw className="w-5 h-5 md:w-6 md:h-6" />
+                      </button>
+                  </div>
+                </div>
+              </div>
           </div>
       </main>
     </div>
