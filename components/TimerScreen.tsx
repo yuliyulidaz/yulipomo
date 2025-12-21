@@ -303,13 +303,13 @@ const FALLBACK_TEMPLATES: Record<string, Record<string, string[]>> = {
       "상황 양호. 그대로 가하십시오.",
       "지원 사격 중입니다. 힘내십시오.",
       "임무 진행 순조롭습니다. 파이팅!",
-      "제가 지키고 있습니다. 끝까지 가십시오."
+      "제가 지키고 있습니다. 끝까지 가하십시오."
     ],
     READY: ["휴식 종료 임박! 위치로 돌아가십시오."]
   }
 };
 
-const COOLDOWN_MS = 12000; // 12 seconds cooldown
+const COOLDOWN_MS = 60000; // 1 minute cooldown
 
 export const TimerScreen: React.FC<TimerScreenProps> = ({ 
   profile, onReset, onTickXP, onUpdateProfile, onSessionComplete 
@@ -540,7 +540,9 @@ export const TimerScreen: React.FC<TimerScreenProps> = ({
       const now = Date.now();
       const left = Math.max(0, COOLDOWN_MS - (now - start));
       setCooldownRemaining(left);
-      if (left <= 0) clearInterval(cooldownIntervalRef.current);
+      if (left <= 0) {
+        if (cooldownIntervalRef.current) clearInterval(cooldownIntervalRef.current);
+      }
     }, 100);
   };
 
@@ -756,20 +758,20 @@ export const TimerScreen: React.FC<TimerScreenProps> = ({
                   </div>
                 ) : (
                   <div className="relative">
-                    {/* SVG Cooldown Staring Animation */}
+                    {/* SVG Cooldown Staring Animation with Gradient and No Gray Background */}
                     {cooldownRemaining > 0 && (
                       <div className="absolute -inset-3 pointer-events-none z-10">
-                        <svg className="w-full h-full drop-shadow-[0_0_8px_rgba(74,95,122,0.5)]" viewBox="0 0 100 100" preserveAspectRatio="none">
+                        <svg className="w-full h-full" viewBox="0 0 100 100" preserveAspectRatio="none">
+                          <defs>
+                            <linearGradient id="cooldownGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                              <stop offset="0%" stopColor={isDarkMode ? '#34D399' : '#4A5F7A'} />
+                              <stop offset="100%" stopColor={isDarkMode ? '#6B7FA0' : '#FF6B9D'} />
+                            </linearGradient>
+                          </defs>
                           <rect 
                             x="2" y="2" width="96" height="96" rx="12" 
                             fill="none" 
-                            stroke={isDarkMode ? 'rgba(255,107,157,0.1)' : 'rgba(74,95,122,0.1)'} 
-                            strokeWidth="2"
-                          />
-                          <rect 
-                            x="2" y="2" width="96" height="96" rx="12" 
-                            fill="none" 
-                            stroke={isDarkMode ? '#FF6B9D' : '#4A5F7A'} 
+                            stroke="url(#cooldownGradient)" 
                             strokeWidth="3"
                             strokeDasharray="384"
                             strokeDashoffset={384 - (384 * (cooldownRemaining / COOLDOWN_MS))}
