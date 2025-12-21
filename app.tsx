@@ -55,35 +55,59 @@ function App() {
     }
   });
 
-  // --- Critical Bug Fix: LocalStorage Quota Management ---
+  // --- Critical Bug Fix: LocalStorage Quota Management (Smart Storage Manager) ---
   useEffect(() => {
     if (!profile) {
       localStorage.removeItem('pomodoro_profile');
       return;
     }
 
-    try {
-      localStorage.setItem('pomodoro_profile', JSON.stringify(profile));
-    } catch (e) {
-      console.error("Storage Full!", e);
-      // 긴급 조치: 대사 캐시를 완전히 비우고 다시 저장 시도
-      const lightProfile = { 
-        ...profile, 
-        dialogueCache: { 
-          scolding: [], 
-          praising: [], 
-          idle: [], 
-          click: [], 
-          pause: [], 
-          start: [] 
-        } 
-      };
-      
+    const saveToStorage = (data: CharacterProfile) => {
       try {
-        localStorage.setItem('pomodoro_profile', JSON.stringify(lightProfile));
-        console.warn("Cleared dialogue cache to save space.");
-      } catch (e2) {
-        alert("저장 공간이 부족하여 설정을 저장할 수 없습니다. 이미지가 너무 크거나 브라우저 저장소가 가득 찼습니다.");
+        localStorage.setItem('pomodoro_profile', JSON.stringify(data));
+        return true;
+      } catch (e) {
+        return false;
+      }
+    };
+
+    // 1단계: 정상 저장 시도
+    if (!saveToStorage(profile)) {
+      console.warn("Storage Full! Attempting smart recovery (FIFO stage)...");
+
+      // 2단계: 대사 캐시를 카테고리당 5개로 축소 (FIFO 정책 - 최신순 보존)
+      const slimCache = { ...profile.dialogueCache };
+      (Object.keys(slimCache) as Array<keyof typeof slimCache>).forEach(key => {
+        if (slimCache[key].length > 5) {
+          slimCache[key] = slimCache[key].slice(-5);
+        }
+      });
+      
+      const slimProfile = { ...profile, dialogueCache: slimCache };
+      
+      if (saveToStorage(slimProfile)) {
+        console.log("Recovered by trimming dialogue cache (FIFO).");
+        setProfile(slimProfile); 
+      } else {
+        // 3단계: 대사 캐시 완전 삭제 (이미지 보존을 위한 최후의 수단)
+        const extraSlimProfile = { 
+          ...profile, 
+          dialogueCache: { scolding: [], praising: [], idle: [], click: [], pause: [], start: [] } 
+        };
+        
+        if (saveToStorage(extraSlimProfile)) {
+          console.warn("Recovered by clearing ALL dialogue cache.");
+          setProfile(extraSlimProfile);
+        } else {
+          // 4단계: 이미지까지 삭제 (텍스트 데이터라도 살리기 위함)
+          const noImageProfile = { ...extraSlimProfile, imageSrc: null };
+          if (saveToStorage(noImageProfile)) {
+             alert("저장 공간이 부족하여 이미지가 삭제되었습니다. 더 작은 용량의 이미지로 다시 설정해주세요.");
+             setProfile(noImageProfile);
+          } else {
+             alert("브라우저 저장 공간이 가득 찼습니다. 다른 탭을 닫거나 브라우저 캐시를 정리해주세요.");
+          }
+        }
       }
     }
   }, [profile]);
