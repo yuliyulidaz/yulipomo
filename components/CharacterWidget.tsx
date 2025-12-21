@@ -231,7 +231,7 @@ export const CharacterWidget: React.FC<CharacterWidgetProps> = ({ profile, simul
 
   if (isMinimized) return (
     <div className="fixed bottom-4 right-4 z-50">
-      <button onClick={() => setIsMinimized(false)} className="bg-slate-900 text-white p-4 rounded-full shadow-2xl hover:scale-110 transition-transform pointer-events-auto border-4 border-white">
+      <button onClick={() => setIsMinimized(false)} className="bg-primary text-white p-4 rounded-full shadow-2xl hover:scale-110 transition-transform pointer-events-auto border-4 border-surface">
         <Maximize2 size={24} />
       </button>
     </div>
@@ -239,21 +239,21 @@ export const CharacterWidget: React.FC<CharacterWidgetProps> = ({ profile, simul
 
   return (
     <div className="fixed bottom-0 right-0 p-8 z-50 flex flex-col items-end pointer-events-none w-96">
-      <div className={`bg-white/95 backdrop-blur-sm px-6 py-4 rounded-3xl rounded-tr-none shadow-2xl mb-4 relative transform transition-all duration-500 pointer-events-auto border-2 ${
+      <div className={`bg-surface/95 backdrop-blur-sm px-6 py-4 rounded-2xl rounded-tr-none shadow-2xl mb-4 relative transform transition-all duration-500 pointer-events-auto border ${
             (isMessageVisible && !isDisappointed) ? 'opacity-100 translate-y-0 scale-100' : 'opacity-0 translate-y-8 scale-95'
-        } ${isDisappointed ? 'border-rose-400 bg-rose-50' : 'border-slate-100'}`}>
-        <div className="text-sm text-center text-slate-700 break-keep min-h-[1.5rem] flex items-center justify-center font-bold">
-            {isThinking ? <span className="animate-pulse text-indigo-400">생각 중...</span> : message}
+        } ${isDisappointed ? 'border-rose-400 bg-rose-50' : 'border-border'}`}>
+        <div className="text-sm text-center text-text-primary break-keep min-h-[1.5rem] flex items-center justify-center font-medium">
+            {isThinking ? <span className="animate-pulse text-accent">생각 중...</span> : message}
         </div>
-        <div className={`absolute -bottom-2 right-8 w-4 h-4 transform rotate-45 border-r-2 border-b-2 ${isDisappointed ? 'bg-rose-50 border-rose-400' : 'bg-white border-slate-100'}`}></div>
+        <div className={`absolute -bottom-2 right-8 w-4 h-4 transform rotate-45 border-r border-b ${isDisappointed ? 'bg-rose-50 border-rose-400' : 'bg-surface border-border'}`}></div>
       </div>
 
       <div className={`relative pointer-events-auto flex flex-col items-center transition-all duration-1000 ${isCharacterAway ? 'opacity-30 scale-90 translate-y-10 grayscale' : 'opacity-100 scale-100 translate-y-0'}`}>
         <div className={`absolute -top-14 flex gap-2 transition-all duration-300 ${isHovered ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'}`} onMouseEnter={() => setIsHovered(true)}>
-          <button onClick={toggleTimer} className={`p-3 rounded-full text-white shadow-lg transition-transform hover:scale-110 active:scale-95 ${timerActive ? 'bg-amber-500' : 'bg-emerald-500'}`}>
+          <button onClick={toggleTimer} className={`p-3 rounded-full text-white shadow-lg transition-transform hover:scale-110 active:scale-95 ${timerActive ? 'bg-warning' : 'bg-success'}`}>
             {timerActive ? <Pause size={20} /> : <Play size={20} />}
           </button>
-          <button onClick={() => setIsMinimized(true)} className="p-3 bg-slate-700 text-white rounded-full shadow-lg hover:bg-slate-800 transition-colors"><Minimize2 size={20} /></button>
+          <button onClick={() => setIsMinimized(true)} className="p-3 bg-primary-light text-white rounded-full shadow-lg hover:bg-primary transition-colors"><Minimize2 size={20} /></button>
           <button onClick={onReset} className="p-3 bg-rose-500 text-white rounded-full shadow-lg hover:bg-rose-600 transition-colors"><X size={20} /></button>
         </div>
         
@@ -261,17 +261,17 @@ export const CharacterWidget: React.FC<CharacterWidgetProps> = ({ profile, simul
             <img 
                 src={profile.imageSrc || ''} 
                 alt={profile.name} 
-                className={`w-56 h-56 object-contain drop-shadow-2xl cursor-pointer transition-all duration-300 
+                className={`w-56 h-56 object-contain drop-shadow-xl cursor-pointer transition-all duration-300 
                   ${isThinking ? 'brightness-75 saturate-150' : ''} 
                   ${isDisappointed ? 'animate-shake saturate-[0.2] contrast-150 brightness-75' : ''}`} 
                 onClick={() => !isCharacterAway && triggerAIResponse('CLICK')} 
             />
-            {profile.level >= 7 && <MessageSquareHeart className="absolute -top-2 -right-2 text-rose-500 animate-bounce" size={32} />}
+            {profile.level >= 7 && <MessageSquareHeart className="absolute -top-2 -right-2 text-accent animate-bounce" size={32} />}
         </div>
 
-        <div className="mt-4 px-4 py-2 bg-white/90 backdrop-blur rounded-2xl shadow-xl border border-slate-200 flex flex-col items-center gap-1 min-w-[140px]">
-            <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Lv.{profile.level} {isDisappointed ? '!!! SILENCE !!!' : 'Affinity'}</span>
-            <div className={`flex items-center gap-1.5 font-mono text-lg font-black transition-colors ${isDisappointed ? 'text-rose-600' : 'text-slate-800'}`}>
+        <div className="mt-4 px-4 py-2 bg-surface/90 backdrop-blur rounded-xl shadow-lg border border-border flex flex-col items-center gap-1 min-w-[140px]">
+            <span className="text-[10px] font-bold text-text-secondary uppercase tracking-widest">Lv.{profile.level} Affinity</span>
+            <div className={`flex items-center gap-1.5 font-mono text-lg font-bold transition-colors ${isDisappointed ? 'text-rose-600' : 'text-text-primary'}`}>
                 {Math.floor(timeLeft / 60)}:{(timeLeft % 60).toString().padStart(2, '0')}
             </div>
         </div>
