@@ -13,6 +13,7 @@ export interface SurpriseNote {
 }
 
 export interface CharacterProfile {
+  apiKey: string; // 사용자가 입력한 Gemini API 키
   userName: string; // 사용자 본명
   name: string;
   honorific: string;
@@ -21,7 +22,6 @@ export interface CharacterProfile {
   speciesTrait?: string; 
   personality: string[]; 
   selectedDialogueStyles: DialogueStyles; 
-  apiKey: string; // User-provided Gemini API Key
 
   xp: number;
   level: number;
@@ -41,4 +41,11 @@ export interface CharacterProfile {
   };
 
   initialGreeting: string;
+
+  // 새로고침 유지를 위한 필드
+  lastActive?: number;
+  savedTimeLeft?: number;
+  savedIsBreak?: boolean;
+  savedSessionInCycle?: number;
+  savedIsActive?: boolean;
 }
