@@ -78,8 +78,7 @@ export const TimerScreen: React.FC<TimerScreenProps> = ({
   const [showChoiceModal, setShowChoiceModal] = useState(false);
   
   const isRefillingRef = useRef<Record<string, boolean>>({});
-  // 브라우저 호환성을 위해 number 타입 사용
-  const randomEncouragementTimerRef = useRef<number | null>(null);
+  const randomEncouragementTimerRef = useRef<any>(null);
 
   useEffect(() => {
     if (message) {
@@ -96,7 +95,7 @@ export const TimerScreen: React.FC<TimerScreenProps> = ({
     isRefillingRef.current[categoryKey] = true;
 
     try {
-      const ai = new GoogleGenAI({ apiKey: profile.apiKey });
+      const ai = new GoogleGenAI({ apiKey: profile.apiKey || process.env.API_KEY });
       const getMood = () => {
         if (profile.level <= 3) return "Cold, Strict, Minimalist";
         if (profile.level <= 7) return "Friendly, Warm, Helpful";
@@ -217,7 +216,7 @@ export const TimerScreen: React.FC<TimerScreenProps> = ({
         randomEncouragementTimerRef.current = window.setTimeout(() => {
           triggerAIResponse('IDLE');
           startTimer();
-        }, randomMinutes * 60 * 1000) as unknown as number;
+        }, randomMinutes * 60 * 1000);
       };
       startTimer();
     } else {
