@@ -222,10 +222,10 @@ export const SetupScreen: React.FC<SetupScreenProps> = ({ onComplete }) => {
     <div className="min-h-screen bg-background flex items-center justify-center p-4 md:p-6 font-sans">
       <div className="w-full max-w-xl bg-surface rounded-2xl shadow-[0_1px_3px_rgba(0,0,0,0.1),0_10px_20px_rgba(74,95,122,0.05)] overflow-hidden flex flex-col h-[680px] md:h-[720px] relative border border-border">
         
-        {/* 리니어 상단 진행바 */}
-        <div className="absolute top-0 left-0 w-full flex bg-background z-20">
+        {/* 리니어 상단 진행바 (퀴즈 단계에서도 3단계로 유지) */}
+        <div className="absolute top-0 left-0 w-full flex bg-background z-20 border-b border-border/50">
           {[1, 2, 3].map(i => (
-            <div key={i} className={`h-1 flex-1 transition-all duration-700 ${
+            <div key={i} className={`h-1.5 flex-1 transition-all duration-700 ${
               (step === 'STEP1' && i === 1) || (step === 'STEP2' && i <= 2) || (step === 'STEP3' && i <= 3) || step === 'QUIZ' 
               ? 'bg-primary' : 'bg-transparent'
             }`} />
@@ -245,7 +245,7 @@ export const SetupScreen: React.FC<SetupScreenProps> = ({ onComplete }) => {
               </div>
 
               <div className="relative w-44 h-44 mx-auto">
-                <div className={`w-full h-full rounded-2xl overflow-hidden border transition-all duration-500 ${imageSrc ? 'border-primary' : 'border-border bg-background'}`}>
+                <div className={`w-full h-full rounded-2xl overflow-hidden border-2 transition-all duration-500 ${imageSrc ? 'border-primary shadow-lg shadow-primary/10' : 'border-border bg-background'}`}>
                   {imageSrc ? (
                     <img src={imageSrc} alt="Preview" className="w-full h-full object-cover" />
                   ) : (
@@ -267,7 +267,7 @@ export const SetupScreen: React.FC<SetupScreenProps> = ({ onComplete }) => {
                     value={name} 
                     onChange={e => setName(e.target.value)} 
                     placeholder="'최애'의 이름을 적어주세요" 
-                    className="w-full px-0 py-3 bg-transparent border-b border-border outline-none focus:border-primary transition-all text-center font-bold text-xl placeholder:text-border placeholder:font-normal text-text-primary"
+                    className="w-full px-0 py-3 bg-transparent border-b-2 border-border outline-none focus:border-primary transition-all text-center font-bold text-xl placeholder:text-border placeholder:font-normal text-text-primary"
                   />
                 </div>
               </div>
@@ -289,7 +289,7 @@ export const SetupScreen: React.FC<SetupScreenProps> = ({ onComplete }) => {
                       <button 
                         key={k} 
                         onClick={() => setSelectedTone(k)} 
-                        className={`py-3 text-xs rounded-lg border transition-all font-medium ${selectedTone === k ? 'bg-primary border-primary text-white shadow-sm' : 'bg-surface border-border text-text-secondary hover:border-primary-light'}`}
+                        className={`py-3 text-xs rounded-lg border transition-all font-bold ${selectedTone === k ? 'bg-primary border-primary text-white shadow-md' : 'bg-surface border-border text-text-secondary hover:border-primary-light'}`}
                       >
                         {k}
                       </button>
@@ -304,7 +304,7 @@ export const SetupScreen: React.FC<SetupScreenProps> = ({ onComplete }) => {
                       <button 
                         key={k} 
                         onClick={() => togglePersonality(k)} 
-                        className={`py-2 px-4 text-xs rounded-lg border transition-all font-medium ${selectedPersonalities.includes(k) ? 'bg-accent-soft border-accent text-primary-dark shadow-sm' : 'bg-surface border-border text-text-secondary hover:bg-background'}`}
+                        className={`py-2 px-4 text-xs rounded-lg border transition-all font-bold ${selectedPersonalities.includes(k) ? 'bg-accent-soft border-accent text-primary-dark shadow-sm' : 'bg-surface border-border text-text-secondary hover:bg-background'}`}
                       >
                         {k}
                       </button>
@@ -320,11 +320,11 @@ export const SetupScreen: React.FC<SetupScreenProps> = ({ onComplete }) => {
                       value={tmi} 
                       onChange={e => setTmi(e.target.value)} 
                       placeholder={`특이 사항이나 비밀 설정을 자유롭게 적어 주세요.\n{{user}}는 사용자, {{char}}는 최애입니다.\n예) {{char}}는 최고의 아이돌 {{user}}는 구박받는 매니저\n예) {{char}}는 북부공작 {{user}}는 야근에 시달리는 보좌관`} 
-                      className="w-full h-44 p-4 bg-background border border-border rounded-xl outline-none focus:border-primary focus:bg-surface transition-all text-sm leading-relaxed font-medium resize-none text-text-primary placeholder:text-text-secondary/50" 
+                      className="w-full h-56 p-4 bg-background border-2 border-border rounded-xl outline-none focus:border-primary focus:bg-surface transition-all text-sm leading-relaxed font-medium resize-none text-text-primary placeholder:text-text-secondary/60" 
                     />
                     <div className="absolute bottom-2 right-2 flex gap-1.5">
-                      <button onClick={() => insertPlaceholder('{{user}}')} className="px-2 py-0.5 bg-surface text-text-secondary text-[9px] font-bold rounded border border-border hover:text-primary transition-colors">{"{{user}}"}</button>
-                      <button onClick={() => insertPlaceholder('{{char}}')} className="px-2 py-0.5 bg-surface text-text-secondary text-[9px] font-bold rounded border border-border hover:text-primary transition-colors">{"{{char}}"}</button>
+                      <button onClick={() => insertPlaceholder('{{user}}')} className="px-2 py-0.5 bg-surface text-text-secondary text-[9px] font-black rounded border border-border hover:text-primary transition-colors">{"{{user}}"}</button>
+                      <button onClick={() => insertPlaceholder('{{char}}')} className="px-2 py-0.5 bg-surface text-text-secondary text-[9px] font-black rounded border border-border hover:text-primary transition-colors">{"{{char}}"}</button>
                     </div>
                   </div>
                 </div>
@@ -342,11 +342,11 @@ export const SetupScreen: React.FC<SetupScreenProps> = ({ onComplete }) => {
               <div className="grid grid-cols-2 gap-8 px-2">
                 <div className="relative group">
                   <label className="absolute -top-6 left-0 text-[10px] font-bold text-text-secondary uppercase tracking-widest">My Name</label>
-                  <input type="text" value={userName} onChange={e => setUserName(e.target.value)} placeholder="당신의 이름" className="w-full py-2 bg-transparent border-b border-border outline-none focus:border-primary transition-all font-bold text-sm text-text-primary" />
+                  <input type="text" value={userName} onChange={e => setUserName(e.target.value)} placeholder="당신의 이름" className="w-full py-2 bg-transparent border-b-2 border-border outline-none focus:border-primary transition-all font-bold text-sm text-text-primary" />
                 </div>
                 <div className="relative group">
                   <label className="absolute -top-6 left-0 text-[10px] font-bold text-text-secondary uppercase tracking-widest">Call Me</label>
-                  <input type="text" value={honorific} onChange={e => setHonorific(e.target.value)} placeholder="부를 호칭" className="w-full py-2 bg-transparent border-b border-border outline-none focus:border-primary transition-all font-bold text-sm text-text-primary" />
+                  <input type="text" value={honorific} onChange={e => setHonorific(e.target.value)} placeholder="부를 호칭" className="w-full py-2 bg-transparent border-b-2 border-border outline-none focus:border-primary transition-all font-bold text-sm text-text-primary" />
                 </div>
               </div>
 
@@ -357,7 +357,7 @@ export const SetupScreen: React.FC<SetupScreenProps> = ({ onComplete }) => {
                     <button 
                       key={g} 
                       onClick={() => setGender(g)} 
-                      className={`flex-1 py-2.5 text-xs font-bold rounded-lg transition-all ${gender === g ? 'bg-slate-900 text-white shadow-sm' : 'text-text-secondary hover:bg-background'}`}
+                      className={`flex-1 py-2.5 text-xs font-black rounded-lg transition-all ${gender === g ? 'bg-primary text-white shadow-md' : 'text-text-secondary hover:bg-background'}`}
                     >
                       {g === 'MALE' ? '남성' : g === 'FEMALE' ? '여성' : '중성'}
                     </button>
@@ -366,7 +366,7 @@ export const SetupScreen: React.FC<SetupScreenProps> = ({ onComplete }) => {
               </div>
 
               <div className="pt-4 px-2 space-y-5">
-                <div className="flex justify-between items-end border-b border-border pb-2 focus-within:border-primary transition-colors">
+                <div className="flex justify-between items-end border-b-2 border-border pb-2 focus-within:border-primary transition-colors">
                   <div className="space-y-1 flex-1">
                     <label className="flex items-center gap-2 text-[10px] font-bold text-text-secondary uppercase tracking-widest">
                        Gemini API Key
@@ -383,12 +383,12 @@ export const SetupScreen: React.FC<SetupScreenProps> = ({ onComplete }) => {
                     href="https://aistudio.google.com/app/apikey" 
                     target="_blank" 
                     rel="noopener noreferrer" 
-                    className="flex items-center gap-1 text-[10px] font-bold text-primary hover:text-primary-dark transition-colors"
+                    className="flex items-center gap-1 text-[10px] font-black text-primary hover:text-primary-dark transition-colors"
                   >
                     키 발급받기 <ExternalLink size={12} />
                   </a>
                 </div>
-                <p className="text-[10px] text-text-secondary leading-relaxed font-medium">
+                <p className="text-[10px] text-text-secondary leading-relaxed font-bold">
                   키를 입력하고 '소환하기'를 누르면 {name}이(가) 당신 앞에 나타납니다.
                 </p>
               </div>
@@ -397,62 +397,53 @@ export const SetupScreen: React.FC<SetupScreenProps> = ({ onComplete }) => {
 
           {step === 'QUIZ' && quizData && (
             <div className="space-y-12 animate-in fade-in slide-in-from-bottom-6 duration-700">
-               {/* 캐릭터 말풍선 영역 */}
-               <div className="flex items-start gap-4 animate-in slide-in-from-left-4 duration-500">
-                  <div className="w-12 h-12 rounded-xl overflow-hidden border border-border bg-background flex-shrink-0">
-                      <img src={imageSrc || ''} className="w-full h-full object-cover" alt="Character" />
+               {/* 상단 상황 제시 영역 */}
+               <div className="text-center space-y-4 px-4">
+                  <div className="inline-flex items-center justify-center p-3 bg-primary/5 rounded-2xl border border-primary/10 mb-2">
+                     <MessageSquareHeart size={24} className="text-primary" />
                   </div>
-                  <div className="relative max-w-[85%] group">
-                      <div className="absolute -left-2 top-4 w-4 h-4 bg-slate-100 rotate-45 border-l border-b border-slate-200"></div>
-                      <div className="bg-slate-100 border border-slate-200 px-6 py-4 rounded-2xl rounded-tl-none shadow-sm">
-                          <p className="text-xs font-black text-primary uppercase tracking-widest mb-1">{name}</p>
-                          <p className="text-sm font-medium text-text-primary leading-relaxed">
-                              {currentQuizStep === 0 && `앗, ${honorific || userName}님! 약속 시간보다 늦으셨네요?`}
-                              {currentQuizStep === 1 && `이거, 당신 생각나서 샀어요. 마음에 드나요?`}
-                              {currentQuizStep === 2 && `...방금 다른 생각 한 거 아니죠? 집중해야 할 텐데요.`}
-                          </p>
-                      </div>
-                  </div>
+                  <h2 className="text-lg font-black text-text-primary tracking-tight leading-tight">
+                      {currentQuizStep === 0 && `상황 1. 내가 약속 시간에 늦었을 때.\n${name}은(는)?`}
+                      {currentQuizStep === 1 && `상황 2. 선물을 주거나 받을 때.\n${name}은(는)?`}
+                      {currentQuizStep === 2 && `상황 3. 휴식 시간.\n${name}은(는)?`}
+                  </h2>
                </div>
 
-               {/* 유저 선택지 (답장 형태) */}
-               <div className="space-y-4">
-                  <div className="flex items-center justify-end gap-2 mb-3">
-                     <span className="h-px bg-border flex-1"></span>
-                     <span className="text-[10px] font-bold text-text-secondary uppercase tracking-widest px-2">당신의 선택</span>
-                     <span className="h-px bg-border flex-1"></span>
-                  </div>
-                  
-                  <div className="flex flex-col items-end gap-3">
+               {/* 캐릭터 대사 선택지 (좌측 말풍선 형태) */}
+               <div className="space-y-4 px-2">
+                  <div className="flex flex-col items-start gap-4">
                     {(currentQuizStep === 0 ? quizData.late_options : currentQuizStep === 1 ? quizData.gift_options : quizData.lazy_options).map((option, index) => (
-                      <button 
-                        key={index} 
-                        onClick={() => handleOptionSelect(option)} 
-                        className="max-w-[90%] text-right bg-surface border border-border px-6 py-4 rounded-2xl rounded-tr-none hover:border-accent hover:shadow-[0_4px_12px_rgba(255,107,157,0.1)] transition-all group relative active:scale-[0.98] animate-in slide-in-from-right-4 duration-300"
-                        style={{ animationDelay: `${index * 100}ms` }}
-                      >
-                          <p className="text-sm font-medium text-text-secondary leading-relaxed group-hover:text-primary-dark">
-                            "{option}"
-                          </p>
-                          <div className="absolute -right-1 top-4 w-2 h-2 bg-surface rotate-45 border-t border-r border-border group-hover:border-accent transition-colors"></div>
-                      </button>
+                      <div key={index} className="flex items-start gap-3 w-full group animate-in slide-in-from-left-4 duration-300" style={{ animationDelay: `${index * 100}ms` }}>
+                        <div className="w-8 h-8 rounded-lg overflow-hidden border border-border bg-background flex-shrink-0 mt-1">
+                            <img src={imageSrc || ''} className="w-full h-full object-cover" alt="Character" />
+                        </div>
+                        <button 
+                          onClick={() => handleOptionSelect(option)} 
+                          className="flex-1 max-w-[85%] text-left bg-surface border-2 border-border p-4 rounded-2xl rounded-tl-none hover:border-primary hover:shadow-lg transition-all relative active:scale-[0.98]"
+                        >
+                            <p className="text-sm font-bold text-text-primary leading-relaxed">
+                              "{option}"
+                            </p>
+                            <div className="absolute -left-2 top-0 w-3 h-3 bg-surface rotate-45 border-l-2 border-b-2 border-border group-hover:border-primary transition-colors"></div>
+                        </button>
+                      </div>
                     ))}
                   </div>
                </div>
                
                <div className="flex flex-col items-center gap-6 pt-4">
-                  <div className="flex gap-2">
+                  <div className="flex gap-3">
                     {[0, 1, 2].map(i => (
-                        <div key={i} className={`w-1.5 h-1.5 rounded-full transition-all duration-500 ${i === currentQuizStep ? 'bg-accent w-4' : 'bg-border'}`} />
+                        <div key={i} className={`w-2 h-2 rounded-full transition-all duration-500 ${i === currentQuizStep ? 'bg-primary w-6' : 'bg-border'}`} />
                     ))}
                   </div>
 
                   <button 
                       onClick={refreshCurrentQuizStep}
                       disabled={isPartialRefreshing}
-                      className="inline-flex items-center gap-2 py-2 px-4 text-[10px] font-bold text-text-secondary hover:text-primary transition-all border border-dashed border-border rounded-lg hover:bg-background"
+                      className="inline-flex items-center gap-2 py-2.5 px-5 text-[11px] font-black text-text-secondary hover:text-primary transition-all border-2 border-dashed border-border rounded-xl hover:bg-background"
                   >
-                      {isPartialRefreshing ? <Loader2 size={12} className="animate-spin"/> : <RefreshCw size={10} />}
+                      {isPartialRefreshing ? <Loader2 size={12} className="animate-spin"/> : <RefreshCw size={12} />}
                       다른 대사 불러오기
                   </button>
                </div>
@@ -461,23 +452,23 @@ export const SetupScreen: React.FC<SetupScreenProps> = ({ onComplete }) => {
         </div>
 
         {/* 리니어 하단 네비게이션 */}
-        <div className="absolute bottom-0 left-0 w-full p-6 bg-surface/80 backdrop-blur-md border-t border-border flex flex-col gap-3">
+        <div className="absolute bottom-0 left-0 w-full p-6 bg-surface/90 backdrop-blur-md border-t border-border flex flex-col gap-3">
           {error && (
-            <div className="mb-2 px-4 py-2 bg-rose-50 text-rose-600 text-[10px] font-bold rounded-lg flex items-center gap-2 border border-rose-100 animate-shake">
+            <div className="mb-2 px-4 py-2 bg-rose-50 text-rose-600 text-[10px] font-black rounded-lg flex items-center gap-2 border border-rose-100 animate-shake">
               <AlertCircle size={12} /> {error}
             </div>
           )}
           
           <div className="flex flex-col gap-3">
             {step === 'STEP1' && (
-                <p className="text-[11px] font-bold text-rose-500 text-center animate-pulse">
+                <p className="text-[12px] font-black text-rose-500 text-center animate-pulse mb-1">
                     이 프로그램은 Gemini API키를 필요로 합니다
                 </p>
             )}
 
             <div className="flex gap-3">
-                {step !== 'STEP1' && step !== 'QUIZ' && (
-                <button onClick={prevStep} className="px-5 bg-background hover:bg-border text-text-secondary rounded-xl flex items-center justify-center transition-all active:scale-95 h-14">
+                {step !== 'STEP1' && (
+                <button onClick={prevStep} className="px-5 bg-background hover:bg-border text-text-secondary rounded-xl border border-border flex items-center justify-center transition-all active:scale-95 h-14">
                     <ArrowLeft size={20}/>
                 </button>
                 )}
@@ -486,18 +477,18 @@ export const SetupScreen: React.FC<SetupScreenProps> = ({ onComplete }) => {
                 <button 
                     onClick={generatePersonalityOptions} 
                     disabled={isGenerating} 
-                    className="flex-1 bg-primary hover:bg-primary-light text-white font-bold rounded-xl flex justify-center items-center gap-2 shadow-lg shadow-primary/20 transition-all active:scale-[0.98] disabled:opacity-50 h-14"
+                    className="flex-1 bg-primary hover:bg-primary-light text-white font-black rounded-xl flex justify-center items-center gap-2 shadow-lg shadow-primary/20 transition-all active:scale-[0.98] disabled:opacity-50 h-14"
                 >
                     {isGenerating ? <><Loader2 className="animate-spin" size={20}/> AI 분석 중</> : <>소환하기 <Sparkles size={16} className="text-accent-soft fill-accent"/></>}
                 </button>
                 ) : step !== 'QUIZ' ? (
-                <button onClick={nextStep} className="flex-1 bg-primary hover:bg-primary-light text-white font-bold rounded-xl flex justify-center items-center gap-2 shadow-lg shadow-primary/20 transition-all active:scale-[0.98] h-14">
+                <button onClick={nextStep} className="flex-1 bg-primary hover:bg-primary-light text-white font-black rounded-xl flex justify-center items-center gap-2 shadow-lg shadow-primary/20 transition-all active:scale-[0.98] h-14">
                     계속하기 <ArrowRight size={18}/>
                 </button>
                 ) : (
                 <div className="flex-1 flex items-center justify-center h-14">
-                    <button onClick={resetAllFields} className="text-text-secondary hover:text-text-primary transition-colors flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-widest">
-                        <RotateCcw size={12}/> Reset Profile
+                    <button onClick={resetAllFields} className="text-text-secondary hover:text-text-primary transition-colors flex items-center gap-2 text-[11px] font-black uppercase tracking-widest">
+                        <RotateCcw size={14}/> Reset Profile
                     </button>
                 </div>
                 )}
