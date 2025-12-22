@@ -1,9 +1,8 @@
 
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { Play, Pause, RotateCcw, X, Heart, Timer as TimerIcon, Coffee, Bed, CheckCircle2, Moon, Sun, Settings, Save, Key, ExternalLink, ClipboardPaste } from 'lucide-react';
+import { Play, Pause, RotateCcw, X, Heart, Timer as TimerIcon, Coffee, Bed, CheckCircle2, Moon, Sun, Settings, Save, Key, ExternalLink, ClipboardPaste, ClipboardCheck, Zap, MousePointer2, Ghost, Download, Loader2, FileSearch } from 'lucide-react';
 import { CharacterProfile } from '../types';
-// Import HarmCategory and HarmBlockThreshold for correct typing
-import { GoogleGenAI, HarmCategory, HarmBlockThreshold } from "@google/genai";
+import { GoogleGenAI, HarmCategory, HarmBlockThreshold, Type } from "@google/genai";
 
 interface TimerScreenProps {
   profile: CharacterProfile;
@@ -28,7 +27,6 @@ const LEVEL_TITLES: Record<number, string> = {
   10: "영원한 반려"
 };
 
-// 검열 기준 완화: BLOCK_ONLY_HIGH
 const SAFETY_SETTINGS = [
   { category: HarmCategory.HARM_CATEGORY_HARASSMENT, threshold: HarmBlockThreshold.BLOCK_ONLY_HIGH },
   { category: HarmCategory.HARM_CATEGORY_HATE_SPEECH, threshold: HarmBlockThreshold.BLOCK_ONLY_HIGH },
@@ -38,86 +36,33 @@ const SAFETY_SETTINGS = [
 
 const FALLBACK_TEMPLATES: Record<string, Record<string, string[]>> = {
   "반말": {
-    START: [
-      "자, 시작하자. {honorific}, 집중해.",
-      "이제 시작이야. 화이팅!",
-      "준비됐지? {honorific}.",
-      "{honorific}, 해보자고."
-    ],
+    START: ["자, 시작하자. {honorific}, 집중해.", "이제 시작이야. 화이팅!", "준비됐지? {honorific}.", "{honorific}, 해보자고."],
     FINISH: ["끝났네? 고생했어. 좀 쉴까?"],
     PAUSE: ["어디 가? 얼른 와라."],
-    DISTRACTION: [
-      "야, 딴짓하지 마. 보고 있다.",
-      "어? 지금 뭐 하는 거야?",
-      "그거 내려놔. 집중해.",
-      "야야, 딴짓 걸렸어."
-    ],
+    DISTRACTION: ["야, 딴짓하지 마. 보고 있다.", "어? 지금 뭐 하는 거야?", "그거 내려놔. 집중해.", "야야, 딴짓 걸렸어."],
     RETURN: ["이제 왔어? 기다렸잖아."],
-    CLICK: [
-      "뭐야, {honorific} 왜 불러?",
-      "할 일은 해야겠지.",
-      "시간이 빨리 가는 것 같아",
-      "집중하자, {honorific}."
-    ],
-    IDLE: [
-      "졸지 말고 해. 지켜보고 있어.",
-      "잘하고 있어. 계속 가.",
-      "힘내. 거의 다 왔어."
-    ],
+    CLICK: ["뭐야, {honorific} 왜 불러?", "할 일은 해야겠지.", "시간이 빨리 가는 것 같아", "집중하자, {honorific}."],
+    IDLE: ["졸지 말고 해. 지켜보고 있어.", "잘하고 있어. 계속 가.", "힘내. 거의 다 왔어."],
     READY: ["슬슬 다시 시작할 준비 해."]
   },
   "존댓말": {
-    START: [
-      "준비되셨나요? 시작할게요, {honorific}.",
-      "이제 시작합니다. 집중해주세요.",
-      "시작하겠습니다. 화이팅하세요.",
-      "가볼까요? {honorific}, 집중 모드 돌입!"
-    ],
+    START: ["준비되셨나요? 시작할게요, {honorific}.", "이제 시작합니다. 집중해주세요.", "시작하겠습니다. 화이팅하세요.", "가볼까요? {honorific}, 집중 모드 돌입!"],
     FINISH: ["정말 고생 많으셨어요. 잠깐 쉬세요."],
     PAUSE: ["어디 가하시나요? 금방 오셔야 해요."],
-    DISTRACTION: [
-      "{honorific}, 딴짓은 안 돼요. 집중하세요.",
-      "지금 뭐 하시는 거예요? 집중해주세요.",
-      "{honorific}, 보고 있어요. 집중하세요."
-    ],
+    DISTRACTION: ["{honorific}, 딴짓은 안 돼요. 집중하세요.", "지금 뭐 하시는 거예요? 집중해주세요.", "{honorific}, 보고 있어요. 집중하세요."],
     RETURN: ["오셨군요. 기다리고 있었어요."],
-    CLICK: [
-      "네? 부르셨나요?",
-      "조금만 더 하면 돼요.",
-      "집중, 집중이에요.",
-      "어떻게 도와드릴까요?"
-    ],
-    IDLE: [
-      "지켜보고 있으니까 힘내세요.",
-      "잘하고 계세요. 계속하세요.",
-      "화이팅하세요. 옆에 있어요."
-    ],
+    CLICK: ["네? 부르셨나요?", "조금만 더 하면 돼요.", "집중, 집중이에요.", "어떻게 도와드릴까요?"],
+    IDLE: ["지켜보고 있으니까 힘내세요.", "잘하고 계세요. 계속하세요.", "화이팅하세요. 옆에 있어요."],
     READY: ["쉬는 시간 끝나가요. 준비해주세요."]
   },
   "반존대": {
-    START: [
-      "시작해요. {honorific}, 딴짓하면 혼나요.",
-      "자, 시작이에요. {honorific}, 집중!",
-      "가요! {honorific}, 따라와요."
-    ],
+    START: ["시작해요. {honorific}, 딴짓하면 혼나요.", "자, 시작이에요. {honorific}, 집중!", "가요! {honorific}, 따라와요."],
     FINISH: ["수고했어요. 뭐, 나쁘지 않네."],
     PAUSE: ["어딜 가요? 도망가는 건 아니지?"],
-    DISTRACTION: [
-      "흐음... 지금 뭐 하는 거죠? 끄세요.",
-      "어? 딴짓하는 거 보였어요.",
-      "딴짓 들켰어요. 집중해요."
-    ],
+    DISTRACTION: ["흐음... 지금 뭐 하는 거죠? 끄세요.", "어? 딴짓하는 거 보였어요.", "딴짓 들켰어요. 집중해요."],
     RETURN: ["늦었네요. 설명이 좀 필요할 텐데."],
-    CLICK: [
-      "어? 뭐 말씀하실 거예요?",
-      "왜요? 뭐 필요해졌어?",
-      "부른 거 맞죠? 듣고 있어요."
-    ],
-    IDLE: [
-      "제 얼굴 말고 화면 봐요.",
-      "잘하고 있어요. 계속 가요.",
-      "포기하지 말아요. 옆에 있어요."
-    ],
+    CLICK: ["어? 뭐 말씀하실 거예요?", "왜요? 뭐 필요해졌어?", "부른 거 맞죠? 듣고 있어요."],
+    IDLE: ["제 얼굴 말고 화면 봐요.", "잘하고 있어요. 계속 가요.", "포기하지 말아요. 옆에 있어요."],
     READY: ["쉬는 시간 끝나가요. 준비해."]
   },
   "사극/하오체": {
@@ -144,6 +89,14 @@ const FALLBACK_TEMPLATES: Record<string, Record<string, string[]>> = {
 
 const COOLDOWN_MS = 16000; 
 
+interface ReportData {
+  grade: string;
+  typeTitle: string;
+  analysis: string;
+  comment: string;
+  stamp: string;
+}
+
 export const TimerScreen: React.FC<TimerScreenProps> = ({ 
   profile, onReset, onTickXP, onUpdateProfile, onSessionComplete 
 }) => {
@@ -152,11 +105,17 @@ export const TimerScreen: React.FC<TimerScreenProps> = ({
   const [isBreak, setIsBreak] = useState(profile.savedIsBreak ?? false);
   const [sessionInCycle, setSessionInCycle] = useState(profile.savedSessionInCycle ?? 0); 
   
-  // 이름 중괄호 제거 헬퍼 함수
+  // 사이클 통계 추적
+  const [distractions, setDistractions] = useState(profile.cycleStats?.distractions ?? 0);
+  const [clicks, setClicks] = useState(profile.cycleStats?.clicks ?? 0);
+  
+  // 보고서 관련 상태
+  const [showReport, setShowReport] = useState(false);
+  const [isGeneratingReport, setIsGeneratingReport] = useState(false);
+  const [reportData, setReportData] = useState<ReportData | null>(null);
+
   const cleanDialogue = (text: string, honorific: string) => {
-    return text
-      .replace(/{honorific}|{이름}|{user}/g, honorific)
-      .replace(/{([^}]+)}/g, '$1'); // 남아있는 {엘라라} 형태의 중괄호 싹 제거
+    return text.replace(/{honorific}|{이름}|{user}/g, honorific).replace(/{([^}]+)}/g, '$1');
   };
 
   const [message, setMessage] = useState(() => {
@@ -193,16 +152,11 @@ export const TimerScreen: React.FC<TimerScreenProps> = ({
   useEffect(() => {
     const requestWakeLock = async () => {
       if ('wakeLock' in navigator && isActive) {
-        try {
-          wakeLockRef.current = await (navigator as any).wakeLock.request('screen');
-        } catch (err) {
-          console.error("Wake Lock failed", err);
-        }
+        try { wakeLockRef.current = await (navigator as any).wakeLock.request('screen'); } catch (err) {}
       }
     };
     if (isActive) requestWakeLock();
     else if (wakeLockRef.current) wakeLockRef.current.release().then(() => { wakeLockRef.current = null; });
-    return () => { if (wakeLockRef.current) wakeLockRef.current.release(); };
   }, [isActive]);
 
   useEffect(() => {
@@ -211,9 +165,10 @@ export const TimerScreen: React.FC<TimerScreenProps> = ({
       savedIsActive: isActive,
       savedIsBreak: isBreak,
       savedSessionInCycle: sessionInCycle,
-      lastActive: Date.now()
+      lastActive: Date.now(),
+      cycleStats: { distractions, clicks }
     });
-  }, [timeLeft, isActive, isBreak, sessionInCycle, onUpdateProfile]);
+  }, [timeLeft, isActive, isBreak, sessionInCycle, distractions, clicks, onUpdateProfile]);
 
   useEffect(() => {
     if (message && !isApiKeyInputVisible) {
@@ -226,7 +181,6 @@ export const TimerScreen: React.FC<TimerScreenProps> = ({
     const categoryKey = String(category);
     if (isRefillingRef.current[categoryKey]) return;
     isRefillingRef.current[categoryKey] = true;
-
     try {
       const currentProfile = profileRef.current;
       const ai = new GoogleGenAI({ apiKey: currentProfile.apiKey || process.env.API_KEY });
@@ -235,38 +189,14 @@ export const TimerScreen: React.FC<TimerScreenProps> = ({
         if (currentProfile.level <= 7) return "Friendly, Warm, Helpful";
         return "Deeply Affectionate, Loving, Obsessive";
       };
-      const situations: Record<string, string> = {
-        scolding: 'user is slacking off or just returned from distraction',
-        praising: 'user successfully finished a focus session',
-        idle: 'random mid-focus encouragement',
-        click: 'user clicked on character to talk',
-        pause: 'user paused the timer',
-        start: 'user started focus mode'
-      };
-      const prompt = `Roleplay as ${currentProfile.name}. User: ${currentProfile.userName}. Mood: ${getMood()}. 
-        Personality: ${currentProfile.personality.join(', ')}. Situation: ${situations[categoryKey]}. 
-        Task: Write ${count} DIFFERENT immersive Korean sentences. 
-        Length: 10~20 characters. Use {honorific} for the user's name/title. No numbers, no quotes. Separate by Newline.`;
-
-      const result = await ai.models.generateContent({
-        model: 'gemini-3-flash-preview',
-        contents: prompt,
-        config: { safetySettings: SAFETY_SETTINGS }
-      });
+      const situations: Record<string, string> = { scolding: 'slacking off', praising: 'finished focus', idle: 'mid-focus', click: 'user clicked', pause: 'paused', start: 'started' };
+      const prompt = `Roleplay as ${currentProfile.name}. User: ${currentProfile.userName}. Mood: ${getMood()}. Personality: ${currentProfile.personality.join(', ')}. Situation: ${situations[categoryKey]}. Write ${count} Korean sentences (10-20 chars). Use {honorific}. Separate by Newline.`;
+      const result = await ai.models.generateContent({ model: 'gemini-3-flash-preview', contents: prompt, config: { safetySettings: SAFETY_SETTINGS } });
       if (result.text) {
         const newLines = result.text.split('\n').map(l => l.trim()).filter(l => l.length >= 8);
-        onUpdateProfile({
-          dialogueCache: {
-            ...currentProfile.dialogueCache,
-            [category]: [...currentProfile.dialogueCache[category], ...newLines]
-          }
-        });
+        onUpdateProfile({ dialogueCache: { ...currentProfile.dialogueCache, [category]: [...currentProfile.dialogueCache[category], ...newLines] } });
       }
-    } catch (e: any) {
-      console.error(`Refill failed for ${categoryKey}`, e);
-    } finally {
-      isRefillingRef.current[categoryKey] = false;
-    }
+    } catch (e) {} finally { isRefillingRef.current[categoryKey] = false; }
   }, [onUpdateProfile]);
 
   const processRefillQueue = useCallback(async () => {
@@ -275,14 +205,10 @@ export const TimerScreen: React.FC<TimerScreenProps> = ({
     refillQueueRef.current.sort((a, b) => (PRIORITY[a] ?? 99) - (PRIORITY[b] ?? 99));
     const currentProfile = profileRef.current;
     if (currentProfile.dialogueCache.click.length === 0 && refillQueueRef.current.includes('click')) {
-        const idx = refillQueueRef.current.indexOf('click');
-        refillQueueRef.current.splice(idx, 1);
-        isGlobalApiLockedRef.current = true;
-        await refillCategory('click', 5);
+        const idx = refillQueueRef.current.indexOf('click'); refillQueueRef.current.splice(idx, 1);
+        isGlobalApiLockedRef.current = true; await refillCategory('click', 5);
     } else {
-        const category = refillQueueRef.current.shift()!;
-        isGlobalApiLockedRef.current = true;
-        await refillCategory(category, 5);
+        const category = refillQueueRef.current.shift()!; isGlobalApiLockedRef.current = true; await refillCategory(category, 5);
     }
     setTimeout(() => { isGlobalApiLockedRef.current = false; }, 15000);
   }, [refillCategory]);
@@ -294,29 +220,24 @@ export const TimerScreen: React.FC<TimerScreenProps> = ({
 
   const addToRefillQueue = useCallback((category: keyof typeof profile.dialogueCache) => {
     if (profileRef.current.dialogueCache[category].length >= 10) return;
-    if (!refillQueueRef.current.includes(category)) {
-      refillQueueRef.current.push(category);
-    }
+    if (!refillQueueRef.current.includes(category)) refillQueueRef.current.push(category);
   }, []);
 
   const triggerAIResponse = useCallback((type: 'START' | 'FINISH' | 'DISTRACTION' | 'IDLE' | 'CLICK' | 'PAUSE' | 'READY' | 'RETURN' | 'CYCLE_LONG' | 'CYCLE_SHORT') => {
     const cacheKeyMap: Record<string, keyof typeof profile.dialogueCache> = {
       'START': 'start', 'FINISH': 'praising', 'DISTRACTION': 'scolding', 'IDLE': 'idle',
-      'CLICK': 'click', 'PAUSE': 'pause', 'READY': 'start', 'RETURN': 'scolding',
-      'CYCLE_LONG': 'praising', 'CYCLE_SHORT': 'praising'
+      'CLICK': 'click', 'PAUSE': 'pause', 'READY': 'start', 'RETURN': 'scolding', 'CYCLE_LONG': 'praising', 'CYCLE_SHORT': 'praising'
     };
     const userDisplayName = profile.honorific || profile.userName || "너";
     if (type === 'CYCLE_LONG') { setMessage("그래, 푹 자고 와. 깨워줄게."); return; }
     if (type === 'CYCLE_SHORT') { setMessage("뭐? 무리하는 거 아냐? ...걱정되게 진짜."); return; }
-
     const key = cacheKeyMap[type];
     const cachedList = profile.dialogueCache[key];
     if (cachedList && cachedList.length > 0) {
         const randomIndex = Math.floor(Math.random() * cachedList.length);
         const randomMsg = cachedList[randomIndex];
         setMessage(cleanDialogue(randomMsg, userDisplayName));
-        const newCacheList = [...cachedList];
-        newCacheList.splice(randomIndex, 1);
+        const newCacheList = [...cachedList]; newCacheList.splice(randomIndex, 1);
         onUpdateProfile({ dialogueCache: { ...profile.dialogueCache, [key]: newCacheList } });
         if (newCacheList.length < 10) addToRefillQueue(key);
     } else {
@@ -331,6 +252,7 @@ export const TimerScreen: React.FC<TimerScreenProps> = ({
 
   const handleCharacterClick = () => {
     if (isBreak) return;
+    if (isActive && !isBreak) setClicks(prev => prev + 1); // 클릭 횟수 기록
     if (cooldownRemaining > 0) { setMessage("가만히 바라보는 중..."); return; }
     triggerAIResponse('CLICK');
     setCooldownRemaining(COOLDOWN_MS);
@@ -355,41 +277,69 @@ export const TimerScreen: React.FC<TimerScreenProps> = ({
     return () => clearInterval(interval);
   }, [isActive, timeLeft, isBreak, onTickXP]);
 
-  useEffect(() => {
-    Object.keys(profile.dialogueCache).forEach(cat => {
-      const category = cat as keyof typeof profile.dialogueCache;
-      if (profile.dialogueCache[category].length < 10) addToRefillQueue(category);
-    });
-    if (isActive && !isBreak) {
-      const startTimer = () => {
-        randomEncouragementTimerRef.current = window.setTimeout(() => {
-          triggerAIResponse('IDLE');
-          startTimer();
-        }, (Math.floor(Math.random() * 6) + 5) * 60 * 1000);
-      };
-      startTimer();
-    } else if (randomEncouragementTimerRef.current) window.clearTimeout(randomEncouragementTimerRef.current);
-    return () => { if (randomEncouragementTimerRef.current) window.clearTimeout(randomEncouragementTimerRef.current); };
-  }, [isActive, isBreak, triggerAIResponse, addToRefillQueue]);
+  const generateObservationReport = async () => {
+    setIsGeneratingReport(true);
+    try {
+      const ai = new GoogleGenAI({ apiKey: profile.apiKey || process.env.API_KEY });
+      const mood = profile.level <= 3 ? "Cold" : profile.level <= 7 ? "Warm" : "Obsessive";
+      const prompt = `Roleplay as ${profile.name}. User: ${profile.honorific}. Personality: ${profile.personality.join(',')}. Mood: ${mood}.
+        Situation: The user just finished 4 pomodoro sessions (100min focus).
+        Stats: ${distractions} distractions (tab switches), ${clicks} clicks (interactions).
+        Task: Write a secret observation report about the user's behavior.
+        Return JSON ONLY:
+        {
+          "grade": "S, A+, B, C etc.",
+          "typeTitle": "Catchy title like 'The Silent Grinder' or 'Distraction Expert'",
+          "analysis": "Briefly analyze their stats in character",
+          "comment": "Final heartfelt or strict comment for the cycle",
+          "stamp": "One word for the approval stamp (e.g. APPROVED, PERFECT, FAIL)"
+        }`;
 
-  useEffect(() => {
-    if (isBreak) ['click', 'idle', 'scolding', 'praising', 'start', 'pause'].forEach(cat => addToRefillQueue(cat as any));
-  }, [isBreak, addToRefillQueue]);
-
-  useEffect(() => { if (isBreak && timeLeft === 60) triggerAIResponse('READY'); }, [isBreak, timeLeft, triggerAIResponse]);
+      const response = await ai.models.generateContent({
+        model: 'gemini-3-flash-preview',
+        contents: prompt,
+        config: { responseMimeType: "application/json", safetySettings: SAFETY_SETTINGS }
+      });
+      const data = JSON.parse(response.text || '{}');
+      setReportData(data);
+    } catch (e) {
+      setReportData({
+        grade: distractions === 0 ? "S" : "A",
+        typeTitle: distractions === 0 ? "완벽한 몰입가" : "성실한 노력파",
+        analysis: `${clicks}번이나 나를 찾으며 열심히 집중하셨네요.`,
+        comment: "고생 많았어요. 잠시 쉬어가는 건 어떨까요?",
+        stamp: "PASS"
+      });
+    } finally {
+      setIsGeneratingReport(false);
+    }
+  };
 
   const handleTimerFinish = () => {
     if (!isBreak) {
       onSessionComplete(true);
       const nextSessionCount = sessionInCycle + 1;
       setSessionInCycle(nextSessionCount);
-      if (nextSessionCount === 4) { setIsActive(false); setShowChoiceModal(true); } 
-      else { triggerAIResponse('FINISH'); setIsBreak(true); setTimeLeft(5 * 60); }
+      if (nextSessionCount === 4) {
+        setIsActive(false);
+        generateObservationReport(); // 보고서 데이터 생성 시작
+        setShowReport(true); // 보고서 모달 띄우기
+      } else { 
+        triggerAIResponse('FINISH'); setIsBreak(true); setTimeLeft(5 * 60); 
+      }
     } else {
       setIsBreak(false); setTimeLeft(25 * 60);
       if (sessionInCycle > 0) { setIsActive(true); triggerAIResponse('START'); }
       else { setIsActive(false); triggerAIResponse('IDLE'); }
     }
+  };
+
+  const closeReportAndShowChoice = () => {
+    setShowReport(false);
+    setReportData(null);
+    setDistractions(0); // 사이클 리셋
+    setClicks(0);
+    setShowChoiceModal(true);
   };
 
   const handleCycleChoice = (option: 'LONG' | 'SHORT') => {
@@ -399,15 +349,17 @@ export const TimerScreen: React.FC<TimerScreenProps> = ({
   };
 
   const formatTime = (seconds: number) => {
-    const mins = Math.floor(seconds / 60);
-    const secs = seconds % 60;
+    const mins = Math.floor(seconds / 60); const secs = seconds % 60;
     return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
   };
 
   useEffect(() => {
     const handleVisibilityChange = () => {
       if (document.hidden) {
-        if (isActive && !isBreak) { triggerAIResponse('DISTRACTION'); document.title = "⚠️ 딴짓 금지!"; }
+        if (isActive && !isBreak) { 
+          setDistractions(prev => prev + 1); // 딴짓 횟수 기록
+          triggerAIResponse('DISTRACTION'); document.title = "⚠️ 딴짓 금지!"; 
+        }
       } else {
         document.title = "최애 뽀모도로";
         if (isActive && !isBreak) triggerAIResponse('RETURN');
@@ -417,45 +369,19 @@ export const TimerScreen: React.FC<TimerScreenProps> = ({
     return () => document.removeEventListener("visibilitychange", handleVisibilityChange);
   }, [isActive, isBreak, triggerAIResponse]);
 
-  useEffect(() => {
-    if (!isApiKeyInputVisible || !tempApiKey || tempApiKey === profile.apiKey) return;
-    const timer = setTimeout(async () => {
-      setApiKeyError(null); setIsValidating(true);
-      try {
-        const ai = new GoogleGenAI({ apiKey: tempApiKey });
-        await ai.models.generateContent({ model: 'gemini-3-flash-preview', contents: 'hi', config: { maxOutputTokens: 1, thinkingConfig: { thinkingBudget: 0 } } });
-        onUpdateProfile({ apiKey: tempApiKey }); setIsApiKeyInputVisible(false);
-        setTimeout(() => addToRefillQueue('idle'), 500);
-      } catch (err) { setApiKeyError('유효한 키가 아닙니다. 다른 키를 입력해 주세요.'); } 
-      finally { setIsValidating(false); }
-    }, 800);
-    return () => clearTimeout(timer);
-  }, [tempApiKey, isApiKeyInputVisible, profile.apiKey, onUpdateProfile, addToRefillQueue]);
-
-  const handlePasteApiKey = async () => {
-    try { const text = await navigator.clipboard.readText(); setTempApiKey(text.trim()); } 
-    catch (err) { console.error('Clipboard read failed', err); }
-  };
-
   const handleExportProfile = () => {
     const dataStr = JSON.stringify(profile, null, 2);
     const dataUri = 'data:application/json;charset=utf-8,' + encodeURIComponent(dataStr);
-    const now = new Date();
-    const dateStr = now.toISOString().slice(2, 10).replace(/-/g, '');
+    const now = new Date(); const dateStr = now.toISOString().slice(2, 10).replace(/-/g, '');
     const timeStr = now.getHours().toString().padStart(2, '0') + now.getMinutes().toString().padStart(2, '0');
-    const sanitizedName = profile.name.replace(/[\\/:*?"<>|]/g, '').replace(/\s+/g, '');
-    const finalFileName = sanitizedName ? `${sanitizedName}_${dateStr}_${timeStr}.json` : `${dateStr}_${timeStr}.json`;
-    const linkElement = document.createElement('a');
-    linkElement.setAttribute('href', dataUri);
-    linkElement.setAttribute('download', finalFileName);
-    linkElement.click();
-    setIsSettingsOpen(false);
-    setMessage("저장되었습니다. API키가 포함되어 있으니 공유에 주의하세요.");
+    const finalFileName = `${profile.name.replace(/\s+/g, '')}_${dateStr}_${timeStr}.json`;
+    const linkElement = document.createElement('a'); linkElement.setAttribute('href', dataUri);
+    linkElement.setAttribute('download', finalFileName); linkElement.click();
+    setIsSettingsOpen(false); setMessage("저장되었습니다.");
   };
 
   const currentXpTarget = LEVEL_XP_TABLE[profile.level] || 9999;
   const progressPercent = Math.min(100, (profile.xp / currentXpTarget) * 100);
-  const shouldHideCharacter = isBreak && timeLeft > 60;
   const overallProgressPercent = ((sessionInCycle + (!isBreak ? (25 * 60 - timeLeft) / (25 * 60) : 0)) / 4) * 100;
 
   return (
@@ -463,6 +389,82 @@ export const TimerScreen: React.FC<TimerScreenProps> = ({
       {profile.imageSrc && (
         <div className={`absolute inset-0 z-0 transition-opacity duration-700 ${isDarkMode ? 'opacity-5' : 'opacity-10'}`}>
           <img src={profile.imageSrc} alt="Background" className="w-full h-full object-cover blur-md scale-110" />
+        </div>
+      )}
+
+      {/* 최애의 관찰 보고서 모달 */}
+      {showReport && (
+        <div className="fixed inset-0 z-[110] flex items-center justify-center p-4 bg-primary-dark/60 backdrop-blur-xl animate-in fade-in duration-500">
+          <div className="w-full max-w-lg bg-[#FAF9F6] text-[#2D3436] rounded-[2rem] shadow-2xl overflow-hidden relative border-8 border-white/50 transform animate-in zoom-in-95 duration-500">
+            {/* 상단 띠 */}
+            <div className="bg-[#E9E4D4] px-8 py-4 border-b-2 border-dashed border-[#B2A88E] flex justify-between items-center">
+              <div className="flex items-center gap-2">
+                <div className="bg-rose-500 text-white text-[9px] font-black px-2 py-0.5 rounded tracking-tighter">TOP SECRET</div>
+                <h3 className="font-serif italic font-bold text-lg text-[#5D5747]">Observation Log</h3>
+              </div>
+              <span className="text-[10px] font-black text-[#8B836C] uppercase tracking-widest">{new Date().toLocaleDateString()}</span>
+            </div>
+
+            <div className="p-8 space-y-8 min-h-[400px] flex flex-col">
+              {isGeneratingReport ? (
+                <div className="flex-1 flex flex-col items-center justify-center gap-4 text-[#8B836C]">
+                  <Loader2 className="animate-spin" size={40} />
+                  <p className="font-bold text-sm animate-pulse">최애가 당신을 분석하는 중...</p>
+                </div>
+              ) : reportData ? (
+                <>
+                  <div className="flex justify-between items-start">
+                    <div className="space-y-1">
+                      <p className="text-[10px] font-black text-[#8B836C] uppercase">Subject Name</p>
+                      <h4 className="text-2xl font-bold font-serif">{profile.honorific || profile.userName}</h4>
+                    </div>
+                    <div className="text-right">
+                      <p className="text-[10px] font-black text-[#8B836C] uppercase tracking-widest">Focus Grade</p>
+                      <div className="text-5xl font-black text-primary italic leading-none">{reportData.grade}</div>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-3 gap-4 py-4 border-y-2 border-dashed border-[#B2A88E]">
+                    <div className="flex flex-col items-center gap-1.5">
+                      <TimerIcon size={18} className="text-[#8B836C]" />
+                      <span className="text-[9px] font-black uppercase text-[#8B836C]">Focus Time</span>
+                      <span className="font-bold text-sm">100:00</span>
+                    </div>
+                    <div className="flex flex-col items-center gap-1.5">
+                      <Ghost size={18} className="text-[#8B836C]" />
+                      <span className="text-[9px] font-black uppercase text-[#8B836C]">Distractions</span>
+                      <span className="font-bold text-sm text-rose-500">{distractions}회</span>
+                    </div>
+                    <div className="flex flex-col items-center gap-1.5">
+                      <MousePointer2 size={18} className="text-[#8B836C]" />
+                      <span className="text-[9px] font-black uppercase text-[#8B836C]">Interactions</span>
+                      <span className="font-bold text-sm text-primary">{clicks}회</span>
+                    </div>
+                  </div>
+
+                  <div className="space-y-4 flex-1">
+                    <div className="space-y-1">
+                      <span className="inline-block bg-[#E9E4D4] px-2 py-0.5 rounded text-[10px] font-bold text-[#5D5747]">Focus Type: {reportData.typeTitle}</span>
+                    </div>
+                    <div className="relative p-6 bg-[#EFEDE3] rounded-2xl border-l-4 border-[#B2A88E] italic text-sm leading-relaxed text-[#4A4434]">
+                      <p className="mb-4">"{reportData.analysis}"</p>
+                      <p className="font-bold text-[#2D3436]">"{reportData.comment}"</p>
+                      <div className="absolute -bottom-2 -right-2 transform rotate-12 bg-white/40 p-1 rounded-full"><div className="w-16 h-16 rounded-full border-4 border-rose-500/30 flex items-center justify-center text-rose-500/40 font-black text-[10px] select-none">{reportData.stamp}</div></div>
+                    </div>
+                  </div>
+
+                  <div className="flex gap-3 pt-4">
+                    <button onClick={closeReportAndShowChoice} className="flex-1 py-4 bg-[#2D3436] text-white rounded-2xl font-black text-sm hover:bg-black transition-all active:scale-95 shadow-xl">보고서 닫기 및 휴식</button>
+                  </div>
+                </>
+              ) : null}
+            </div>
+
+            {/* 하단 장식 */}
+            <div className="bg-[#E9E4D4] px-8 py-2 flex justify-center border-t-2 border-dashed border-[#B2A88E]">
+              <p className="text-[9px] font-bold text-[#8B836C]">OBSERVER: {profile.name} • CONFIDENTIAL RECORD</p>
+            </div>
+          </div>
         </div>
       )}
 
@@ -518,20 +520,15 @@ export const TimerScreen: React.FC<TimerScreenProps> = ({
             </div>
 
             <div className={`relative mt-9 md:mt-11 min-h-[180px] md:min-h-[220px] flex items-center justify-center w-full transition-all ${isApiKeyInputVisible ? 'z-50' : 'z-20'}`}>
-                {shouldHideCharacter ? (<div className="flex flex-col items-center gap-4 animate-pulse text-primary-light/40"><Bed size={60} className="md:size-20" /><p className="text-[10px] font-bold uppercase tracking-widest">Sleeping...</p></div>) : (
+                {isBreak && timeLeft > 60 ? (<div className="flex flex-col items-center gap-4 animate-pulse text-primary-light/40"><Bed size={60} className="md:size-20" /><p className="text-[10px] font-bold uppercase tracking-widest">Sleeping...</p></div>) : (
                   <div className="relative">
                     {cooldownRemaining > 0 && (
                       <div className="absolute -inset-3 pointer-events-none z-10">
                         <svg className="w-full h-full" viewBox="0 0 100 100" preserveAspectRatio="none">
                           <path 
                             d="M 50 2 H 86 A 12 12 0 0 1 98 14 V 86 A 12 12 0 0 1 86 98 H 14 A 12 12 0 0 1 2 86 V 14 A 12 12 0 0 1 14 2 H 50"
-                            fill="none" 
-                            stroke="currentColor" 
-                            strokeWidth="3" 
-                            pathLength="100"
-                            strokeDasharray="100" 
-                            strokeDashoffset={100 * (cooldownRemaining / COOLDOWN_MS)} 
-                            strokeLinecap="round" 
+                            fill="none" stroke="currentColor" strokeWidth="3" pathLength="100" strokeDasharray="100" 
+                            strokeDashoffset={100 * (cooldownRemaining / COOLDOWN_MS)} strokeLinecap="round" 
                             className={`transition-all duration-150 ease-linear ${isDarkMode ? 'text-emerald-400' : 'text-primary'}`} 
                           />
                         </svg>
@@ -543,7 +540,7 @@ export const TimerScreen: React.FC<TimerScreenProps> = ({
                        <div className="absolute -top-32 left-1/2 transform -translate-x-1/2 w-[340px] md:w-[400px] z-50 animate-in fade-in slide-in-from-bottom-4" onClick={(e) => e.stopPropagation()}>
                           <div className={`p-6 rounded-[28px] shadow-2xl border backdrop-blur-xl space-y-5 ${isDarkMode ? 'bg-slate-900 border-white/10' : 'bg-surface border-border'}`}>
                              <div className="flex justify-between items-center"><p className={`text-xs font-bold ${isDarkMode ? 'text-slate-200' : 'text-text-primary'}`}>API 키 변경</p><button onClick={() => setIsApiKeyInputVisible(false)}><X size={16} /></button></div>
-                             <div className="flex gap-2"><a href="https://aistudio.google.com/app/apikey" target="_blank" rel="noopener noreferrer" className={`flex-1 h-9 flex items-center justify-center rounded-xl border text-[10px] font-black ${isDarkMode ? 'bg-slate-800 border-slate-700 text-slate-300' : 'bg-slate-50 border-border text-text-secondary'}`}>키 발급 <ExternalLink size={12} /></a><button onClick={handlePasteApiKey} className="flex-1 h-9 bg-primary text-white text-[10px] font-black rounded-xl">붙여넣기 <ClipboardPaste size={12} /></button></div>
+                             <div className="flex gap-2"><a href="https://aistudio.google.com/app/apikey" target="_blank" rel="noopener noreferrer" className={`flex-1 h-9 flex items-center justify-center rounded-xl border text-[10px] font-black ${isDarkMode ? 'bg-slate-800 border-slate-700 text-slate-300' : 'bg-slate-50 border-border text-text-secondary'}`}>키 발급 <ExternalLink size={12} /></a><button onClick={() => navigator.clipboard.readText().then(t => setTempApiKey(t.trim()))} className="flex-1 h-9 bg-primary text-white text-[10px] font-black rounded-xl">붙여넣기 <ClipboardPaste size={12} /></button></div>
                              <input type="password" value={tempApiKey} onChange={(e) => setTempApiKey(e.target.value)} placeholder="키를 붙여넣으세요" className={`w-full h-11 px-4 rounded-xl border outline-none font-mono text-[12px] ${isDarkMode ? 'bg-slate-950 border-slate-700 text-slate-100' : 'bg-background border-border text-text-primary'}`} />
                              {apiKeyError && <p className="text-[10px] text-rose-500 font-black">{apiKeyError}</p>}
                              {isValidating && <p className="text-[10px] text-primary font-black animate-pulse">검사 중...</p>}
