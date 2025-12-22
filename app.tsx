@@ -32,7 +32,8 @@ function App() {
         level: 1,
         maxXpForNextLevel: 10,
         personality: ["존댓말"],
-        initialGreeting: "준비되셨나요? 시작 버튼을 눌러주세요."
+        initialGreeting: "준비되셨나요? 시작 버튼을 눌러주세요.",
+        cycleStats: { distractions: 0, clicks: 0 }
       };
 
       const dialogueCache = { ...defaults.dialogueCache, ...parsed.dialogueCache };
