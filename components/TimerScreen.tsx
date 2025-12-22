@@ -58,7 +58,7 @@ const FALLBACK_TEMPLATES: Record<string, Record<string, string[]>> = {
   "반존대": {
     START: ["시작해요. {honorific}, 딴짓하면 혼나요.", "자, 시작이에요. {honorific}, 집중!", "가요! {honorific}, 따라와요."],
     FINISH: ["수고했어요. 뭐, 나쁘지네."],
-    PAUSE: ["어딜 가요? 도망가는 건 아니지?"],
+    PAUSE: ["어딜 가요? 도망가는 아니지?"],
     DISTRACTION: ["흐음... 지금 뭐 하는 거죠? 끄세요.", "어? 딴짓하는 거 보였어요.", "딴짓 들켰어요. 집중해요."],
     RETURN: ["늦었네요. 설명이 좀 필요할 텐데."],
     CLICK: ["어? 뭐 말씀하실 거예요?", "왜요? 뭐 필요해졌어?", "부른 거 맞죠? 듣고 있어요."],
