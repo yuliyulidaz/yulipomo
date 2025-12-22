@@ -795,8 +795,7 @@ export const TimerScreen: React.FC<TimerScreenProps> = ({
 
           <div className={`w-full max-w-md backdrop-blur-xl border p-6 md:p-8 rounded-[40px] shadow-[0_20px_50px_rgba(74,95,122,0.1)] flex flex-col items-center gap-6 md:gap-8 animate-in fade-in zoom-in duration-500 relative transition-colors duration-700 ${isDarkMode ? 'bg-[#161B22]/90 border-[#30363D]' : 'bg-surface/90 border-border'} ${isApiKeyInputVisible || isSettingsOpen ? 'overflow-visible z-40' : 'overflow-hidden'}`}>
             
-            {/* 호감도 게이지 - 카드 테두리 안쪽으로 격리 및 레이어 조정 */}
-            <div className={`absolute top-[1px] left-[1px] right-[1px] h-1.5 z-0 ${isDarkMode ? 'bg-slate-700/20' : 'bg-border/20'} rounded-t-[39px] overflow-hidden pointer-events-none`}>
+            <div className={`absolute top-0 left-0 w-full h-1.5 z-10 ${isDarkMode ? 'bg-slate-700/20' : 'bg-border/20'} rounded-t-[40px] overflow-hidden`}>
               <div 
                 className="h-full bg-gradient-to-r from-primary to-accent transition-all duration-1000 ease-out rounded-r-full" 
                 style={{ width: `${progressPercent}%` }} 
