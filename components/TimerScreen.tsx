@@ -770,7 +770,7 @@ export const TimerScreen: React.FC<TimerScreenProps> = ({
       )}
 
       {(isSettingsOpen || isApiKeyInputVisible) && (
-        <div className="fixed inset-0 z-40" onClick={() => { setIsSettingsOpen(false); setIsApiKeyInputVisible(false); }} />
+        <div className="fixed inset-0 z-30" onClick={() => { setIsSettingsOpen(false); setIsApiKeyInputVisible(false); }} />
       )}
 
       <main className="w-full h-full flex flex-col items-center justify-center relative p-4 md:p-8">
@@ -784,11 +784,11 @@ export const TimerScreen: React.FC<TimerScreenProps> = ({
             </div>
           </div>
 
-          <div className={`w-full max-w-md backdrop-blur-xl border p-6 md:p-8 rounded-[40px] shadow-[0_20px_50px_rgba(74,95,122,0.1)] flex flex-col items-center gap-6 md:gap-8 animate-in fade-in zoom-in duration-500 relative transition-colors duration-700 ${isDarkMode ? 'bg-[#161B22]/90 border-[#30363D]' : 'bg-surface/90 border-border'} ${isApiKeyInputVisible || isSettingsOpen ? 'overflow-visible' : 'overflow-hidden'}`}>
+          <div className={`w-full max-w-md backdrop-blur-xl border p-6 md:p-8 rounded-[40px] shadow-[0_20px_50px_rgba(74,95,122,0.1)] flex flex-col items-center gap-6 md:gap-8 animate-in fade-in zoom-in duration-500 relative transition-colors duration-700 ${isDarkMode ? 'bg-[#161B22]/90 border-[#30363D]' : 'bg-surface/90 border-border'} ${isApiKeyInputVisible || isSettingsOpen ? 'overflow-visible z-40' : 'overflow-hidden'}`}>
             
-            <div className={`absolute top-0 left-0 w-full h-1.5 z-10 ${isDarkMode ? 'bg-slate-700/20' : 'bg-border/20'}`}>
+            <div className={`absolute top-0 left-0 w-full h-1.5 z-10 ${isDarkMode ? 'bg-slate-700/20' : 'bg-border/20'} rounded-t-[40px] overflow-hidden`}>
               <div 
-                className="h-full bg-gradient-to-r from-primary to-accent transition-all duration-1000 ease-out" 
+                className="h-full bg-gradient-to-r from-primary to-accent transition-all duration-1000 ease-out rounded-r-full" 
                 style={{ width: `${progressPercent}%` }} 
               />
             </div>
@@ -804,7 +804,7 @@ export const TimerScreen: React.FC<TimerScreenProps> = ({
                   </button>
                   
                   <div className={`absolute top-full left-0 mt-3 flex flex-col gap-2.5 transition-all duration-500 origin-top z-50 ${isSettingsOpen ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-4 pointer-events-none'}`}>
-                      <div className="flex items-center gap-2 group cursor-pointer" onClick={() => setIsDarkMode(!isDarkMode)}>
+                      <div className="flex items-center gap-2 group cursor-pointer" onClick={(e) => { e.stopPropagation(); setIsDarkMode(!isDarkMode); }}>
                           <div className={`w-10 h-10 rounded-full border shadow-sm flex items-center justify-center transition-all hover:scale-110 ${isDarkMode ? 'bg-slate-800 text-yellow-400 border-slate-700' : 'bg-white text-slate-500 border-slate-200'}`}>
                             {isDarkMode ? <Sun size={18} /> : <Moon size={18} />}
                           </div>
@@ -813,7 +813,7 @@ export const TimerScreen: React.FC<TimerScreenProps> = ({
                           </span>
                       </div>
                       
-                      <div className="flex items-center gap-2 group cursor-pointer" onClick={handleExportProfile}>
+                      <div className="flex items-center gap-2 group cursor-pointer" onClick={(e) => { e.stopPropagation(); handleExportProfile(); }}>
                           <div className={`w-10 h-10 rounded-full border shadow-sm flex items-center justify-center transition-all hover:scale-110 ${isDarkMode ? 'bg-slate-800 text-slate-100 border-slate-700' : 'bg-white text-slate-600 border-slate-200'}`}>
                             <Save size={18} />
                           </div>
@@ -822,7 +822,7 @@ export const TimerScreen: React.FC<TimerScreenProps> = ({
                           </span>
                       </div>
 
-                      <div className="flex items-center gap-2 group cursor-pointer" onClick={() => { setIsApiKeyInputVisible(true); setIsSettingsOpen(false); }}>
+                      <div className="flex items-center gap-2 group cursor-pointer" onClick={(e) => { e.stopPropagation(); setIsApiKeyInputVisible(true); setIsSettingsOpen(false); }}>
                           <div className={`w-10 h-10 rounded-full border shadow-sm flex items-center justify-center transition-all hover:scale-110 ${isDarkMode ? 'bg-slate-800 text-slate-400 border-slate-700' : 'bg-white text-slate-500 border-slate-200'}`}>
                             <Key size={18} />
                           </div>
