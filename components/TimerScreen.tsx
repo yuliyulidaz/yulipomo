@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { Play, Pause, RotateCcw, X, Heart, Timer as TimerIcon, Coffee, Bed, CheckCircle2, Moon, Sun, Settings, Save, Key, ExternalLink, ClipboardPaste, ClipboardCheck, Zap, MousePointer2, Ghost, Download, Loader2, FileSearch } from 'lucide-react';
+import { Play, Pause, RotateCcw, X, Heart, Timer as TimerIcon, Coffee, Bed, CheckCircle2, Moon, Sun, Settings, Save, Key, ExternalLink, ClipboardPaste, ClipboardCheck, Zap, MousePointer2, Ghost, Download, Loader2, FileSearch, Terminal, FastForward, SlidersHorizontal } from 'lucide-react';
 import { CharacterProfile } from '../types';
 import { GoogleGenAI, HarmCategory, HarmBlockThreshold, Type } from "@google/genai";
 
@@ -113,6 +113,13 @@ export const TimerScreen: React.FC<TimerScreenProps> = ({
   const [showReport, setShowReport] = useState(false);
   const [isGeneratingReport, setIsGeneratingReport] = useState(false);
   const [reportData, setReportData] = useState<ReportData | null>(null);
+
+  // 관리자(God Mode) 관련 상태
+  const [badgeClicks, setBadgeClicks] = useState(0);
+  const [showAdminAuth, setShowAdminAuth] = useState(false);
+  const [adminPassword, setAdminPassword] = useState('');
+  const [isAdminMode, setIsAdminMode] = useState(false);
+  const [showAdminPanel, setShowAdminPanel] = useState(false);
 
   const cleanDialogue = (text: string, honorific: string) => {
     return text.replace(/{honorific}|{이름}|{user}/g, honorific).replace(/{([^}]+)}/g, '$1');
@@ -380,15 +387,135 @@ export const TimerScreen: React.FC<TimerScreenProps> = ({
     setIsSettingsOpen(false); setMessage("저장되었습니다.");
   };
 
+  // 관리자 모드 진입 핸들러
+  const handleBadgeClick = () => {
+    const nextCount = badgeClicks + 1;
+    setBadgeClicks(nextCount);
+    if (nextCount >= 5) {
+      setBadgeClicks(0);
+      setShowAdminAuth(true);
+    }
+    // 2초 동안 클릭 없으면 카운트 리셋
+    setTimeout(() => setBadgeClicks(0), 2000);
+  };
+
+  const verifyAdmin = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (adminPassword === 'PTSD') {
+      setIsAdminMode(true);
+      setShowAdminPanel(true);
+      setShowAdminAuth(false);
+      setAdminPassword('');
+      setMessage("관리자 모드 활성화!");
+    } else {
+      setAdminPassword('');
+      setShowAdminAuth(false);
+      setMessage("비밀번호가 틀렸습니다.");
+    }
+  };
+
   const currentXpTarget = LEVEL_XP_TABLE[profile.level] || 9999;
   const progressPercent = Math.min(100, (profile.xp / currentXpTarget) * 100);
   const overallProgressPercent = ((sessionInCycle + (!isBreak ? (25 * 60 - timeLeft) / (25 * 60) : 0)) / 4) * 100;
+
+  // 디버그 데이터 계산
+  const getDebugMood = () => {
+    if (profile.level <= 3) return "Cold/Strict";
+    if (profile.level <= 7) return "Friendly/Warm";
+    return "Deeply Affectionate/Obsessive";
+  };
 
   return (
     <div className={`relative w-full h-screen flex transition-colors duration-700 overflow-hidden font-sans ${isDarkMode ? 'bg-[#0B0E14] text-slate-100' : 'bg-background text-text-primary'}`}>
       {profile.imageSrc && (
         <div className={`absolute inset-0 z-0 transition-opacity duration-700 ${isDarkMode ? 'opacity-5' : 'opacity-10'}`}>
           <img src={profile.imageSrc} alt="Background" className="w-full h-full object-cover blur-md scale-110" />
+        </div>
+      )}
+
+      {/* 관리자 비밀번호 팝업 */}
+      {showAdminAuth && (
+        <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-300">
+          <form onSubmit={verifyAdmin} className="w-full max-w-xs bg-surface border border-border p-6 rounded-3xl shadow-2xl space-y-4">
+            <div className="flex items-center gap-2 text-primary font-black text-xs uppercase tracking-tighter">
+              <Terminal size={16} /> God Mode Access
+            </div>
+            <input 
+              type="password" 
+              autoFocus
+              value={adminPassword}
+              onChange={(e) => setAdminPassword(e.target.value)}
+              placeholder="ENTER PASSWORD"
+              className="w-full bg-background border-2 border-border focus:border-primary outline-none px-4 py-3 rounded-xl text-center font-mono tracking-widest text-lg"
+            />
+            <button type="submit" className="w-full py-3 bg-primary text-white rounded-xl font-bold text-sm shadow-lg shadow-primary/20">VERIFY</button>
+            <button type="button" onClick={() => setShowAdminAuth(false)} className="w-full text-[10px] font-bold text-text-secondary uppercase">Cancel</button>
+          </form>
+        </div>
+      )}
+
+      {/* 관리자 패널 UI */}
+      {isAdminMode && showAdminPanel && (
+        <div className="fixed bottom-6 left-6 z-[150] w-72 bg-slate-900/95 border border-white/10 rounded-3xl shadow-2xl overflow-hidden backdrop-blur-xl animate-in slide-in-from-left-4 duration-500">
+          <div className="bg-primary/20 px-5 py-3 border-b border-white/5 flex justify-between items-center">
+            <div className="flex items-center gap-2">
+              <Terminal size={14} className="text-primary-light" />
+              <span className="text-[10px] font-black text-white uppercase tracking-widest">Admin Control</span>
+            </div>
+            <button onClick={() => setShowAdminPanel(false)} className="text-white/40 hover:text-white transition-colors"><X size={14} /></button>
+          </div>
+          <div className="p-5 space-y-5">
+            <div className="space-y-2">
+              <p className="text-[9px] font-black text-white/40 uppercase tracking-widest">Time Manipulation</p>
+              <button onClick={() => setTimeLeft(10)} className="w-full flex items-center justify-between px-4 py-3 bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl transition-all group">
+                <span className="text-xs font-bold text-white group-hover:text-primary-light">시간 도약 (10초)</span>
+                <FastForward size={16} className="text-primary-light" />
+              </button>
+            </div>
+            
+            <div className="space-y-2">
+              <div className="flex justify-between items-end">
+                <p className="text-[9px] font-black text-white/40 uppercase tracking-widest">Affinity Level</p>
+                <span className="text-xs font-black text-primary-light">Lv.{profile.level}</span>
+              </div>
+              <input 
+                type="range" min="1" max="10" step="1" 
+                value={profile.level}
+                onChange={(e) => onUpdateProfile({ level: parseInt(e.target.value), xp: 0 })}
+                className="w-full h-1.5 bg-white/10 rounded-lg appearance-none cursor-pointer accent-primary-light" 
+              />
+              <div className="flex justify-between text-[8px] font-bold text-white/20 px-1 uppercase">
+                <span>Stranger</span>
+                <span>Lover</span>
+              </div>
+            </div>
+
+            <div className="space-y-2 pt-2 border-t border-white/5">
+              <p className="text-[9px] font-black text-white/40 uppercase tracking-widest flex items-center gap-1.5">
+                <FileSearch size={10} /> Internal Diagnostics
+              </p>
+              <div className="grid grid-cols-2 gap-2 text-[10px]">
+                <div className="bg-black/40 p-2.5 rounded-lg border border-white/5">
+                  <p className="text-white/30 text-[8px] font-bold uppercase mb-0.5">Judgment</p>
+                  <p className="text-primary-light font-black">{getDebugMood()}</p>
+                </div>
+                <div className="bg-black/40 p-2.5 rounded-lg border border-white/5">
+                  <p className="text-white/30 text-[8px] font-bold uppercase mb-0.5">Interactions</p>
+                  <p className="text-white font-black">{clicks} Clicks</p>
+                </div>
+              </div>
+              <div className="bg-black/40 p-2.5 rounded-lg border border-white/5 space-y-1">
+                <p className="text-white/30 text-[8px] font-bold uppercase border-b border-white/5 pb-1 mb-1.5">Dialogue Cache Status</p>
+                <div className="flex flex-wrap gap-x-3 gap-y-1 text-[9px] font-bold text-white/60">
+                  <span>Start: {profile.dialogueCache.start.length}</span>
+                  <span>Finish: {profile.dialogueCache.praising.length}</span>
+                  <span>Scold: {profile.dialogueCache.scolding.length}</span>
+                  <span>Click: {profile.dialogueCache.click.length}</span>
+                  <span>Idle: {profile.dialogueCache.idle.length}</span>
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
       )}
 
@@ -494,11 +621,15 @@ export const TimerScreen: React.FC<TimerScreenProps> = ({
 
       <main className="w-full h-full flex flex-col items-center justify-center relative p-4 md:p-8">
           <div className="mb-[-1px] z-20 animate-in slide-in-from-top-4 duration-700">
-            <div className={`px-5 py-2 rounded-t-2xl border border-b-0 shadow-[0_-4px_12px_rgba(0,0,0,0.03)] flex items-center gap-2.5 ${isDarkMode ? 'bg-[#161B22] border-[#30363D]' : 'bg-surface border-border'}`}>
-                <Heart size={12} className="text-accent fill-accent animate-pulse" />
+            <div 
+              onClick={handleBadgeClick}
+              className={`px-5 py-2 rounded-t-2xl border border-b-0 shadow-[0_-4px_12px_rgba(0,0,0,0.03)] flex items-center gap-2.5 cursor-pointer active:scale-95 transition-all ${isDarkMode ? 'bg-[#161B22] border-[#30363D]' : 'bg-surface border-border'} ${badgeClicks > 0 ? 'ring-2 ring-primary/20' : ''}`}
+            >
+                <Heart size={12} className={`text-accent fill-accent ${badgeClicks > 0 ? 'animate-bounce' : 'animate-pulse'}`} />
                 <span className={`text-[11px] font-black tracking-tight ${isDarkMode ? 'text-slate-100' : 'text-text-primary'}`}>
                   Lv.{profile.level} <span className="ml-1 text-primary">{LEVEL_TITLES[profile.level] || "운명의 동반자"}</span>
                 </span>
+                {isAdminMode && <div className="w-1.5 h-1.5 bg-primary rounded-full ml-1" />}
             </div>
           </div>
 
@@ -514,6 +645,9 @@ export const TimerScreen: React.FC<TimerScreenProps> = ({
                       <div className="flex items-center gap-3 cursor-pointer" onClick={(e) => { e.stopPropagation(); setIsDarkMode(!isDarkMode); }}><div className={`w-12 h-12 rounded-full border shadow-sm flex items-center justify-center transition-all hover:scale-110 ${isDarkMode ? 'bg-slate-800 text-yellow-400 border-slate-700' : 'bg-white border-slate-200'}`}>{isDarkMode ? <Sun size={20} /> : <Moon size={20} />}</div><span className={`text-[10px] font-black px-2.5 py-1.5 rounded-lg border shadow-sm whitespace-nowrap min-w-[60px] text-center ${isDarkMode ? 'bg-slate-800 border-slate-700 text-slate-100' : 'bg-surface/90 border-border'}`}>{isDarkMode ? '라이트' : '다크'}</span></div>
                       <div className="flex items-center gap-3 cursor-pointer" onClick={(e) => { e.stopPropagation(); handleExportProfile(); }}><div className={`w-12 h-12 rounded-full border shadow-sm flex items-center justify-center transition-all hover:scale-110 ${isDarkMode ? 'bg-slate-800 text-slate-100 border-slate-700' : 'bg-white border-slate-200'}`}><Save size={20} /></div><span className={`text-[10px] font-black px-2.5 py-1.5 rounded-lg border shadow-sm whitespace-nowrap min-w-[60px] text-center ${isDarkMode ? 'bg-slate-800 border-slate-700 text-slate-100' : 'bg-surface/90 border-border'}`}>저장</span></div>
                       <div className="flex items-center gap-3 cursor-pointer" onClick={(e) => { e.stopPropagation(); setTempApiKey(''); setIsApiKeyInputVisible(true); setIsSettingsOpen(false); }}><div className={`w-12 h-12 rounded-full border shadow-sm flex items-center justify-center transition-all hover:scale-110 ${isDarkMode ? 'bg-slate-800 text-slate-400 border-slate-700' : 'bg-white border-slate-200'}`}><Key size={20} /></div><span className={`text-[10px] font-black px-2.5 py-1.5 rounded-lg border shadow-sm whitespace-nowrap min-w-[60px] text-center ${isDarkMode ? 'bg-slate-800 border-slate-700 text-slate-100' : 'bg-surface/90 border-border'}`}>API키</span></div>
+                      {isAdminMode && (
+                        <div className="flex items-center gap-3 cursor-pointer" onClick={(e) => { e.stopPropagation(); setShowAdminPanel(!showAdminPanel); setIsSettingsOpen(false); }}><div className={`w-12 h-12 rounded-full border shadow-sm flex items-center justify-center transition-all hover:scale-110 bg-primary text-white border-primary-dark`}><Terminal size={20} /></div><span className={`text-[10px] font-black px-2.5 py-1.5 rounded-lg border shadow-sm bg-primary border-primary-dark text-white whitespace-nowrap min-w-[60px] text-center`}>패널</span></div>
+                      )}
                   </div>
                 </div>
                 <button onClick={onReset} className={`p-2.5 rounded-full transition-all border border-transparent ${isDarkMode ? 'text-slate-400 hover:bg-rose-900/30 hover:text-rose-400' : 'text-text-secondary hover:bg-rose-50 hover:text-rose-500'}`} title="초기화"><X size={20} /></button>
