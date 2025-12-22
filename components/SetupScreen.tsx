@@ -14,7 +14,7 @@ const GREETING_TEMPLATES: Record<string, string> = {
   "다나까": "{honorific}, 시작 버튼 안 누릅니까? 기다리고 있습니다."
 };
 
-// 검열 기준 완화: BLOCK_LOW_AND_ABOVE -> BLOCK_ONLY_HIGH
+// 검열 기준 완화: BLOCK_ONLY_HIGH
 const SAFETY_SETTINGS = [
   { category: HarmCategory.HARM_CATEGORY_HARASSMENT, threshold: HarmBlockThreshold.BLOCK_ONLY_HIGH },
   { category: HarmCategory.HARM_CATEGORY_HATE_SPEECH, threshold: HarmBlockThreshold.BLOCK_ONLY_HIGH },
@@ -280,7 +280,7 @@ export const SetupScreen: React.FC<SetupScreenProps> = ({ onComplete }) => {
 
         <div className="flex-1 overflow-y-auto px-10 pt-16 pb-28 scroll-smooth">
           {step === 'STEP1' && (
-            <div className="space-y-10 animate-in fade-in slide-in-from-right-4 duration-500 text-center">
+            <div className="space-y-6 md:space-y-10 animate-in fade-in slide-in-from-right-4 duration-500 text-center">
               <div className="space-y-3">
                 <div className="flex items-center justify-center gap-2 mb-1">
                     <Heart size={14} className="text-accent fill-accent" />
@@ -290,7 +290,7 @@ export const SetupScreen: React.FC<SetupScreenProps> = ({ onComplete }) => {
                 <p className="text-text-secondary text-sm font-medium">당신과 함께 할 상대는 누구인가요?</p>
               </div>
 
-              <div className="relative w-44 h-44 mx-auto">
+              <div className="relative w-32 h-32 md:w-44 md:h-44 mx-auto">
                 <div className={`w-full h-full rounded-2xl overflow-hidden border-2 transition-all duration-500 ${imageSrc ? 'border-primary shadow-lg shadow-primary/10' : 'border-border bg-background'}`}>
                   {imageSrc ? (
                     <img src={imageSrc} alt="Preview" className="w-full h-full object-cover" />
@@ -305,7 +305,7 @@ export const SetupScreen: React.FC<SetupScreenProps> = ({ onComplete }) => {
                 </div>
               </div>
 
-              <div className="max-w-xs mx-auto pt-6 flex flex-col items-center">
+              <div className="max-w-xs mx-auto pt-4 md:pt-6 flex flex-col items-center">
                 <div className="relative w-full">
                   <label className="absolute -top-6 left-0 text-[10px] font-bold text-text-secondary uppercase tracking-widest">Bias Name</label>
                   <input 
@@ -318,7 +318,7 @@ export const SetupScreen: React.FC<SetupScreenProps> = ({ onComplete }) => {
                 </div>
                 
                 {/* 로드(불러오기) 버튼 */}
-                <div className="mt-8">
+                <div className="mt-4 md:mt-8">
                   <input 
                     type="file" 
                     ref={fileInputRef} 
