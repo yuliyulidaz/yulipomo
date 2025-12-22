@@ -60,7 +60,7 @@ const FALLBACK_TEMPLATES: Record<string, Record<string, string[]>> = {
     FINISH: ["수고했어요. 뭐, 나쁘지 않네."],
     PAUSE: ["어딜 가요? 도망가는 건 아니지?"],
     DISTRACTION: ["흐음... 지금 뭐 하는 거죠? 끄세요.", "어? 딴짓하는 거 보였어요.", "딴짓 들켰어요. 집중해요."],
-    RETURN: ["늦었네요. 설명이 좀 필요할 텐데."],
+    RETURN: ["이제 왔어? 기다렸잖아."],
     CLICK: ["어? 뭐 말씀하실 거예요?", "왜요? 뭐 필요해졌어?", "부른 거 맞죠? 듣고 있어요."],
     IDLE: ["제 얼굴 말고 화면 봐요.", "잘하고 있어요. 계속 가요.", "포기하지 말아요. 옆에 있어요."],
     READY: ["쉬는 시간 끝나가요. 준비해."]
@@ -150,7 +150,6 @@ export const TimerScreen: React.FC<TimerScreenProps> = ({
   const isRefillingRef = useRef<Record<string, boolean>>({});
   const isGlobalApiLockedRef = useRef<boolean>(false);
   const refillQueueRef = useRef<Array<keyof typeof profile.dialogueCache>>([]);
-  const randomEncouragementTimerRef = useRef<any>(null);
   const wakeLockRef = useRef<any>(null);
   
   const profileRef = useRef(profile);
@@ -414,6 +413,28 @@ export const TimerScreen: React.FC<TimerScreenProps> = ({
     }
   };
 
+  // API 키 업데이트 핸들러
+  const handleUpdateApiKey = async () => {
+    if (!tempApiKey.trim()) {
+      setApiKeyError("키를 입력해주세요.");
+      return;
+    }
+    setIsValidating(true);
+    setApiKeyError(null);
+    try {
+      const ai = new GoogleGenAI({ apiKey: tempApiKey });
+      // 키 유효성 검사를 위해 아주 작은 요청을 보냄
+      await ai.models.generateContent({ model: 'gemini-3-flash-preview', contents: 'Hello' });
+      onUpdateProfile({ apiKey: tempApiKey });
+      setIsApiKeyInputVisible(false);
+      setMessage("API 키가 변경되었습니다.");
+    } catch (err) {
+      setApiKeyError("올바르지 않은 API 키입니다.");
+    } finally {
+      setIsValidating(false);
+    }
+  };
+
   const currentXpTarget = LEVEL_XP_TABLE[profile.level] || 9999;
   const progressPercent = Math.min(100, (profile.xp / currentXpTarget) * 100);
   const overallProgressPercent = ((sessionInCycle + (!isBreak ? (25 * 60 - timeLeft) / (25 * 60) : 0)) / 4) * 100;
@@ -644,7 +665,7 @@ export const TimerScreen: React.FC<TimerScreenProps> = ({
                   <div className={`absolute top-full left-0 mt-3.5 flex flex-col gap-3.5 transition-all duration-500 origin-top z-50 ${isSettingsOpen ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-4 pointer-events-none'}`}>
                       <div className="flex items-center gap-3 cursor-pointer" onClick={(e) => { e.stopPropagation(); setIsDarkMode(!isDarkMode); }}><div className={`w-12 h-12 rounded-full border shadow-sm flex items-center justify-center transition-all hover:scale-110 ${isDarkMode ? 'bg-slate-800 text-yellow-400 border-slate-700' : 'bg-white border-slate-200'}`}>{isDarkMode ? <Sun size={20} /> : <Moon size={20} />}</div><span className={`text-[10px] font-black px-2.5 py-1.5 rounded-lg border shadow-sm whitespace-nowrap min-w-[60px] text-center ${isDarkMode ? 'bg-slate-800 border-slate-700 text-slate-100' : 'bg-surface/90 border-border'}`}>{isDarkMode ? '라이트' : '다크'}</span></div>
                       <div className="flex items-center gap-3 cursor-pointer" onClick={(e) => { e.stopPropagation(); handleExportProfile(); }}><div className={`w-12 h-12 rounded-full border shadow-sm flex items-center justify-center transition-all hover:scale-110 ${isDarkMode ? 'bg-slate-800 text-slate-100 border-slate-700' : 'bg-white border-slate-200'}`}><Save size={20} /></div><span className={`text-[10px] font-black px-2.5 py-1.5 rounded-lg border shadow-sm whitespace-nowrap min-w-[60px] text-center ${isDarkMode ? 'bg-slate-800 border-slate-700 text-slate-100' : 'bg-surface/90 border-border'}`}>저장</span></div>
-                      <div className="flex items-center gap-3 cursor-pointer" onClick={(e) => { e.stopPropagation(); setTempApiKey(''); setIsApiKeyInputVisible(true); setIsSettingsOpen(false); }}><div className={`w-12 h-12 rounded-full border shadow-sm flex items-center justify-center transition-all hover:scale-110 ${isDarkMode ? 'bg-slate-800 text-slate-400 border-slate-700' : 'bg-white border-slate-200'}`}><Key size={20} /></div><span className={`text-[10px] font-black px-2.5 py-1.5 rounded-lg border shadow-sm whitespace-nowrap min-w-[60px] text-center ${isDarkMode ? 'bg-slate-800 border-slate-700 text-slate-100' : 'bg-surface/90 border-border'}`}>API키</span></div>
+                      <div className="flex items-center gap-3 cursor-pointer" onClick={(e) => { e.stopPropagation(); setTempApiKey(profile.apiKey || ''); setIsApiKeyInputVisible(true); setIsSettingsOpen(false); }}><div className={`w-12 h-12 rounded-full border shadow-sm flex items-center justify-center transition-all hover:scale-110 ${isDarkMode ? 'bg-slate-800 text-slate-400 border-slate-700' : 'bg-white border-slate-200'}`}><Key size={20} /></div><span className={`text-[10px] font-black px-2.5 py-1.5 rounded-lg border shadow-sm whitespace-nowrap min-w-[60px] text-center ${isDarkMode ? 'bg-slate-800 border-slate-700 text-slate-100' : 'bg-surface/90 border-border'}`}>API키</span></div>
                       {isAdminMode && (
                         <div className="flex items-center gap-3 cursor-pointer" onClick={(e) => { e.stopPropagation(); setShowAdminPanel(!showAdminPanel); setIsSettingsOpen(false); }}><div className={`w-12 h-12 rounded-full border shadow-sm flex items-center justify-center transition-all hover:scale-110 bg-primary text-white border-primary-dark`}><Terminal size={20} /></div><span className={`text-[10px] font-black px-2.5 py-1.5 rounded-lg border shadow-sm bg-primary border-primary-dark text-white whitespace-nowrap min-w-[60px] text-center`}>패널</span></div>
                       )}
@@ -654,7 +675,12 @@ export const TimerScreen: React.FC<TimerScreenProps> = ({
             </div>
 
             <div className={`relative mt-9 md:mt-11 min-h-[180px] md:min-h-[220px] flex items-center justify-center w-full transition-all ${isApiKeyInputVisible ? 'z-50' : 'z-20'}`}>
-                {isBreak && timeLeft > 60 ? (<div className="flex flex-col items-center gap-4 animate-pulse text-primary-light/40"><Bed size={60} className="md:size-20" /><p className="text-[10px] font-bold uppercase tracking-widest">Sleeping...</p></div>) : (
+                {isBreak && timeLeft > 60 ? (
+                  <div className="flex flex-col items-center gap-4 animate-pulse text-primary-light/40">
+                    <Bed size={60} className="md:size-20" />
+                    <p className="text-[10px] font-bold uppercase tracking-widest">Sleeping...</p>
+                  </div>
+                ) : (
                   <div className="relative">
                     {cooldownRemaining > 0 && (
                       <div className="absolute -inset-3 pointer-events-none z-10">
@@ -670,19 +696,28 @@ export const TimerScreen: React.FC<TimerScreenProps> = ({
                     )}
                     <div onClick={handleCharacterClick} className={`w-32 h-32 md:w-44 md:h-44 rounded-2xl border-4 overflow-hidden shadow-xl mx-auto transition-all duration-500 group-hover:scale-105 group-hover:border-primary cursor-pointer active:scale-95 ${isDarkMode ? 'border-slate-800' : 'border-border'}`}><img src={profile.imageSrc || ''} alt={profile.name} className="w-full h-full object-cover" /></div>
                     {cooldownRemaining > 0 && (<div className="absolute -bottom-2 left-1/2 -translate-x-1/2 bg-primary/90 text-white text-[9px] font-black px-3 py-1 rounded-full shadow-lg animate-pulse whitespace-nowrap z-20">가만히 바라보는 중...</div>)}
-                    {isApiKeyInputVisible && (
-                       <div className="absolute -top-32 left-1/2 transform -translate-x-1/2 w-[340px] md:w-[400px] z-50 animate-in fade-in slide-in-from-bottom-4" onClick={(e) => e.stopPropagation()}>
-                          <div className={`p-6 rounded-[28px] shadow-2xl border backdrop-blur-xl space-y-5 ${isDarkMode ? 'bg-slate-900 border-white/10' : 'bg-surface border-border'}`}>
-                             <div className="flex justify-between items-center"><p className={`text-xs font-bold ${isDarkMode ? 'text-slate-200' : 'text-text-primary'}`}>API 키 변경</p><button onClick={() => setIsApiKeyInputVisible(false)}><X size={16} /></button></div>
-                             <div className="flex gap-2"><a href="https://aistudio.google.com/app/apikey" target="_blank" rel="noopener noreferrer" className={`flex-1 h-9 flex items-center justify-center rounded-xl border text-[10px] font-black ${isDarkMode ? 'bg-slate-800 border-slate-700 text-slate-300' : 'bg-slate-50 border-border text-text-secondary'}`}>키 발급 <ExternalLink size={12} /></a><button onClick={() => navigator.clipboard.readText().then(t => setTempApiKey(t.trim()))} className="flex-1 h-9 bg-primary text-white text-[10px] font-black rounded-xl">붙여넣기 <ClipboardPaste size={12} /></button></div>
-                             <input type="password" value={tempApiKey} onChange={(e) => setTempApiKey(e.target.value)} placeholder="키를 붙여넣으세요" className={`w-full h-11 px-4 rounded-xl border outline-none font-mono text-[12px] ${isDarkMode ? 'bg-slate-950 border-slate-700 text-slate-100' : 'bg-background border-border text-text-primary'}`} />
-                             {apiKeyError && <p className="text-[10px] text-rose-500 font-black">{apiKeyError}</p>}
-                             {isValidating && <p className="text-[10px] text-primary font-black animate-pulse">검사 중...</p>}
-                          </div>
-                       </div>
-                    )}
                     {message && !isApiKeyInputVisible && (<div className="absolute -top-20 left-1/2 transform -translate-x-1/2 w-64 text-center z-20 animate-in fade-in slide-in-from-bottom-2 pointer-events-none"><div className={`text-xs md:text-sm font-medium px-6 py-3 rounded-[20px] shadow-2xl backdrop-blur-lg border ${isDarkMode ? 'bg-slate-900/80 border-white/10 text-slate-100' : 'bg-surface/80 border-white/50 text-text-primary'}`}>"{message}"</div></div>)}
                   </div>
+                )}
+
+                {/* API 키 입력 모달 (캐릭터/취침 모드 관계없이 보임) */}
+                {isApiKeyInputVisible && (
+                   <div className="absolute -top-32 left-1/2 transform -translate-x-1/2 w-[340px] md:w-[400px] z-[60] animate-in fade-in slide-in-from-bottom-4" onClick={(e) => e.stopPropagation()}>
+                      <div className={`p-6 rounded-[28px] shadow-2xl border backdrop-blur-xl space-y-5 ${isDarkMode ? 'bg-slate-900 border-white/10' : 'bg-surface border-border'}`}>
+                         <div className="flex justify-between items-center"><p className={`text-xs font-bold ${isDarkMode ? 'text-slate-200' : 'text-text-primary'}`}>API 키 변경</p><button onClick={() => setIsApiKeyInputVisible(false)}><X size={16} /></button></div>
+                         <div className="flex gap-2"><a href="https://aistudio.google.com/app/apikey" target="_blank" rel="noopener noreferrer" className={`flex-1 h-9 flex items-center justify-center rounded-xl border text-[10px] font-black ${isDarkMode ? 'bg-slate-800 border-slate-700 text-slate-300' : 'bg-slate-50 border-border text-text-secondary'}`}>키 발급 <ExternalLink size={12} /></a><button onClick={() => navigator.clipboard.readText().then(t => setTempApiKey(t.trim()))} className="flex-1 h-9 bg-primary text-white text-[10px] font-black rounded-xl">붙여넣기 <ClipboardPaste size={12} /></button></div>
+                         <input type="password" value={tempApiKey} onChange={(e) => setTempApiKey(e.target.value)} placeholder="키를 붙여넣으세요" className={`w-full h-11 px-4 rounded-xl border outline-none font-mono text-[12px] ${isDarkMode ? 'bg-slate-950 border-slate-700 text-slate-100' : 'bg-background border-border text-text-primary'}`} />
+                         {apiKeyError && <p className="text-[10px] text-rose-500 font-black">{apiKeyError}</p>}
+                         {isValidating && <p className="text-[10px] text-primary font-black animate-pulse">검증 중...</p>}
+                         <button 
+                            disabled={isValidating}
+                            onClick={handleUpdateApiKey}
+                            className="w-full h-11 bg-primary hover:bg-primary-light text-white font-black text-xs rounded-xl shadow-lg shadow-primary/20 transition-all active:scale-95 disabled:opacity-50"
+                         >
+                            {isValidating ? '확인 중...' : '저장 및 적용'}
+                         </button>
+                      </div>
+                   </div>
                 )}
             </div>
 
