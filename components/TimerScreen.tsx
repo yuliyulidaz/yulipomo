@@ -105,7 +105,7 @@ const FALLBACK_TEMPLATES: Record<string, Record<string, string[]>> = {
       "가볼까요? {honorific}, 집중 모드 돌입!"
     ],
     FINISH: ["정말 고생 많으셨어요. 잠깐 쉬세요."],
-    PAUSE: ["어디 가시나요? 금방 오셔야 해요."],
+    PAUSE: ["어디 가하시나요? 금방 오셔야 해요."],
     DISTRACTION: [
       "{honorific}, 딴짓은 안 돼요. 집중하세요.",
       "지금 뭐 하시는 거예요? 집중해주세요.",
@@ -707,15 +707,12 @@ export const TimerScreen: React.FC<TimerScreenProps> = ({
     const timeStr = now.getHours().toString().padStart(2, '0') + now.getMinutes().toString().padStart(2, '0'); // HHMM
     
     // 파일명 형식 지정: 최애이름_YYMMDD_HHMM.json
-    // 특수문자 및 공백 제거
     const sanitizedName = profile.name.replace(/[\\/:*?"<>|]/g, '').replace(/\s+/g, '');
     const finalFileName = sanitizedName ? `${sanitizedName}_${dateStr}_${timeStr}.json` : `${dateStr}_${timeStr}.json`;
 
-    const exportFileDefaultName = finalFileName;
-
     const linkElement = document.createElement('a');
     linkElement.setAttribute('href', dataUri);
-    linkElement.setAttribute('download', exportFileDefaultName);
+    linkElement.setAttribute('download', finalFileName);
     linkElement.click();
 
     // 메뉴 닫기 및 토스트 알림 표시
@@ -776,7 +773,7 @@ export const TimerScreen: React.FC<TimerScreenProps> = ({
         <div className="fixed inset-0 z-40" onClick={() => { setIsSettingsOpen(false); setIsApiKeyInputVisible(false); }} />
       )}
 
-      <main className="w-full h-full flex flex-col items-center justify-center relative z-10 p-4 md:p-8">
+      <main className="w-full h-full flex flex-col items-center justify-center relative p-4 md:p-8">
           
           <div className="mb-[-1px] z-20 animate-in slide-in-from-top-4 duration-700">
             <div className={`px-5 py-2 rounded-t-2xl border border-b-0 shadow-[0_-4px_12px_rgba(0,0,0,0.03)] flex items-center gap-2.5 ${isDarkMode ? 'bg-[#161B22] border-[#30363D]' : 'bg-surface border-border'}`}>
@@ -806,7 +803,7 @@ export const TimerScreen: React.FC<TimerScreenProps> = ({
                       <Settings size={20} />
                   </button>
                   
-                  <div className={`absolute top-full left-0 mt-3 flex flex-col gap-2.5 transition-all duration-500 origin-top ${isSettingsOpen ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-4 pointer-events-none'}`}>
+                  <div className={`absolute top-full left-0 mt-3 flex flex-col gap-2.5 transition-all duration-500 origin-top z-50 ${isSettingsOpen ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-4 pointer-events-none'}`}>
                       <div className="flex items-center gap-2 group cursor-pointer" onClick={() => setIsDarkMode(!isDarkMode)}>
                           <div className={`w-10 h-10 rounded-full border shadow-sm flex items-center justify-center transition-all hover:scale-110 ${isDarkMode ? 'bg-slate-800 text-yellow-400 border-slate-700' : 'bg-white text-slate-500 border-slate-200'}`}>
                             {isDarkMode ? <Sun size={18} /> : <Moon size={18} />}
@@ -845,7 +842,7 @@ export const TimerScreen: React.FC<TimerScreenProps> = ({
                 </button>
             </div>
 
-            <div className={`relative group mt-9 md:mt-11 min-h-[180px] md:min-h-[220px] flex items-center justify-center w-full transition-all ${isApiKeyInputVisible ? 'z-[51]' : 'z-20'}`}>
+            <div className={`relative group mt-9 md:mt-11 min-h-[180px] md:min-h-[220px] flex items-center justify-center w-full transition-all ${isApiKeyInputVisible ? 'z-50' : 'z-20'}`}>
                 {shouldHideCharacter ? (
                   <div className="flex flex-col items-center gap-4 animate-pulse text-primary-light/40">
                     <Bed size={60} className="md:size-20" />
@@ -890,7 +887,7 @@ export const TimerScreen: React.FC<TimerScreenProps> = ({
                     )}
 
                     {isApiKeyInputVisible && (
-                       <div className="absolute -top-32 left-1/2 transform -translate-x-1/2 w-[340px] md:w-[380px] z-[60] animate-in fade-in slide-in-from-bottom-4 duration-300">
+                       <div className="absolute -top-32 left-1/2 transform -translate-x-1/2 w-[340px] md:w-[380px] z-50 animate-in fade-in slide-in-from-bottom-4 duration-300">
                           <div className={`p-5 rounded-[24px] shadow-2xl border backdrop-blur-xl relative space-y-3 ${isDarkMode ? 'bg-slate-900/90 border-white/10 shadow-black/40' : 'bg-surface/95 border-border shadow-slate-200/50'}`}>
                              <p className={`text-xs font-bold leading-tight ${isDarkMode ? 'text-slate-200' : 'text-text-primary'}`}>
                                 API 키가 만료되었어요. 새로운 키를 입력해 주세요.
