@@ -1,6 +1,6 @@
 
 import React, { useState, useRef, useEffect } from 'react';
-import { ArrowRight, AlertCircle, Loader2, Sparkles, RefreshCw, ArrowLeft, RotateCcw, MessageSquareHeart, Key, User, Camera, Heart, ExternalLink } from 'lucide-react';
+import { ArrowRight, AlertCircle, Loader2, Sparkles, RefreshCw, ArrowLeft, RotateCcw, MessageSquareHeart, Key, User, Camera, Heart, ExternalLink, FileJson } from 'lucide-react';
 import { CharacterProfile, DialogueStyles } from '../types';
 import { FileUpload } from './FileUpload';
 // Import HarmCategory and HarmBlockThreshold to fix type errors
@@ -55,6 +55,7 @@ export const SetupScreen: React.FC<SetupScreenProps> = ({ onComplete }) => {
   const [isSparkling, setIsSparkling] = useState(false);
 
   const tmiRef = useRef<HTMLTextAreaElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const TONE_KEYWORDS = ["반말", "존댓말", "반존대", "사극/하오체", "다나까"];
   const PERSONALITY_KEYWORDS = ["다정함/스윗", "츤데레", "엄격/냉철", "능글/플러팅", "집착/광공", "소심/부끄", "활기/에너지", "나른/귀차니즘"];
@@ -72,6 +73,33 @@ export const SetupScreen: React.FC<SetupScreenProps> = ({ onComplete }) => {
       setError(null);
       setStep('STEP1');
     }
+  };
+
+  const handleLoadClick = () => {
+    fileInputRef.current?.click();
+  };
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      try {
+        const loadedProfile = JSON.parse(event.target?.result as string) as CharacterProfile;
+        // 최소한의 유효성 검사 (필수 필드 확인)
+        if (loadedProfile.name && loadedProfile.level !== undefined && loadedProfile.dialogueCache) {
+          onComplete(loadedProfile);
+        } else {
+          setError("올바른 캐릭터 파일이 아닙니다.");
+        }
+      } catch (err) {
+        setError("파일을 읽는 도중 오류가 발생했습니다.");
+      }
+    };
+    reader.readAsText(file);
+    // 선택 후 리셋 (같은 파일 다시 선택 가능하도록)
+    e.target.value = '';
   };
 
   const togglePersonality = (keyword: string) => {
@@ -120,7 +148,6 @@ export const SetupScreen: React.FC<SetupScreenProps> = ({ onComplete }) => {
         - Format: JSON Object with single key: "${targetKey}" (Array of 3 strings).
       `;
 
-      // Fixed: Move safetySettings inside config
       const response = await ai.models.generateContent({
         model: 'gemini-3-flash-preview',
         contents: prompt,
@@ -168,7 +195,6 @@ export const SetupScreen: React.FC<SetupScreenProps> = ({ onComplete }) => {
         - Safety: This app is for students. STRICTLY FORBID sexual, 18+, or inappropriate content.
         - Format: JSON Object.
       `;
-      // Fixed: Move safetySettings inside config
       const response = await ai.models.generateContent({
         model: 'gemini-3-flash-preview',
         contents: prompt,
@@ -243,7 +269,6 @@ export const SetupScreen: React.FC<SetupScreenProps> = ({ onComplete }) => {
     <div className="min-h-screen bg-background flex items-center justify-center p-4 md:p-6 font-sans">
       <div className="w-full max-w-xl bg-surface rounded-2xl shadow-[0_1px_3px_rgba(0,0,0,0.1),0_10px_20px_rgba(74,95,122,0.05)] overflow-hidden flex flex-col h-[680px] md:h-[720px] relative border border-border">
         
-        {/* 리니어 상단 진행바 (퀴즈 단계에서도 3단계로 유지) */}
         <div className="absolute top-0 left-0 w-full flex bg-background z-20 border-b border-border/50">
           {[1, 2, 3].map(i => (
             <div key={i} className={`h-1.5 flex-1 transition-all duration-700 ${
@@ -280,8 +305,8 @@ export const SetupScreen: React.FC<SetupScreenProps> = ({ onComplete }) => {
                 </div>
               </div>
 
-              <div className="max-w-xs mx-auto pt-6">
-                <div className="relative">
+              <div className="max-w-xs mx-auto pt-6 flex flex-col items-center">
+                <div className="relative w-full">
                   <label className="absolute -top-6 left-0 text-[10px] font-bold text-text-secondary uppercase tracking-widest">Bias Name</label>
                   <input 
                     type="text" 
@@ -290,6 +315,24 @@ export const SetupScreen: React.FC<SetupScreenProps> = ({ onComplete }) => {
                     placeholder="'최애'의 이름을 적어주세요" 
                     className="w-full px-0 py-3 bg-transparent border-b-2 border-border outline-none focus:border-primary transition-all text-center font-bold text-xl placeholder:text-border placeholder:font-normal text-text-primary"
                   />
+                </div>
+                
+                {/* 로드(불러오기) 버튼 */}
+                <div className="mt-8">
+                  <input 
+                    type="file" 
+                    ref={fileInputRef} 
+                    onChange={handleFileChange} 
+                    accept=".json" 
+                    className="hidden" 
+                  />
+                  <button 
+                    onClick={handleLoadClick}
+                    className="flex items-center gap-2 px-6 py-2.5 rounded-full border border-dashed border-primary/40 text-primary hover:bg-primary/5 hover:border-primary transition-all group"
+                  >
+                    <FileJson size={14} className="group-hover:scale-110 transition-transform" />
+                    <span className="text-xs font-black">이미 함께하는 최애가 있나요? (불러오기)</span>
+                  </button>
                 </div>
               </div>
             </div>
@@ -418,7 +461,6 @@ export const SetupScreen: React.FC<SetupScreenProps> = ({ onComplete }) => {
 
           {step === 'QUIZ' && quizData && (
             <div className="space-y-12 animate-in fade-in slide-in-from-bottom-6 duration-700">
-               {/* 상단 상황 제시 영역 */}
                <div className="text-center space-y-4 px-4">
                   <div className="inline-flex items-center justify-center p-3 bg-primary/5 rounded-2xl border border-primary/10 mb-2">
                      <MessageSquareHeart size={24} className="text-primary" />
@@ -430,7 +472,6 @@ export const SetupScreen: React.FC<SetupScreenProps> = ({ onComplete }) => {
                   </h2>
                </div>
 
-               {/* 캐릭터 대사 선택지 (좌측 말풍선 형태) */}
                <div className="space-y-4 px-2">
                   <div className="flex flex-col items-start gap-4">
                     {(currentQuizStep === 0 ? quizData.late_options : currentQuizStep === 1 ? quizData.gift_options : quizData.lazy_options).map((option, index) => (
@@ -472,7 +513,6 @@ export const SetupScreen: React.FC<SetupScreenProps> = ({ onComplete }) => {
           )}
         </div>
 
-        {/* 리니어 하단 네비게이션 */}
         <div className="absolute bottom-0 left-0 w-full p-6 bg-surface/90 backdrop-blur-md border-t border-border flex flex-col gap-3">
           {error && (
             <div className="mb-2 px-4 py-2 bg-rose-50 text-rose-600 text-[10px] font-black rounded-lg flex items-center gap-2 border border-rose-100 animate-shake">
