@@ -58,7 +58,7 @@ const FALLBACK_TEMPLATES: Record<string, Record<string, string[]>> = {
   "반존대": {
     START: ["시작해요. {honorific}, 딴짓하면 혼나요.", "자, 시작이에요. {honorific}, 집중!", "가요! {honorific}, 따라와요."],
     FINISH: ["수고했어요. 뭐, 나쁘지 않네."],
-    PAUSE: ["어딜 가요? 도망가는 아니지?"],
+    PAUSE: ["어딜 가요? 도망가는 건 아니지?"],
     DISTRACTION: ["흐음... 지금 뭐 하는 거죠? 끄세요.", "어? 딴짓하는 거 보였어요.", "딴짓 들켰어요. 집중해요."],
     RETURN: ["늦었네요. 설명이 좀 필요할 텐데."],
     CLICK: ["어? 뭐 말씀하실 거예요?", "왜요? 뭐 필요해졌어?", "부른 거 맞죠? 듣고 있어요."],
@@ -114,6 +114,10 @@ export const TimerScreen: React.FC<TimerScreenProps> = ({
   const [isGeneratingReport, setIsGeneratingReport] = useState(false);
   const [reportData, setReportData] = useState<ReportData | null>(null);
 
+  // 캐릭터 메시지 및 사이클 선택 모달 상태 추가
+  const [message, setMessage] = useState("");
+  const [showChoiceModal, setShowChoiceModal] = useState(false);
+
   // 관리자(God Mode) 관련 상태
   const [badgeClicks, setBadgeClicks] = useState(0);
   const [showAdminAuth, setShowAdminAuth] = useState(false);
@@ -121,33 +125,15 @@ export const TimerScreen: React.FC<TimerScreenProps> = ({
   const [isAdminMode, setIsAdminMode] = useState(false);
   const [showAdminPanel, setShowAdminPanel] = useState(false);
 
-  // API 키 팝업 세분화
+  // API 키 팝업 상태
+  const [isApiKeyInputVisible, setIsApiKeyInputVisible] = useState(false);
   const [isApiKeyExpiredMode, setIsApiKeyExpiredMode] = useState(false);
   const [hasPendingKeyError, setHasPendingKeyError] = useState(false);
-
-  const cleanDialogue = (text: string, honorific: string) => {
-    return text.replace(/{honorific}|{이름}|{user}/g, honorific).replace(/{([^}]+)}/g, '$1');
-  };
-
-  const [message, setMessage] = useState(() => {
-    const userDisplayName = profile.honorific || profile.userName || "너";
-    if (profile.savedIsActive && !profile.savedIsBreak) {
-      const scolding = profile.dialogueCache.scolding;
-      if (scolding && scolding.length > 0) {
-        return cleanDialogue(scolding[Math.floor(Math.random() * scolding.length)], userDisplayName);
-      }
-      return "어디 갔다 왔어? 계속 집중해야지.";
-    }
-    return profile.initialGreeting || "시작할까?";
-  });
-
-  const [showChoiceModal, setShowChoiceModal] = useState(false);
-  const [isDarkMode, setIsDarkMode] = useState(false);
-  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
-  const [isApiKeyInputVisible, setIsApiKeyInputVisible] = useState(false);
   const [tempApiKey, setTempApiKey] = useState('');
   const [apiKeyError, setApiKeyError] = useState<string | null>(null);
   const [isValidating, setIsValidating] = useState(false);
+  const [isDarkMode, setIsDarkMode] = useState(false);
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [cooldownRemaining, setCooldownRemaining] = useState(0);
 
   const cooldownIntervalRef = useRef<any>(null);
@@ -158,6 +144,11 @@ export const TimerScreen: React.FC<TimerScreenProps> = ({
   
   const profileRef = useRef(profile);
   useEffect(() => { profileRef.current = profile; }, [profile]);
+
+  // 대사 정리용 헬퍼 함수
+  const cleanDialogue = (text: string, honorific: string) => {
+    return text.replace(/{honorific}/g, honorific);
+  };
 
   useEffect(() => {
     const requestWakeLock = async () => {
@@ -207,7 +198,6 @@ export const TimerScreen: React.FC<TimerScreenProps> = ({
         onUpdateProfile({ dialogueCache: { ...currentProfile.dialogueCache, [category]: [...currentProfile.dialogueCache[category], ...newLines] } });
       }
     } catch (e: any) {
-      // 집중 모드 중에는 에러를 띄우지 않고 대기
       if (e?.message?.includes('API_KEY_INVALID') || e?.message?.includes('API key not found')) {
         setHasPendingKeyError(true);
       }
@@ -263,11 +253,11 @@ export const TimerScreen: React.FC<TimerScreenProps> = ({
         setMessage(cleanDialogue(rawMsg, userDisplayName));
         addToRefillQueue(key);
     }
-  }, [profile, onUpdateProfile, addToRefillQueue]);
+  }, [profile, onUpdateProfile, addToRefillQueue, cleanDialogue]);
 
   const handleCharacterClick = () => {
     if (isBreak) return;
-    if (isActive && !isBreak) setClicks(prev => prev + 1); // 클릭 횟수 기록
+    if (isActive && !isBreak) setClicks(prev => prev + 1);
     if (cooldownRemaining > 0) { setMessage("가만히 바라보는 중..."); return; }
     triggerAIResponse('CLICK');
     setCooldownRemaining(COOLDOWN_MS);
@@ -337,7 +327,6 @@ export const TimerScreen: React.FC<TimerScreenProps> = ({
       const nextSessionCount = sessionInCycle + 1;
       setSessionInCycle(nextSessionCount);
       
-      // 만약 집중이 끝났는데 API 에러 플래그가 있다면 팝업 표시
       if (hasPendingKeyError) {
         setIsApiKeyExpiredMode(true);
         setTempApiKey('');
@@ -346,8 +335,8 @@ export const TimerScreen: React.FC<TimerScreenProps> = ({
 
       if (nextSessionCount === 4) {
         setIsActive(false);
-        generateObservationReport(); // 보고서 데이터 생성 시작
-        setShowReport(true); // 보고서 모달 띄우기
+        generateObservationReport();
+        setShowReport(true);
       } else { 
         triggerAIResponse('FINISH'); setIsBreak(true); setTimeLeft(5 * 60); 
       }
@@ -361,7 +350,7 @@ export const TimerScreen: React.FC<TimerScreenProps> = ({
   const closeReportAndShowChoice = () => {
     setShowReport(false);
     setReportData(null);
-    setDistractions(0); // 사이클 리셋
+    setDistractions(0);
     setClicks(0);
     setShowChoiceModal(true);
   };
@@ -381,7 +370,7 @@ export const TimerScreen: React.FC<TimerScreenProps> = ({
     const handleVisibilityChange = () => {
       if (document.hidden) {
         if (isActive && !isBreak) { 
-          setDistractions(prev => prev + 1); // 딴짓 횟수 기록
+          setDistractions(prev => prev + 1);
           triggerAIResponse('DISTRACTION'); document.title = "⚠️ 딴짓 금지!"; 
         }
       } else {
@@ -404,7 +393,6 @@ export const TimerScreen: React.FC<TimerScreenProps> = ({
     setIsSettingsOpen(false); setMessage("저장되었습니다.");
   };
 
-  // 관리자 모드 진입 핸들러
   const handleBadgeClick = () => {
     const nextCount = badgeClicks + 1;
     setBadgeClicks(nextCount);
@@ -412,7 +400,6 @@ export const TimerScreen: React.FC<TimerScreenProps> = ({
       setBadgeClicks(0);
       setShowAdminAuth(true);
     }
-    // 2초 동안 클릭 없으면 카운트 리셋
     setTimeout(() => setBadgeClicks(0), 2000);
   };
 
@@ -431,35 +418,31 @@ export const TimerScreen: React.FC<TimerScreenProps> = ({
     }
   };
 
-  // API 키 업데이트 핸들러
-  const handleUpdateApiKey = async () => {
-    if (!tempApiKey.trim()) {
-      setApiKeyError("키를 입력해주세요.");
-      return;
-    }
+  const validateAndApplyApiKey = async (key: string) => {
+    if (!key.trim()) return;
     setIsValidating(true);
     setApiKeyError(null);
     try {
-      const ai = new GoogleGenAI({ apiKey: tempApiKey });
-      await ai.models.generateContent({ model: 'gemini-3-flash-preview', contents: 'Hello' });
-      onUpdateProfile({ apiKey: tempApiKey });
+      const ai = new GoogleGenAI({ apiKey: key });
+      await ai.models.generateContent({ model: 'gemini-3-flash-preview', contents: 'Hi' });
+      onUpdateProfile({ apiKey: key });
       setHasPendingKeyError(false);
       setIsApiKeyInputVisible(false);
-      setMessage("API 키가 변경되었습니다.");
+      setMessage("적용 완료!");
     } catch (err) {
-      setApiKeyError("올바르지 않은 API 키입니다.");
+      setApiKeyError("사용할 수 없는 키입니다. 새로운 키를 입력해주세요.");
     } finally {
       setIsValidating(false);
     }
   };
 
-  // 클립보드 붙여넣기 기능 (기존 내용 삭제 후 새로운 키 삽입)
   const handlePasteApiKey = async () => {
     try {
       const text = await navigator.clipboard.readText();
       if (text) {
-        setTempApiKey(text.trim());
-        setApiKeyError(null);
+        const trimmed = text.trim();
+        setTempApiKey(trimmed);
+        validateAndApplyApiKey(trimmed);
       }
     } catch (err) {}
   };
@@ -468,7 +451,6 @@ export const TimerScreen: React.FC<TimerScreenProps> = ({
   const progressPercent = Math.min(100, (profile.xp / currentXpTarget) * 100);
   const overallProgressPercent = ((sessionInCycle + (!isBreak ? (25 * 60 - timeLeft) / (25 * 60) : 0)) / 4) * 100;
 
-  // 디버그 데이터 계산
   const getDebugMood = () => {
     if (profile.level <= 3) return "Cold/Strict";
     if (profile.level <= 7) return "Friendly/Warm";
@@ -504,7 +486,7 @@ export const TimerScreen: React.FC<TimerScreenProps> = ({
         </div>
       )}
 
-      {/* 관리자 패널 UI */}
+      {/* 관리자 패널 */}
       {isAdminMode && showAdminPanel && (
         <div className="fixed bottom-6 left-6 z-[150] w-72 bg-slate-900/95 border border-white/10 rounded-3xl shadow-2xl overflow-hidden backdrop-blur-xl animate-in slide-in-from-left-4 duration-500">
           <div className="bg-primary/20 px-5 py-3 border-b border-white/5 flex justify-between items-center">
@@ -515,61 +497,26 @@ export const TimerScreen: React.FC<TimerScreenProps> = ({
             <button onClick={() => setShowAdminPanel(false)} className="text-white/40 hover:text-white transition-colors"><X size={14} /></button>
           </div>
           <div className="p-5 space-y-5">
-            <div className="space-y-2">
-              <p className="text-[9px] font-black text-white/40 uppercase tracking-widest">Time Manipulation</p>
-              <button onClick={() => setTimeLeft(10)} className="w-full flex items-center justify-between px-4 py-3 bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl transition-all group">
-                <span className="text-xs font-bold text-white group-hover:text-primary-light">시간 도약 (10초)</span>
-                <FastForward size={16} className="text-primary-light" />
-              </button>
-            </div>
-            
+            <button onClick={() => setTimeLeft(10)} className="w-full flex items-center justify-between px-4 py-3 bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl transition-all group">
+              <span className="text-xs font-bold text-white group-hover:text-primary-light">시간 도약 (10초)</span>
+              <FastForward size={16} className="text-primary-light" />
+            </button>
             <div className="space-y-2">
               <div className="flex justify-between items-end">
                 <p className="text-[9px] font-black text-white/40 uppercase tracking-widest">Affinity Level</p>
                 <span className="text-xs font-black text-primary-light">Lv.{profile.level}</span>
               </div>
-              <input 
-                type="range" min="1" max="10" step="1" 
-                value={profile.level}
-                onChange={(e) => onUpdateProfile({ level: parseInt(e.target.value), xp: 0 })}
-                className="w-full h-1.5 bg-white/10 rounded-lg appearance-none cursor-pointer accent-primary-light" 
-              />
-              <div className="flex justify-between text-[8px] font-bold text-white/20 px-1 uppercase">
-                <span>Stranger</span>
-                <span>Lover</span>
-              </div>
+              <input type="range" min="1" max="10" step="1" value={profile.level} onChange={(e) => onUpdateProfile({ level: parseInt(e.target.value), xp: 0 })} className="w-full h-1.5 bg-white/10 rounded-lg appearance-none cursor-pointer accent-primary-light" />
             </div>
-
-            <div className="space-y-2 pt-2 border-t border-white/5">
-              <p className="text-[9px] font-black text-white/40 uppercase tracking-widest flex items-center gap-1.5">
-                <FileSearch size={10} /> Internal Diagnostics
-              </p>
-              <div className="grid grid-cols-2 gap-2 text-[10px]">
-                <div className="bg-black/40 p-2.5 rounded-lg border border-white/5">
-                  <p className="text-white/30 text-[8px] font-bold uppercase mb-0.5">Judgment</p>
-                  <p className="text-primary-light font-black">{getDebugMood()}</p>
-                </div>
-                <div className="bg-black/40 p-2.5 rounded-lg border border-white/5">
-                  <p className="text-white/30 text-[8px] font-bold uppercase mb-0.5">Interactions</p>
-                  <p className="text-white font-black">{clicks} Clicks</p>
-                </div>
-              </div>
-              <div className="bg-black/40 p-2.5 rounded-lg border border-white/5 space-y-1">
-                <p className="text-white/30 text-[8px] font-bold uppercase border-b border-white/5 pb-1 mb-1.5">Dialogue Cache Status</p>
-                <div className="flex flex-wrap gap-x-3 gap-y-1 text-[9px] font-bold text-white/60">
-                  <span>Start: {profile.dialogueCache.start.length}</span>
-                  <span>Finish: {profile.dialogueCache.praising.length}</span>
-                  <span>Scold: {profile.dialogueCache.scolding.length}</span>
-                  <span>Click: {profile.dialogueCache.click.length}</span>
-                  <span>Idle: {profile.dialogueCache.idle.length}</span>
-                </div>
-              </div>
+            <div className="space-y-2 pt-2 border-t border-white/5 text-[10px] text-white/60">
+              <div className="flex justify-between"><span>Mood:</span><span className="text-primary-light font-bold">{getDebugMood()}</span></div>
+              <div className="flex justify-between"><span>Cache (S/P/Sc/C/I):</span><span className="font-bold">{profile.dialogueCache.start.length}/{profile.dialogueCache.praising.length}/{profile.dialogueCache.scolding.length}/{profile.dialogueCache.click.length}/{profile.dialogueCache.idle.length}</span></div>
             </div>
           </div>
         </div>
       )}
 
-      {/* 최애의 관찰 보고서 모달 */}
+      {/* 보고서 모달 */}
       {showReport && (
         <div className="fixed inset-0 z-[110] flex items-center justify-center p-4 bg-primary-dark/60 backdrop-blur-xl animate-in fade-in duration-500">
           <div className="w-full max-w-lg bg-[#FAF9F6] text-[#2D3436] rounded-[2rem] shadow-2xl overflow-hidden relative border-8 border-white/50 transform animate-in zoom-in-95 duration-500">
@@ -580,87 +527,56 @@ export const TimerScreen: React.FC<TimerScreenProps> = ({
               </div>
               <span className="text-[10px] font-black text-[#8B836C] uppercase tracking-widest">{new Date().toLocaleDateString()}</span>
             </div>
-
             <div className="p-8 space-y-8 min-h-[400px] flex flex-col">
               {isGeneratingReport ? (
                 <div className="flex-1 flex flex-col items-center justify-center gap-4 text-[#8B836C]">
                   <Loader2 className="animate-spin" size={40} />
-                  <p className="font-bold text-sm animate-pulse">최애가 당신을 분석하는 중...</p>
+                  <p className="font-bold text-sm animate-pulse">분석 중...</p>
                 </div>
               ) : reportData ? (
                 <>
                   <div className="flex justify-between items-start">
                     <div className="space-y-1">
-                      <p className="text-[10px] font-black text-[#8B836C] uppercase">Subject Name</p>
+                      <p className="text-[10px] font-black text-[#8B836C] uppercase">Subject</p>
                       <h4 className="text-2xl font-bold font-serif">{profile.honorific || profile.userName}</h4>
                     </div>
                     <div className="text-right">
-                      <p className="text-[10px] font-black text-[#8B836C] uppercase tracking-widest">Focus Grade</p>
+                      <p className="text-[10px] font-black text-[#8B836C] uppercase tracking-widest">Grade</p>
                       <div className="text-5xl font-black text-primary italic leading-none">{reportData.grade}</div>
                     </div>
                   </div>
-
                   <div className="grid grid-cols-3 gap-4 py-4 border-y-2 border-dashed border-[#B2A88E]">
-                    <div className="flex flex-col items-center gap-1.5">
-                      <TimerIcon size={18} className="text-[#8B836C]" />
-                      <span className="text-[9px] font-black uppercase text-[#8B836C]">Focus Time</span>
-                      <span className="font-bold text-sm">100:00</span>
-                    </div>
-                    <div className="flex flex-col items-center gap-1.5">
-                      <Ghost size={18} className="text-[#8B836C]" />
-                      <span className="text-[9px] font-black uppercase text-[#8B836C]">Distractions</span>
-                      <span className="font-bold text-sm text-rose-500">{distractions}회</span>
-                    </div>
-                    <div className="flex flex-col items-center gap-1.5">
-                      <MousePointer2 size={18} className="text-[#8B836C]" />
-                      <span className="text-[9px] font-black uppercase text-[#8B836C]">Interactions</span>
-                      <span className="font-bold text-sm text-primary">{clicks}회</span>
-                    </div>
+                    <div className="flex flex-col items-center gap-1.5"><TimerIcon size={18} className="text-[#8B836C]" /><span className="font-bold text-sm">100:00</span></div>
+                    <div className="flex flex-col items-center gap-1.5"><Ghost size={18} className="text-[#8B836C]" /><span className="font-bold text-sm text-rose-500">{distractions}회</span></div>
+                    <div className="flex flex-col items-center gap-1.5"><MousePointer2 size={18} className="text-[#8B836C]" /><span className="font-bold text-sm text-primary">{clicks}회</span></div>
                   </div>
-
                   <div className="space-y-4 flex-1">
-                    <div className="space-y-1">
-                      <span className="inline-block bg-[#E9E4D4] px-2 py-0.5 rounded text-[10px] font-bold text-[#5D5747]">Focus Type: {reportData.typeTitle}</span>
-                    </div>
+                    <span className="inline-block bg-[#E9E4D4] px-2 py-0.5 rounded text-[10px] font-bold text-[#5D5747]">Type: {reportData.typeTitle}</span>
                     <div className="relative p-6 bg-[#EFEDE3] rounded-2xl border-l-4 border-[#B2A88E] italic text-sm leading-relaxed text-[#4A4434]">
                       <p className="mb-4">"{reportData.analysis}"</p>
                       <p className="font-bold text-[#2D3436]">"{reportData.comment}"</p>
-                      <div className="absolute -bottom-2 -right-2 transform rotate-12 bg-white/40 p-1 rounded-full"><div className="w-16 h-16 rounded-full border-4 border-rose-500/30 flex items-center justify-center text-rose-500/40 font-black text-[10px] select-none">{reportData.stamp}</div></div>
                     </div>
                   </div>
-
-                  <div className="flex gap-3 pt-4">
-                    <button onClick={closeReportAndShowChoice} className="flex-1 py-4 bg-[#2D3436] text-white rounded-2xl font-black text-sm hover:bg-black transition-all active:scale-95 shadow-xl">보고서 닫기 및 휴식</button>
-                  </div>
+                  <button onClick={closeReportAndShowChoice} className="w-full py-4 bg-[#2D3436] text-white rounded-2xl font-black text-sm hover:bg-black transition-all shadow-xl">보고서 닫기</button>
                 </>
               ) : null}
-            </div>
-
-            <div className="bg-[#E9E4D4] px-8 py-2 flex justify-center border-t-2 border-dashed border-[#B2A88E]">
-              <p className="text-[9px] font-bold text-[#8B836C]">OBSERVER: {profile.name} • CONFIDENTIAL RECORD</p>
             </div>
           </div>
         </div>
       )}
 
-      {/* 사이클 완료 선택 모달 */}
+      {/* 사이클 완료 선택 */}
       {showChoiceModal && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-primary-dark/40 backdrop-blur-md animate-in fade-in duration-300">
           <div className={`w-full max-w-sm border p-8 rounded-3xl shadow-2xl text-center space-y-6 transform animate-in zoom-in-95 duration-300 ${isDarkMode ? 'bg-[#161B22] border-[#30363D]' : 'bg-surface border-border'}`}>
             <div className="w-20 h-20 bg-primary/10 rounded-3xl flex items-center justify-center mx-auto text-primary"><CheckCircle2 size={48} /></div>
             <div className="space-y-2">
               <h3 className={`text-xl font-bold ${isDarkMode ? 'text-slate-100' : 'text-text-primary'}`}>1사이클 달성!</h3>
-              <p className={`text-sm leading-relaxed ${isDarkMode ? 'text-slate-400' : 'text-text-secondary'}`}>열심히 한 당신을 위해 선택지를 준비했어요.</p>
+              <p className={`text-sm leading-relaxed ${isDarkMode ? 'text-slate-400' : 'text-text-secondary'}`}>잠시 쉬어가는 건 어떨까요?</p>
             </div>
             <div className="grid grid-cols-1 gap-3 pt-2">
-              <button onClick={() => handleCycleChoice('LONG')} className={`w-full py-4 px-6 border rounded-2xl text-sm font-bold transition-all active:scale-95 flex flex-col items-center gap-1 group ${isDarkMode ? 'bg-[#0B0E14] border-[#30363D] hover:bg-slate-800' : 'bg-background border-border hover:bg-border'}`}>
-                <span className={isDarkMode ? 'text-slate-100' : 'text-text-primary'}>푹 쉴게 (30분)</span>
-                <span className="text-[10px] text-primary font-black uppercase tracking-widest opacity-60">XP +10</span>
-              </button>
-              <button onClick={() => handleCycleChoice('SHORT')} className="w-full py-4 px-6 bg-primary hover:bg-primary-light border border-primary-dark/10 rounded-2xl text-sm font-bold transition-all active:scale-95 flex flex-col items-center gap-1 group shadow-lg shadow-primary/20">
-                <span className="text-white">5분만 쉴래 (열공 모드)</span>
-                <span className="text-[10px] text-accent-soft font-black uppercase tracking-widest">XP +30 🔥</span>
-              </button>
+              <button onClick={() => handleCycleChoice('LONG')} className={`w-full py-4 px-6 border rounded-2xl text-sm font-bold transition-all hover:bg-slate-50 ${isDarkMode ? 'bg-[#0B0E14] border-[#30363D] text-slate-100 hover:bg-slate-800' : 'bg-background border-border'}`}>푹 쉴게 (30분)</button>
+              <button onClick={() => handleCycleChoice('SHORT')} className="w-full py-4 px-6 bg-primary hover:bg-primary-light text-white rounded-2xl text-sm font-bold transition-all shadow-lg shadow-primary/20">5분만 쉴래 (열공 모드)</button>
             </div>
           </div>
         </div>
@@ -670,11 +586,8 @@ export const TimerScreen: React.FC<TimerScreenProps> = ({
 
       <main className="w-full h-full flex flex-col items-center justify-center relative p-4 md:p-8">
           <div className="mb-[-1px] z-20 animate-in slide-in-from-top-4 duration-700">
-            <div 
-              onClick={handleBadgeClick}
-              className={`px-5 py-2 rounded-t-2xl border border-b-0 shadow-[0_-4px_12px_rgba(0,0,0,0.03)] flex items-center gap-2.5 cursor-pointer active:scale-95 transition-all ${isDarkMode ? 'bg-[#161B22] border-[#30363D]' : 'bg-surface border-border'} ${badgeClicks > 0 ? 'ring-2 ring-primary/20' : ''}`}
-            >
-                <Heart size={12} className={`text-accent fill-accent ${badgeClicks > 0 ? 'animate-bounce' : 'animate-pulse'}`} />
+            <div onClick={handleBadgeClick} className={`px-5 py-2 rounded-t-2xl border border-b-0 shadow-[0_-4px_12px_rgba(0,0,0,0.03)] flex items-center gap-2.5 cursor-pointer active:scale-95 transition-all ${isDarkMode ? 'bg-[#161B22] border-[#30363D]' : 'bg-surface border-border'}`}>
+                <Heart size={12} className="text-accent fill-accent animate-pulse" />
                 <span className={`text-[11px] font-black tracking-tight ${isDarkMode ? 'text-slate-100' : 'text-text-primary'}`}>
                   Lv.{profile.level} <span className="ml-1 text-primary">{LEVEL_TITLES[profile.level] || "운명의 동반자"}</span>
                 </span>
@@ -694,9 +607,7 @@ export const TimerScreen: React.FC<TimerScreenProps> = ({
                       <div className="flex items-center gap-3 cursor-pointer" onClick={(e) => { e.stopPropagation(); setIsDarkMode(!isDarkMode); }}><div className={`w-12 h-12 rounded-full border shadow-sm flex items-center justify-center transition-all hover:scale-110 ${isDarkMode ? 'bg-slate-800 text-yellow-400 border-slate-700' : 'bg-white border-slate-200'}`}>{isDarkMode ? <Sun size={20} /> : <Moon size={20} />}</div><span className={`text-[10px] font-black px-2.5 py-1.5 rounded-lg border shadow-sm whitespace-nowrap min-w-[60px] text-center ${isDarkMode ? 'bg-slate-800 border-slate-700 text-slate-100' : 'bg-surface/90 border-border'}`}>{isDarkMode ? '라이트' : '다크'}</span></div>
                       <div className="flex items-center gap-3 cursor-pointer" onClick={(e) => { e.stopPropagation(); handleExportProfile(); }}><div className={`w-12 h-12 rounded-full border shadow-sm flex items-center justify-center transition-all hover:scale-110 ${isDarkMode ? 'bg-slate-800 text-slate-100 border-slate-700' : 'bg-white border-slate-200'}`}><Save size={20} /></div><span className={`text-[10px] font-black px-2.5 py-1.5 rounded-lg border shadow-sm whitespace-nowrap min-w-[60px] text-center ${isDarkMode ? 'bg-slate-800 border-slate-700 text-slate-100' : 'bg-surface/90 border-border'}`}>저장</span></div>
                       <div className="flex items-center gap-3 cursor-pointer" onClick={(e) => { e.stopPropagation(); setTempApiKey(profile.apiKey || ''); setIsApiKeyExpiredMode(false); setIsApiKeyInputVisible(true); setIsSettingsOpen(false); }}><div className={`w-12 h-12 rounded-full border shadow-sm flex items-center justify-center transition-all hover:scale-110 ${isDarkMode ? 'bg-slate-800 text-slate-400 border-slate-700' : 'bg-white border-slate-200'}`}><Key size={20} /></div><span className={`text-[10px] font-black px-2.5 py-1.5 rounded-lg border shadow-sm whitespace-nowrap min-w-[60px] text-center ${isDarkMode ? 'bg-slate-800 border-slate-700 text-slate-100' : 'bg-surface/90 border-border'}`}>API키</span></div>
-                      {isAdminMode && (
-                        <div className="flex items-center gap-3 cursor-pointer" onClick={(e) => { e.stopPropagation(); setShowAdminPanel(!showAdminPanel); setIsSettingsOpen(false); }}><div className={`w-12 h-12 rounded-full border shadow-sm flex items-center justify-center transition-all hover:scale-110 bg-primary text-white border-primary-dark`}><Terminal size={20} /></div><span className={`text-[10px] font-black px-2.5 py-1.5 rounded-lg border shadow-sm bg-primary border-primary-dark text-white whitespace-nowrap min-w-[60px] text-center`}>패널</span></div>
-                      )}
+                      {isAdminMode && <div className="flex items-center gap-3 cursor-pointer" onClick={(e) => { e.stopPropagation(); setShowAdminPanel(!showAdminPanel); setIsSettingsOpen(false); }}><div className={`w-12 h-12 rounded-full border shadow-sm flex items-center justify-center transition-all hover:scale-110 bg-primary text-white border-primary-dark`}><Terminal size={20} /></div><span className={`text-[10px] font-black px-2.5 py-1.5 rounded-lg border shadow-sm bg-primary border-primary-dark text-white whitespace-nowrap min-w-[60px] text-center`}>패널</span></div>}
                   </div>
                 </div>
                 <button onClick={onReset} className={`p-2.5 rounded-full transition-all border border-transparent ${isDarkMode ? 'text-slate-400 hover:bg-rose-900/30 hover:text-rose-400' : 'text-text-secondary hover:bg-rose-50 hover:text-rose-500'}`} title="초기화"><X size={20} /></button>
@@ -704,91 +615,84 @@ export const TimerScreen: React.FC<TimerScreenProps> = ({
 
             <div className={`relative mt-9 md:mt-11 min-h-[180px] md:min-h-[220px] flex items-center justify-center w-full transition-all ${isApiKeyInputVisible ? 'z-50' : 'z-20'}`}>
                 {isBreak && timeLeft > 60 && !isApiKeyInputVisible ? (
-                  <div className="flex flex-col items-center gap-4 animate-pulse text-primary-light/40">
-                    <Bed size={60} className="md:size-20" />
-                    <p className="text-[10px] font-bold uppercase tracking-widest">Sleeping...</p>
-                  </div>
+                  <div className="flex flex-col items-center gap-4 animate-pulse text-primary-light/40"><Bed size={60} className="md:size-20" /><p className="text-[10px] font-bold uppercase tracking-widest">Sleeping...</p></div>
                 ) : (
                   <div className="relative">
                     {cooldownRemaining > 0 && (
                       <div className="absolute -inset-3 pointer-events-none z-10">
                         <svg className="w-full h-full" viewBox="0 0 100 100" preserveAspectRatio="none">
-                          <path 
-                            d="M 50 2 H 86 A 12 12 0 0 1 98 14 V 86 A 12 12 0 0 1 86 98 H 14 A 12 12 0 0 1 2 86 V 14 A 12 12 0 0 1 14 2 H 50"
-                            fill="none" stroke="currentColor" strokeWidth="3" pathLength="100" strokeDasharray="100" 
-                            strokeDashoffset={100 * (cooldownRemaining / COOLDOWN_MS)} strokeLinecap="round" 
-                            className={`transition-all duration-150 ease-linear ${isDarkMode ? 'text-emerald-400' : 'text-primary'}`} 
-                          />
+                          <path d="M 50 2 H 86 A 12 12 0 0 1 98 14 V 86 A 12 12 0 0 1 86 98 H 14 A 12 12 0 0 1 2 86 V 14 A 12 12 0 0 1 14 2 H 50" fill="none" stroke="currentColor" strokeWidth="2" pathLength="100" strokeDasharray="100" strokeDashoffset={100 * (cooldownRemaining / COOLDOWN_MS)} strokeLinecap="round" className={`transition-all duration-150 ease-linear ${isDarkMode ? 'text-emerald-400' : 'text-primary'}`} />
                         </svg>
                       </div>
                     )}
-                    <div onClick={handleCharacterClick} className={`w-32 h-32 md:w-44 md:h-44 rounded-2xl border-4 overflow-hidden shadow-xl mx-auto transition-all duration-500 group-hover:scale-105 group-hover:border-primary cursor-pointer active:scale-95 ${isDarkMode ? 'border-slate-800' : 'border-border'}`}><img src={profile.imageSrc || ''} alt={profile.name} className="w-full h-full object-cover" /></div>
+                    <div onClick={handleCharacterClick} className={`w-32 h-32 md:w-44 md:h-44 rounded-2xl border-4 overflow-hidden shadow-xl mx-auto transition-all duration-500 hover:scale-105 hover:border-primary cursor-pointer active:scale-95 ${isDarkMode ? 'border-slate-800' : 'border-border'}`}><img src={profile.imageSrc || ''} alt={profile.name} className="w-full h-full object-cover" /></div>
                     {cooldownRemaining > 0 && (<div className="absolute -bottom-2 left-1/2 -translate-x-1/2 bg-primary/90 text-white text-[9px] font-black px-3 py-1 rounded-full shadow-lg animate-pulse whitespace-nowrap z-20">가만히 바라보는 중...</div>)}
                     {message && !isApiKeyInputVisible && (<div className="absolute -top-20 left-1/2 transform -translate-x-1/2 w-64 text-center z-20 animate-in fade-in slide-in-from-bottom-2 pointer-events-none"><div className={`text-xs md:text-sm font-medium px-6 py-3 rounded-[20px] shadow-2xl backdrop-blur-lg border ${isDarkMode ? 'bg-slate-900/80 border-white/10 text-slate-100' : 'bg-surface/80 border-white/50 text-text-primary'}`}>"{message}"</div></div>)}
                   </div>
                 )}
 
-                {/* API 키 변경 팝업 (이미지 참고 디자인) */}
+                {/* 개선된 API 키 변경 팝업 (이미지 명세 충실히 반영) */}
                 {isApiKeyInputVisible && (
-                   <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-[340px] md:w-[410px] z-[120] animate-in fade-in zoom-in-95 duration-300" onClick={(e) => e.stopPropagation()}>
-                      <div className={`p-8 rounded-[2.5rem] shadow-[0_20px_60px_rgba(0,0,0,0.15)] border transition-colors ${isDarkMode ? 'bg-[#1A1F2B] border-white/10' : 'bg-white border-border/60'}`}>
-                         <div className="flex justify-between items-start mb-6">
-                            <h2 className={`text-lg md:text-xl font-bold leading-snug break-keep ${isDarkMode ? 'text-slate-100' : 'text-[#2D3436]'}`}>
-                              {isApiKeyExpiredMode ? "API 키가 만료되었어요. 새로운 키를 입력해 주세요." : "API 키를 새로 입력하시겠어요?"}
+                   <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-[380px] md:w-[460px] z-[120] animate-in fade-in zoom-in-95 duration-300" onClick={(e) => e.stopPropagation()}>
+                      <div className={`p-10 rounded-[3rem] shadow-[0_25px_70px_rgba(0,0,0,0.18)] border-2 transition-colors ${isDarkMode ? 'bg-[#1A1F2B] border-white/5' : 'bg-white border-[#F0F2F5]'}`}>
+                         <div className="flex justify-between items-start mb-8">
+                            <h2 className={`text-xl md:text-2xl font-extrabold leading-[1.3] break-keep ${isDarkMode ? 'text-slate-100' : 'text-[#2D3436]'}`}>
+                              {isApiKeyExpiredMode ? "API 키가 만료되었어요.\n새로운 키를 입력해 주세요." : "API 키를 새로\n입력하시겠어요?"}
                             </h2>
-                            <button onClick={() => setIsApiKeyInputVisible(false)} className={`p-1 rounded-full hover:bg-slate-100 transition-colors ${isDarkMode ? 'hover:bg-slate-800 text-slate-400' : 'text-slate-400'}`}>
-                               <X size={20} />
+                            <button onClick={() => setIsApiKeyInputVisible(false)} className={`p-1.5 rounded-full transition-colors ${isDarkMode ? 'hover:bg-white/5 text-slate-500' : 'hover:bg-slate-100 text-[#B2BEC3]'}`}>
+                               <X size={24} />
                             </button>
                          </div>
 
-                         <div className="flex gap-2.5 mb-6">
-                            <a 
-                               href="https://aistudio.google.com/app/apikey" 
-                               target="_blank" 
-                               rel="noopener noreferrer" 
-                               className={`flex-1 h-12 flex items-center justify-center gap-2 rounded-2xl border text-[11px] font-black tracking-tight transition-all ${isDarkMode ? 'bg-[#252B3A] border-white/5 text-slate-300 hover:bg-slate-800' : 'bg-[#F8FAFB] border-[#E2E8F0] text-slate-500 hover:bg-slate-50'}`}
-                            >
-                               키 발급받기 <ExternalLink size={14} />
+                         <div className="flex gap-3 mb-8">
+                            <a href="https://aistudio.google.com/app/apikey" target="_blank" rel="noopener noreferrer" className={`flex-1 h-14 flex items-center justify-center gap-2 rounded-[1.25rem] border text-[12px] font-black tracking-tight transition-all ${isDarkMode ? 'bg-[#252B3A] border-white/5 text-slate-300 hover:bg-[#2A3142]' : 'bg-[#F9FAFB] border-[#E9ECEF] text-[#636E72] hover:bg-[#F1F3F5]'}`}>
+                               키 발급받기 <ExternalLink size={16} />
                             </a>
-                            <button 
-                               onClick={handlePasteApiKey} 
-                               className={`flex-1 h-12 flex items-center justify-center gap-2 rounded-2xl text-[11px] font-black tracking-tight text-white shadow-lg transition-all active:scale-95 ${isDarkMode ? 'bg-primary-dark hover:bg-primary shadow-primary/10' : 'bg-[#4A5F7A] hover:bg-[#3A4F6A] shadow-primary/20'}`}
-                            >
-                               복사해 온 키 붙여넣기 <ClipboardCheck size={14} />
+                            <button onClick={handlePasteApiKey} className={`flex-1 h-14 flex items-center justify-center gap-2 rounded-[1.25rem] text-[12px] font-black tracking-tight text-white shadow-lg transition-all active:scale-95 ${isDarkMode ? 'bg-primary-dark hover:bg-primary shadow-primary/10' : 'bg-[#4A5F7A] hover:bg-[#3A4F6A] shadow-primary/20'}`}>
+                               복사해 온 키 붙여넣기 <ClipboardCheck size={16} />
                             </button>
                          </div>
 
-                         <div className="relative mb-6">
+                         <div className="relative mb-8">
                             <input 
                                type="password" 
                                value={tempApiKey} 
                                onChange={(e) => {setTempApiKey(e.target.value); setApiKeyError(null);}} 
-                               placeholder="여기에 새로운 키를 붙여넣으세요" 
-                               className={`w-full h-14 pl-6 pr-12 rounded-2xl border-2 outline-none font-mono text-[13px] transition-all ${isDarkMode ? 'bg-[#0F1219] border-white/5 focus:border-primary text-slate-200' : 'bg-[#F8FAFB] border-[#E2E8F0] focus:border-[#4A5F7A] text-[#2D3436]'}`}
+                               placeholder={isApiKeyExpiredMode ? "여기에 새로운 키를 붙여넣으세요" : "●●●●●●●●●●●●●●●●"}
+                               className={`w-full h-16 pl-8 pr-14 rounded-[1.5rem] border-2 outline-none font-mono text-[14px] transition-all ${isDarkMode ? 'bg-[#0F1219] border-white/5 focus:border-primary text-slate-200' : 'bg-[#F9FAFB] border-[#E9ECEF] focus:border-[#4A5F7A] text-[#2D3436]'}`}
                             />
                             {tempApiKey && (
-                               <button onClick={() => setTempApiKey('')} className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors">
-                                  <X size={18} />
+                               <button onClick={() => {setTempApiKey(''); setApiKeyError(null);}} className="absolute right-5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600">
+                                  <X size={20} />
                                </button>
                             )}
                          </div>
 
-                         {apiKeyError && <p className="text-[11px] text-rose-500 font-bold mb-4 ml-1">{apiKeyError}</p>}
-                         {isValidating && <p className="text-[11px] text-primary font-bold animate-pulse mb-4 ml-1">검사 중...</p>}
+                         {apiKeyError && (
+                            <p className="text-[12px] text-rose-500 font-extrabold mb-6 px-1 animate-in fade-in slide-in-from-top-1">
+                               ⚠️ {apiKeyError}
+                            </p>
+                         )}
+
+                         {isValidating && (
+                            <p className="text-[12px] text-primary font-black animate-pulse mb-6 px-1">
+                               키를 검사하고 있습니다...
+                            </p>
+                         )}
 
                          {isApiKeyExpiredMode && (
-                            <div className="space-y-1.5 mb-6 ml-1">
-                               <p className={`text-[10px] font-bold ${isDarkMode ? 'text-slate-500' : 'text-slate-400'}`}>* 지금 당장 키를 입력하지 않아도 계속 사용할 수 있어요.</p>
-                               <p className={`text-[10px] font-bold ${isDarkMode ? 'text-slate-500' : 'text-slate-400'}`}>* 설정에서 API키 입력 메뉴로 다시 키를 설정할 수 있어요.</p>
+                            <div className="space-y-2 mb-8 px-1">
+                               <p className={`text-[11px] font-bold ${isDarkMode ? 'text-slate-500' : 'text-[#A4B0BE]'}`}>* 지금 당장 키를 입력하지 않아도 계속 사용할 수 있어요.</p>
+                               <p className={`text-[11px] font-bold ${isDarkMode ? 'text-slate-500' : 'text-[#A4B0BE]'}`}>* 설정에서 API키 입력 메뉴로 다시 키를 설정할 수 있어요.</p>
                             </div>
                          )}
 
                          <button 
                             disabled={isValidating || !tempApiKey.trim()}
-                            onClick={handleUpdateApiKey}
-                            className={`w-full h-14 rounded-2xl text-[13px] font-black tracking-widest text-white shadow-xl transition-all active:scale-95 disabled:opacity-30 ${isDarkMode ? 'bg-primary shadow-primary/20' : 'bg-[#4A5F7A] shadow-primary/30'}`}
+                            onClick={() => validateAndApplyApiKey(tempApiKey)}
+                            className={`w-full h-16 rounded-[1.5rem] text-[15px] font-black tracking-widest text-white shadow-xl transition-all active:scale-[0.98] disabled:opacity-30 ${isDarkMode ? 'bg-primary shadow-primary/20' : 'bg-[#4A5F7A] shadow-[#4A5F7A]/30'}`}
                          >
-                            {isValidating ? '확인 중...' : '저장 및 적용하기'}
+                            {isValidating ? '검증 중...' : '저장 및 적용하기'}
                          </button>
                       </div>
                    </div>
