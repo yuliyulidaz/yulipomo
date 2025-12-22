@@ -42,12 +42,6 @@ export interface CharacterProfile {
 
   initialGreeting: string;
 
-  // 사이클 통계 기록용 (보고서용)
-  cycleStats?: {
-    distractions: number;
-    clicks: number;
-  };
-
   // 새로고침 유지를 위한 필드
   lastActive?: number;
   savedTimeLeft?: number;
