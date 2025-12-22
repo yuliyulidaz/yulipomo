@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { Play, Pause, RotateCcw, X, Heart, Timer as TimerIcon, Coffee, Bed, CheckCircle2, Moon, Sun, Settings, Save, Key } from 'lucide-react';
+import { Play, Pause, RotateCcw, X, Heart, Timer as TimerIcon, Coffee, Bed, CheckCircle2, Moon, Sun, Settings, Save, Key, ExternalLink } from 'lucide-react';
 import { CharacterProfile } from '../types';
 // Import HarmCategory and HarmBlockThreshold for correct typing
 import { GoogleGenAI, HarmCategory, HarmBlockThreshold } from "@google/genai";
@@ -324,9 +324,10 @@ export const TimerScreen: React.FC<TimerScreenProps> = ({
   
   // Settings UI states
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
-  const [isApiKeyModalOpen, setIsApiKeyModalOpen] = useState(false);
+  const [isApiKeyInputVisible, setIsApiKeyInputVisible] = useState(false);
   const [tempApiKey, setTempApiKey] = useState(profile.apiKey || '');
-  const [isApiKeyExpired, setIsApiKeyExpired] = useState(false);
+  const [apiKeyError, setApiKeyError] = useState<string | null>(null);
+  const [isValidating, setIsValidating] = useState(false);
 
   // Click Cooldown State
   const [cooldownRemaining, setCooldownRemaining] = useState(0);
@@ -375,13 +376,13 @@ export const TimerScreen: React.FC<TimerScreenProps> = ({
   }, [timeLeft, isActive, isBreak, sessionInCycle, onUpdateProfile]);
 
   useEffect(() => {
-    if (message) {
+    if (message && !isApiKeyInputVisible) {
       const timer = window.setTimeout(() => {
         setMessage(""); 
       }, 7000);
       return () => window.clearTimeout(timer);
     }
-  }, [message]);
+  }, [message, isApiKeyInputVisible]);
 
   const refillCategory = useCallback(async (category: keyof typeof profile.dialogueCache, count: number = 5) => {
     const categoryKey = String(category);
@@ -431,15 +432,10 @@ export const TimerScreen: React.FC<TimerScreenProps> = ({
             [category]: [...profile.dialogueCache[category], ...newLines]
           }
         });
-        setIsApiKeyExpired(false);
       }
     } catch (e: any) {
       console.error(`Refill failed for ${categoryKey}`, e);
-      // Auto-detect API key expiration or quota exhaustion
-      if (e?.message?.includes('401') || e?.message?.includes('429')) {
-        setIsApiKeyExpired(true);
-        setIsApiKeyModalOpen(true);
-      }
+      // Auto-popup removed per request to avoid interruption
     } finally {
       isRefillingRef.current[categoryKey] = false;
     }
@@ -676,15 +672,35 @@ export const TimerScreen: React.FC<TimerScreenProps> = ({
     return () => document.removeEventListener("visibilitychange", handleVisibilityChange);
   }, [isActive, isBreak, triggerAIResponse]);
 
-  const handleSaveApiKey = () => {
-    if (tempApiKey.trim()) {
-      onUpdateProfile({ apiKey: tempApiKey.trim() });
-      setIsApiKeyModalOpen(false);
-      setIsApiKeyExpired(false);
-      // Re-trigger dialogue refill to test the new key
-      setTimeout(() => addToRefillQueue('idle'), 500);
-    }
-  };
+  // Handle auto-save for API Key with Debounce
+  useEffect(() => {
+    if (!isApiKeyInputVisible || !tempApiKey || tempApiKey === profile.apiKey) return;
+
+    const timer = setTimeout(async () => {
+      setApiKeyError(null);
+      setIsValidating(true);
+      try {
+        const ai = new GoogleGenAI({ apiKey: tempApiKey });
+        // Quick verification call
+        await ai.models.generateContent({
+           model: 'gemini-3-flash-preview',
+           contents: 'hi',
+           config: { maxOutputTokens: 1, thinkingConfig: { thinkingBudget: 0 } }
+        });
+        
+        onUpdateProfile({ apiKey: tempApiKey });
+        setIsApiKeyInputVisible(false);
+        // Test new voice
+        setTimeout(() => addToRefillQueue('idle'), 500);
+      } catch (err) {
+        setApiKeyError('유효한 키가 아닙니다. 다른 키를 입력해 주세요.');
+      } finally {
+        setIsValidating(false);
+      }
+    }, 800);
+
+    return () => clearTimeout(timer);
+  }, [tempApiKey, isApiKeyInputVisible, profile.apiKey, onUpdateProfile, addToRefillQueue]);
 
   const currentXpTarget = LEVEL_XP_TABLE[profile.level] || 9999;
   const progressPercent = Math.min(100, (profile.xp / currentXpTarget) * 100);
@@ -699,51 +715,6 @@ export const TimerScreen: React.FC<TimerScreenProps> = ({
       {profile.imageSrc && (
         <div className={`absolute inset-0 z-0 transition-opacity duration-700 ${isDarkMode ? 'opacity-5' : 'opacity-10'}`}>
           <img src={profile.imageSrc} alt="Background" className="w-full h-full object-cover blur-md scale-110" />
-        </div>
-      )}
-
-      {/* API Key Modal */}
-      {isApiKeyModalOpen && (
-        <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-black/60 backdrop-blur-md animate-in fade-in duration-300">
-           <div className={`w-full max-w-sm border p-8 rounded-[32px] shadow-2xl space-y-6 transform animate-in zoom-in-95 duration-300 ${isDarkMode ? 'bg-[#161B22] border-[#30363D]' : 'bg-surface border-border'}`}>
-              <div className="flex flex-col items-center text-center space-y-2">
-                <div className={`w-14 h-14 rounded-2xl flex items-center justify-center ${isApiKeyExpired ? 'bg-rose-500/10 text-rose-500' : 'bg-primary/10 text-primary'}`}>
-                  <Key size={30} />
-                </div>
-                <h3 className="text-xl font-bold">API 키 업데이트</h3>
-                <p className="text-xs text-text-secondary leading-relaxed break-keep">
-                  {isApiKeyExpired 
-                    ? 'Gemini API 키가 만료되었거나 할당량이 초과되었습니다. 캐릭터의 목소리를 되찾으려면 새 키를 입력해주세요.' 
-                    : '캐릭터가 사용할 Gemini API 키를 수동으로 변경할 수 있습니다.'}
-                </p>
-              </div>
-
-              <div className="space-y-1.5">
-                <label className="text-[10px] font-black text-text-secondary uppercase tracking-widest px-1">Gemini API KEY</label>
-                <input 
-                  type="password"
-                  value={tempApiKey}
-                  onChange={(e) => setTempApiKey(e.target.value)}
-                  placeholder="새로운 API 키 입력"
-                  className={`w-full px-4 py-3 rounded-xl border outline-none focus:ring-2 focus:ring-primary/20 transition-all font-mono text-sm ${isDarkMode ? 'bg-[#0B0E14] border-[#30363D]' : 'bg-background border-border'}`}
-                />
-              </div>
-
-              <div className="flex gap-3 pt-2">
-                <button 
-                  onClick={() => setIsApiKeyModalOpen(false)}
-                  className={`flex-1 py-3.5 rounded-xl text-xs font-bold transition-all ${isDarkMode ? 'bg-slate-800 text-slate-300 hover:bg-slate-700' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`}
-                >
-                  취소
-                </button>
-                <button 
-                  onClick={handleSaveApiKey}
-                  className="flex-1 py-3.5 bg-primary hover:bg-primary-light text-white rounded-xl text-xs font-bold shadow-lg shadow-primary/20 transition-all active:scale-95"
-                >
-                  변경하기
-                </button>
-              </div>
-           </div>
         </div>
       )}
 
@@ -780,9 +751,9 @@ export const TimerScreen: React.FC<TimerScreenProps> = ({
         </div>
       )}
 
-      {/* Click Away Overlay for Settings Menu */}
-      {isSettingsOpen && (
-        <div className="fixed inset-0 z-40" onClick={() => setIsSettingsOpen(false)} />
+      {/* Click Away Overlay for Settings & API Popup */}
+      {(isSettingsOpen || isApiKeyInputVisible) && (
+        <div className="fixed inset-0 z-40" onClick={() => { setIsSettingsOpen(false); setIsApiKeyInputVisible(false); }} />
       )}
 
       <main className="w-full h-full flex flex-col items-center justify-center relative z-10 p-4 md:p-8">
@@ -836,7 +807,7 @@ export const TimerScreen: React.FC<TimerScreenProps> = ({
                           </span>
                       </div>
 
-                      <div className="flex items-center gap-2 group cursor-pointer" onClick={() => { setIsApiKeyModalOpen(true); setIsSettingsOpen(false); }}>
+                      <div className="flex items-center gap-2 group cursor-pointer" onClick={() => { setIsApiKeyInputVisible(true); setIsSettingsOpen(false); }}>
                           <div className={`w-10 h-10 rounded-full border shadow-sm flex items-center justify-center transition-all hover:scale-110 ${isDarkMode ? 'bg-slate-800 text-slate-400 border-slate-700' : 'bg-white text-slate-500 border-slate-200'}`}>
                             <Key size={18} />
                           </div>
@@ -902,7 +873,55 @@ export const TimerScreen: React.FC<TimerScreenProps> = ({
                         </div>
                     )}
 
-                    {message && (
+                    {/* API Key Update Toast / Popup */}
+                    {isApiKeyInputVisible && (
+                       <div className="absolute -top-32 left-1/2 transform -translate-x-1/2 w-[340px] md:w-[380px] z-[60] animate-in fade-in slide-in-from-bottom-4 duration-300">
+                          <div className={`p-5 rounded-[24px] shadow-2xl border backdrop-blur-xl relative space-y-3 ${isDarkMode ? 'bg-slate-900/90 border-white/10 shadow-black/40' : 'bg-surface/95 border-border shadow-slate-200/50'}`}>
+                             <p className={`text-xs font-bold leading-tight ${isDarkMode ? 'text-slate-200' : 'text-text-primary'}`}>
+                                API 키가 만료되었어요. 새로운 키를 입력해 주세요.
+                             </p>
+                             
+                             <div className="flex items-center gap-2">
+                                <div className="relative flex-1">
+                                   <input 
+                                      type="password"
+                                      value={tempApiKey}
+                                      onChange={(e) => setTempApiKey(e.target.value)}
+                                      placeholder="새로운 API 키를 여기에 붙여넣으세요"
+                                      className={`w-full h-10 px-3 pr-9 rounded-xl border outline-none focus:ring-2 focus:ring-primary/20 transition-all font-mono text-[11px] ${isDarkMode ? 'bg-slate-950 border-slate-700 text-slate-100' : 'bg-background border-border text-text-primary'}`}
+                                   />
+                                   <button 
+                                      onClick={() => setIsApiKeyInputVisible(false)}
+                                      className="absolute right-2 top-1/2 -translate-y-1/2 text-text-secondary hover:text-rose-500 transition-colors"
+                                   >
+                                      <X size={14} />
+                                   </button>
+                                </div>
+                                <a 
+                                  href="https://aistudio.google.com/app/apikey" 
+                                  target="_blank" 
+                                  rel="noopener noreferrer"
+                                  className="flex items-center gap-1 text-[10px] font-black text-primary hover:underline shrink-0"
+                                >
+                                   키 발급받기 <ExternalLink size={10} />
+                                </a>
+                             </div>
+
+                             <div className="space-y-1">
+                                <p className="text-[9px] text-text-secondary/80 font-medium">*지금 당장 키를 입력하지 않아도 계속 사용할 수 있어요.</p>
+                                <p className="text-[9px] text-text-secondary/80 font-medium">*설정에서 API키 입력 메뉴로 다시 키를 설정할 수 있어요.</p>
+                                {apiKeyError && (
+                                   <p className="text-[9px] text-rose-500 font-black animate-pulse pt-1">{apiKeyError}</p>
+                                )}
+                                {isValidating && (
+                                   <p className="text-[9px] text-primary font-black animate-pulse pt-1">키 유효성 검사 중...</p>
+                                )}
+                             </div>
+                          </div>
+                       </div>
+                    )}
+
+                    {message && !isApiKeyInputVisible && (
                       <div className="absolute -top-20 md:-top-20 left-1/2 transform -translate-x-1/2 w-64 md:w-72 text-center z-20 transition-all duration-500 animate-in fade-in slide-in-from-bottom-2 pointer-events-none">
                           <div className={`text-xs md:text-sm font-medium px-6 md:px-8 py-3 md:py-4 rounded-[20px] shadow-2xl leading-relaxed relative backdrop-blur-lg border transition-colors duration-500 ${isDarkMode ? 'bg-slate-900/80 border-white/10 text-slate-100 shadow-slate-900/50' : 'bg-surface/80 border-white/50 text-text-primary shadow-slate-200/50'}`}>
                               "{message}"
