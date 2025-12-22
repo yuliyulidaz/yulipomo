@@ -242,7 +242,7 @@ const FALLBACK_TEMPLATES: Record<string, Record<string, string[]>> = {
     IDLE: [
       "내가 여기 있으니 염려 마시오.",
       "잘하고 있소. 계속 정진하시게.",
-      "조금만 더 힘내시오. 거의 다 되었소.",
+      "조금만 더 힘내하시오. 거의 다 되었소.",
       "집중하시는 모습이 보기 좋소.",
       "마음 편히 가지시오. 지켜보고 있소.",
       "포기하지 마시오. 곁에 있소.",
@@ -301,7 +301,7 @@ const FALLBACK_TEMPLATES: Record<string, Record<string, string[]>> = {
       "후방 지원 중입니다. 계속하십시오.",
       "거의 완료 단계입니다. 조금만 더!",
       "상황 양호. 그대로 가하십시오.",
-      "지원 사격 중입니다. 힘내십시오.",
+      "지원 사격 중입니다. 힘내하십시오.",
       "임무 진행 순조롭습니다. 파이팅!",
       "제가 지키고 있습니다. 끝까지 가하십시오."
     ],
@@ -795,9 +795,10 @@ export const TimerScreen: React.FC<TimerScreenProps> = ({
 
           <div className={`w-full max-w-md backdrop-blur-xl border p-6 md:p-8 rounded-[40px] shadow-[0_20px_50px_rgba(74,95,122,0.1)] flex flex-col items-center gap-6 md:gap-8 animate-in fade-in zoom-in duration-500 relative transition-colors duration-700 ${isDarkMode ? 'bg-[#161B22]/90 border-[#30363D]' : 'bg-surface/90 border-border'} ${isApiKeyInputVisible || isSettingsOpen ? 'overflow-visible z-40' : 'overflow-hidden'}`}>
             
-            <div className={`absolute top-0 left-0 w-full h-1.5 z-10 ${isDarkMode ? 'bg-slate-700/20' : 'bg-border/20'} rounded-t-[40px] overflow-hidden`}>
+            {/* 호감도 게이지바 - 길이를 줄이고 둥근 알약 모양으로 개선 */}
+            <div className={`absolute top-2.5 inset-x-8 h-1.5 z-10 ${isDarkMode ? 'bg-slate-700/20' : 'bg-border/20'} rounded-full overflow-hidden`}>
               <div 
-                className="h-full bg-gradient-to-r from-primary to-accent transition-all duration-1000 ease-out rounded-r-full" 
+                className="h-full bg-gradient-to-r from-primary to-accent transition-all duration-1000 ease-out rounded-full" 
                 style={{ width: `${progressPercent}%` }} 
               />
             </div>
