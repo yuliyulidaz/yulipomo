@@ -28,7 +28,7 @@ const LEVEL_TITLES: Record<number, string> = {
   10: "영원한 반려"
 };
 
-// 검열 기준 완화: BLOCK_LOW_AND_ABOVE -> BLOCK_ONLY_HIGH
+// 검열 기준 완화: BLOCK_ONLY_HIGH
 const SAFETY_SETTINGS = [
   { category: HarmCategory.HARM_CATEGORY_HARASSMENT, threshold: HarmBlockThreshold.BLOCK_ONLY_HIGH },
   { category: HarmCategory.HARM_CATEGORY_HATE_SPEECH, threshold: HarmBlockThreshold.BLOCK_ONLY_HIGH },
@@ -118,7 +118,7 @@ const FALLBACK_TEMPLATES: Record<string, Record<string, string[]>> = {
       "잘하고 있어요. 계속 가요.",
       "포기하지 말아요. 옆에 있어요."
     ],
-    READY: ["슬슬 앉아요. 다시 해야지."]
+    READY: ["쉬는 시간 끝나가요. 준비해."]
   },
   "사극/하오체": {
     START: ["시작하겠소. {honorific}, 부디 집중하시오."],
@@ -142,7 +142,7 @@ const FALLBACK_TEMPLATES: Record<string, Record<string, string[]>> = {
   }
 };
 
-const COOLDOWN_MS = 10000; // 10 seconds cooldown
+const COOLDOWN_MS = 16000; 
 
 export const TimerScreen: React.FC<TimerScreenProps> = ({ 
   profile, onReset, onTickXP, onUpdateProfile, onSessionComplete 
@@ -152,13 +152,19 @@ export const TimerScreen: React.FC<TimerScreenProps> = ({
   const [isBreak, setIsBreak] = useState(profile.savedIsBreak ?? false);
   const [sessionInCycle, setSessionInCycle] = useState(profile.savedSessionInCycle ?? 0); 
   
-  // 새로고침 시 인사말 개선 로직
+  // 이름 중괄호 제거 헬퍼 함수
+  const cleanDialogue = (text: string, honorific: string) => {
+    return text
+      .replace(/{honorific}|{이름}|{user}/g, honorific)
+      .replace(/{([^}]+)}/g, '$1'); // 남아있는 {엘라라} 형태의 중괄호 싹 제거
+  };
+
   const [message, setMessage] = useState(() => {
+    const userDisplayName = profile.honorific || profile.userName || "너";
     if (profile.savedIsActive && !profile.savedIsBreak) {
       const scolding = profile.dialogueCache.scolding;
       if (scolding && scolding.length > 0) {
-        return scolding[Math.floor(Math.random() * scolding.length)]
-          .replace(/{honorific}|{이름}|{user}/g, profile.honorific || profile.userName || "너");
+        return cleanDialogue(scolding[Math.floor(Math.random() * scolding.length)], userDisplayName);
       }
       return "어디 갔다 왔어? 계속 집중해야지.";
     }
@@ -181,7 +187,6 @@ export const TimerScreen: React.FC<TimerScreenProps> = ({
   const randomEncouragementTimerRef = useRef<any>(null);
   const wakeLockRef = useRef<any>(null);
   
-  // Stability fix: Use a ref for profile to prevent interval restart logic issues
   const profileRef = useRef(profile);
   useEffect(() => { profileRef.current = profile; }, [profile]);
 
@@ -266,14 +271,8 @@ export const TimerScreen: React.FC<TimerScreenProps> = ({
 
   const processRefillQueue = useCallback(async () => {
     if (isGlobalApiLockedRef.current || refillQueueRef.current.length === 0) return;
-
-    // 우선순위 정의 (0: 최우선)
     const PRIORITY: Record<string, number> = { click: 0, start: 1, scolding: 1, praising: 2, pause: 2, idle: 3 };
-    
-    // 우선순위에 따른 대기열 정렬
     refillQueueRef.current.sort((a, b) => (PRIORITY[a] ?? 99) - (PRIORITY[b] ?? 99));
-
-    // 클릭 대사가 아예 없을 경우 최우선 배달 집중
     const currentProfile = profileRef.current;
     if (currentProfile.dialogueCache.click.length === 0 && refillQueueRef.current.includes('click')) {
         const idx = refillQueueRef.current.indexOf('click');
@@ -285,11 +284,7 @@ export const TimerScreen: React.FC<TimerScreenProps> = ({
         isGlobalApiLockedRef.current = true;
         await refillCategory(category, 5);
     }
-
-    // 무료 키 안정성을 위해 잠금 시간을 15초로 연장
-    setTimeout(() => {
-      isGlobalApiLockedRef.current = false;
-    }, 15000);
+    setTimeout(() => { isGlobalApiLockedRef.current = false; }, 15000);
   }, [refillCategory]);
 
   useEffect(() => {
@@ -298,7 +293,6 @@ export const TimerScreen: React.FC<TimerScreenProps> = ({
   }, [processRefillQueue]);
 
   const addToRefillQueue = useCallback((category: keyof typeof profile.dialogueCache) => {
-    // 배부름 상태: 10개 이상이면 더 이상 요청하지 않음
     if (profileRef.current.dialogueCache[category].length >= 10) return;
     if (!refillQueueRef.current.includes(category)) {
       refillQueueRef.current.push(category);
@@ -320,7 +314,7 @@ export const TimerScreen: React.FC<TimerScreenProps> = ({
     if (cachedList && cachedList.length > 0) {
         const randomIndex = Math.floor(Math.random() * cachedList.length);
         const randomMsg = cachedList[randomIndex];
-        setMessage(randomMsg.replace(/{honorific}|{이름}|{user}/g, userDisplayName));
+        setMessage(cleanDialogue(randomMsg, userDisplayName));
         const newCacheList = [...cachedList];
         newCacheList.splice(randomIndex, 1);
         onUpdateProfile({ dialogueCache: { ...profile.dialogueCache, [key]: newCacheList } });
@@ -330,7 +324,7 @@ export const TimerScreen: React.FC<TimerScreenProps> = ({
         const template = FALLBACK_TEMPLATES[toneKey];
         const rawMsgs = template[type] || ["..."];
         const rawMsg = rawMsgs[Math.floor(Math.random() * rawMsgs.length)];
-        setMessage(rawMsg.replace(/{honorific}|{이름}|{user}/g, userDisplayName));
+        setMessage(cleanDialogue(rawMsg, userDisplayName));
         addToRefillQueue(key);
     }
   }, [profile, onUpdateProfile, addToRefillQueue]);
@@ -362,7 +356,6 @@ export const TimerScreen: React.FC<TimerScreenProps> = ({
   }, [isActive, timeLeft, isBreak, onTickXP]);
 
   useEffect(() => {
-    // 모든 카테고리에 대해 배부름 상태(10개) 확인 후 배달 예약
     Object.keys(profile.dialogueCache).forEach(cat => {
       const category = cat as keyof typeof profile.dialogueCache;
       if (profile.dialogueCache[category].length < 10) addToRefillQueue(category);
@@ -516,9 +509,9 @@ export const TimerScreen: React.FC<TimerScreenProps> = ({
                 <div className="relative">
                   <button onClick={() => setIsSettingsOpen(!isSettingsOpen)} className={`p-2.5 rounded-full transition-all border shadow-sm ${isSettingsOpen ? 'bg-primary text-white border-primary-dark rotate-45 scale-110' : (isDarkMode ? 'bg-slate-800 text-slate-400 border-slate-700 hover:bg-slate-700' : 'bg-slate-50 text-slate-500 border-slate-200 hover:bg-slate-100')}`} title="설정"><Settings size={20} /></button>
                   <div className={`absolute top-full left-0 mt-3.5 flex flex-col gap-3.5 transition-all duration-500 origin-top z-50 ${isSettingsOpen ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-4 pointer-events-none'}`}>
-                      <div className="flex items-center gap-3 cursor-pointer" onClick={(e) => { e.stopPropagation(); setIsDarkMode(!isDarkMode); }}><div className={`w-12 h-12 rounded-full border shadow-sm flex items-center justify-center transition-all hover:scale-110 ${isDarkMode ? 'bg-slate-800 text-yellow-400 border-slate-700' : 'bg-white border-slate-200'}`}>{isDarkMode ? <Sun size={20} /> : <Moon size={20} />}</div><span className={`text-[10px] font-black px-2.5 py-1.5 rounded-lg border shadow-sm whitespace-nowrap ${isDarkMode ? 'bg-slate-800 border-slate-700 text-slate-100' : 'bg-surface/90 border-border'}`}>{isDarkMode ? '라이트' : '다크'}</span></div>
-                      <div className="flex items-center gap-3 cursor-pointer" onClick={(e) => { e.stopPropagation(); handleExportProfile(); }}><div className={`w-12 h-12 rounded-full border shadow-sm flex items-center justify-center transition-all hover:scale-110 ${isDarkMode ? 'bg-slate-800 text-slate-100 border-slate-700' : 'bg-white border-slate-200'}`}><Save size={20} /></div><span className={`text-[10px] font-black px-2.5 py-1.5 rounded-lg border shadow-sm whitespace-nowrap ${isDarkMode ? 'bg-slate-800 border-slate-700 text-slate-100' : 'bg-surface/90 border-border'}`}>저장</span></div>
-                      <div className="flex items-center gap-3 cursor-pointer" onClick={(e) => { e.stopPropagation(); setTempApiKey(''); setIsApiKeyInputVisible(true); setIsSettingsOpen(false); }}><div className={`w-12 h-12 rounded-full border shadow-sm flex items-center justify-center transition-all hover:scale-110 ${isDarkMode ? 'bg-slate-800 text-slate-400 border-slate-700' : 'bg-white border-slate-200'}`}><Key size={20} /></div><span className={`text-[10px] font-black px-2.5 py-1.5 rounded-lg border shadow-sm whitespace-nowrap ${isDarkMode ? 'bg-slate-800 border-slate-700 text-slate-100' : 'bg-surface/90 border-border'}`}>API키</span></div>
+                      <div className="flex items-center gap-3 cursor-pointer" onClick={(e) => { e.stopPropagation(); setIsDarkMode(!isDarkMode); }}><div className={`w-12 h-12 rounded-full border shadow-sm flex items-center justify-center transition-all hover:scale-110 ${isDarkMode ? 'bg-slate-800 text-yellow-400 border-slate-700' : 'bg-white border-slate-200'}`}>{isDarkMode ? <Sun size={20} /> : <Moon size={20} />}</div><span className={`text-[10px] font-black px-2.5 py-1.5 rounded-lg border shadow-sm whitespace-nowrap min-w-[60px] text-center ${isDarkMode ? 'bg-slate-800 border-slate-700 text-slate-100' : 'bg-surface/90 border-border'}`}>{isDarkMode ? '라이트' : '다크'}</span></div>
+                      <div className="flex items-center gap-3 cursor-pointer" onClick={(e) => { e.stopPropagation(); handleExportProfile(); }}><div className={`w-12 h-12 rounded-full border shadow-sm flex items-center justify-center transition-all hover:scale-110 ${isDarkMode ? 'bg-slate-800 text-slate-100 border-slate-700' : 'bg-white border-slate-200'}`}><Save size={20} /></div><span className={`text-[10px] font-black px-2.5 py-1.5 rounded-lg border shadow-sm whitespace-nowrap min-w-[60px] text-center ${isDarkMode ? 'bg-slate-800 border-slate-700 text-slate-100' : 'bg-surface/90 border-border'}`}>저장</span></div>
+                      <div className="flex items-center gap-3 cursor-pointer" onClick={(e) => { e.stopPropagation(); setTempApiKey(''); setIsApiKeyInputVisible(true); setIsSettingsOpen(false); }}><div className={`w-12 h-12 rounded-full border shadow-sm flex items-center justify-center transition-all hover:scale-110 ${isDarkMode ? 'bg-slate-800 text-slate-400 border-slate-700' : 'bg-white border-slate-200'}`}><Key size={20} /></div><span className={`text-[10px] font-black px-2.5 py-1.5 rounded-lg border shadow-sm whitespace-nowrap min-w-[60px] text-center ${isDarkMode ? 'bg-slate-800 border-slate-700 text-slate-100' : 'bg-surface/90 border-border'}`}>API키</span></div>
                   </div>
                 </div>
                 <button onClick={onReset} className={`p-2.5 rounded-full transition-all border border-transparent ${isDarkMode ? 'text-slate-400 hover:bg-rose-900/30 hover:text-rose-400' : 'text-text-secondary hover:bg-rose-50 hover:text-rose-500'}`} title="초기화"><X size={20} /></button>
@@ -528,10 +521,24 @@ export const TimerScreen: React.FC<TimerScreenProps> = ({
                 {shouldHideCharacter ? (<div className="flex flex-col items-center gap-4 animate-pulse text-primary-light/40"><Bed size={60} className="md:size-20" /><p className="text-[10px] font-bold uppercase tracking-widest">Sleeping...</p></div>) : (
                   <div className="relative">
                     {cooldownRemaining > 0 && (
-                      <div className="absolute -inset-3 pointer-events-none z-10"><svg className="w-full h-full" viewBox="0 0 100 100" preserveAspectRatio="none"><rect x="2" y="2" width="96" height="96" rx="12" fill="none" stroke="currentColor" strokeWidth="3" strokeDasharray="384" strokeDashoffset={384 - (384 * (cooldownRemaining / COOLDOWN_MS))} strokeLinecap="round" className={`transition-all duration-150 ease-linear ${isDarkMode ? 'text-emerald-400' : 'text-primary'}`} /></svg></div>
+                      <div className="absolute -inset-3 pointer-events-none z-10">
+                        <svg className="w-full h-full" viewBox="0 0 100 100" preserveAspectRatio="none">
+                          <path 
+                            d="M 50 2 H 86 A 12 12 0 0 1 98 14 V 86 A 12 12 0 0 1 86 98 H 14 A 12 12 0 0 1 2 86 V 14 A 12 12 0 0 1 14 2 H 50"
+                            fill="none" 
+                            stroke="currentColor" 
+                            strokeWidth="3" 
+                            pathLength="100"
+                            strokeDasharray="100" 
+                            strokeDashoffset={100 * (cooldownRemaining / COOLDOWN_MS)} 
+                            strokeLinecap="round" 
+                            className={`transition-all duration-150 ease-linear ${isDarkMode ? 'text-emerald-400' : 'text-primary'}`} 
+                          />
+                        </svg>
+                      </div>
                     )}
                     <div onClick={handleCharacterClick} className={`w-32 h-32 md:w-44 md:h-44 rounded-2xl border-4 overflow-hidden shadow-xl mx-auto transition-all duration-500 group-hover:scale-105 group-hover:border-primary cursor-pointer active:scale-95 ${isDarkMode ? 'border-slate-800' : 'border-border'}`}><img src={profile.imageSrc || ''} alt={profile.name} className="w-full h-full object-cover" /></div>
-                    {cooldownRemaining > 0 && (<div className="absolute -bottom-2 left-1/2 -translate-x-1/2 bg-primary/90 text-white text-[9px] font-black px-3 py-1 rounded-full shadow-lg animate-pulse whitespace-nowrap">가만히 바라보는 중...</div>)}
+                    {cooldownRemaining > 0 && (<div className="absolute -bottom-2 left-1/2 -translate-x-1/2 bg-primary/90 text-white text-[9px] font-black px-3 py-1 rounded-full shadow-lg animate-pulse whitespace-nowrap z-20">가만히 바라보는 중...</div>)}
                     {isApiKeyInputVisible && (
                        <div className="absolute -top-32 left-1/2 transform -translate-x-1/2 w-[340px] md:w-[400px] z-50 animate-in fade-in slide-in-from-bottom-4" onClick={(e) => e.stopPropagation()}>
                           <div className={`p-6 rounded-[28px] shadow-2xl border backdrop-blur-xl space-y-5 ${isDarkMode ? 'bg-slate-900 border-white/10' : 'bg-surface border-border'}`}>
