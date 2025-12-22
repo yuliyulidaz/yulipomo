@@ -767,7 +767,7 @@ export const TimerScreen: React.FC<TimerScreenProps> = ({
             </div>
           </div>
 
-          <div className={`w-full max-w-md backdrop-blur-xl border p-6 md:p-8 rounded-[40px] shadow-[0_20px_50px_rgba(74,95,122,0.1)] flex flex-col items-center gap-6 md:gap-8 animate-in fade-in zoom-in duration-500 relative overflow-hidden transition-colors duration-700 ${isDarkMode ? 'bg-[#161B22]/90 border-[#30363D]' : 'bg-surface/90 border-border'}`}>
+          <div className={`w-full max-w-md backdrop-blur-xl border p-6 md:p-8 rounded-[40px] shadow-[0_20px_50px_rgba(74,95,122,0.1)] flex flex-col items-center gap-6 md:gap-8 animate-in fade-in zoom-in duration-500 relative transition-colors duration-700 ${isDarkMode ? 'bg-[#161B22]/90 border-[#30363D]' : 'bg-surface/90 border-border'} ${isApiKeyInputVisible || isSettingsOpen ? 'overflow-visible' : 'overflow-hidden'}`}>
             
             <div className={`absolute top-0 left-0 w-full h-1.5 z-10 ${isDarkMode ? 'bg-slate-700/20' : 'bg-border/20'}`}>
               <div 
@@ -827,7 +827,7 @@ export const TimerScreen: React.FC<TimerScreenProps> = ({
                 </button>
             </div>
 
-            <div className="relative group mt-9 md:mt-11 min-h-[180px] md:min-h-[220px] flex items-center justify-center w-full">
+            <div className={`relative group mt-9 md:mt-11 min-h-[180px] md:min-h-[220px] flex items-center justify-center w-full transition-all ${isApiKeyInputVisible ? 'z-[51]' : 'z-20'}`}>
                 {shouldHideCharacter ? (
                   <div className="flex flex-col items-center gap-4 animate-pulse text-primary-light/40">
                     <Bed size={60} className="md:size-20" />
