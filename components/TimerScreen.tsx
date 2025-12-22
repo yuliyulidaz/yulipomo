@@ -41,8 +41,8 @@ const FALLBACK_TEMPLATES: Record<string, Record<string, string[]>> = {
     START: [
       "자, 시작하자. {honorific}, 집중해.",
       "이제 시작이야. 화이팅!",
-      "준비됐지? {honorific}.",
-      "{honorific}, 해보자고."
+      "준비됐지? {honorific}, 가자.",
+      "시작이다! {honorific}, 해보자고."
     ],
     FINISH: ["끝났네? 고생했어. 좀 쉴까?"],
     PAUSE: ["어디 가? 얼른 와라."],
