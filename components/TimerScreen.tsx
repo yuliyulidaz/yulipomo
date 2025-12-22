@@ -435,7 +435,6 @@ export const TimerScreen: React.FC<TimerScreenProps> = ({
       }
     } catch (e: any) {
       console.error(`Refill failed for ${categoryKey}`, e);
-      // Auto-popup removed per request to avoid interruption
     } finally {
       isRefillingRef.current[categoryKey] = false;
     }
@@ -538,7 +537,6 @@ export const TimerScreen: React.FC<TimerScreenProps> = ({
     
     triggerAIResponse('CLICK');
     
-    // Start Cooldown Logic
     setCooldownRemaining(COOLDOWN_MS);
     const start = Date.now();
     
@@ -672,7 +670,6 @@ export const TimerScreen: React.FC<TimerScreenProps> = ({
     return () => document.removeEventListener("visibilitychange", handleVisibilityChange);
   }, [isActive, isBreak, triggerAIResponse]);
 
-  // Handle auto-save for API Key with Debounce
   useEffect(() => {
     if (!isApiKeyInputVisible || !tempApiKey || tempApiKey === profile.apiKey) return;
 
@@ -681,7 +678,6 @@ export const TimerScreen: React.FC<TimerScreenProps> = ({
       setIsValidating(true);
       try {
         const ai = new GoogleGenAI({ apiKey: tempApiKey });
-        // Quick verification call
         await ai.models.generateContent({
            model: 'gemini-3-flash-preview',
            contents: 'hi',
@@ -690,7 +686,6 @@ export const TimerScreen: React.FC<TimerScreenProps> = ({
         
         onUpdateProfile({ apiKey: tempApiKey });
         setIsApiKeyInputVisible(false);
-        // Test new voice
         setTimeout(() => addToRefillQueue('idle'), 500);
       } catch (err) {
         setApiKeyError('유효한 키가 아닙니다. 다른 키를 입력해 주세요.');
@@ -701,6 +696,32 @@ export const TimerScreen: React.FC<TimerScreenProps> = ({
 
     return () => clearTimeout(timer);
   }, [tempApiKey, isApiKeyInputVisible, profile.apiKey, onUpdateProfile, addToRefillQueue]);
+
+  // 저장(Export) 기능 구현
+  const handleExportProfile = () => {
+    const dataStr = JSON.stringify(profile, null, 2);
+    const dataUri = 'data:application/json;charset=utf-8,' + encodeURIComponent(dataStr);
+    
+    const now = new Date();
+    const dateStr = now.toISOString().slice(2, 10).replace(/-/g, ''); // YYMMDD
+    const timeStr = now.getHours().toString().padStart(2, '0') + now.getMinutes().toString().padStart(2, '0'); // HHMM
+    
+    // 파일명 형식 지정: 최애이름_YYMMDD_HHMM.json
+    // 특수문자 및 공백 제거
+    const sanitizedName = profile.name.replace(/[\\/:*?"<>|]/g, '').replace(/\s+/g, '');
+    const finalFileName = sanitizedName ? `${sanitizedName}_${dateStr}_${timeStr}.json` : `${dateStr}_${timeStr}.json`;
+
+    const exportFileDefaultName = finalFileName;
+
+    const linkElement = document.createElement('a');
+    linkElement.setAttribute('href', dataUri);
+    linkElement.setAttribute('download', exportFileDefaultName);
+    linkElement.click();
+
+    // 메뉴 닫기 및 토스트 알림 표시
+    setIsSettingsOpen(false);
+    setMessage("저장되었습니다. 소중한 API키가 함께 저장 되었으니, 절대로 타인과 공유하지 마세요.");
+  };
 
   const currentXpTarget = LEVEL_XP_TABLE[profile.level] || 9999;
   const progressPercent = Math.min(100, (profile.xp / currentXpTarget) * 100);
@@ -751,7 +772,6 @@ export const TimerScreen: React.FC<TimerScreenProps> = ({
         </div>
       )}
 
-      {/* Click Away Overlay for Settings & API Popup */}
       {(isSettingsOpen || isApiKeyInputVisible) && (
         <div className="fixed inset-0 z-40" onClick={() => { setIsSettingsOpen(false); setIsApiKeyInputVisible(false); }} />
       )}
@@ -777,7 +797,6 @@ export const TimerScreen: React.FC<TimerScreenProps> = ({
             </div>
 
             <div className="w-full flex justify-between items-start mt-2 px-2 relative z-50">
-                {/* Floating Settings Menu */}
                 <div className="relative">
                   <button 
                     onClick={() => setIsSettingsOpen(!isSettingsOpen)} 
@@ -787,7 +806,6 @@ export const TimerScreen: React.FC<TimerScreenProps> = ({
                       <Settings size={20} />
                   </button>
                   
-                  {/* Dropdown Menu Items */}
                   <div className={`absolute top-full left-0 mt-3 flex flex-col gap-2.5 transition-all duration-500 origin-top ${isSettingsOpen ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-4 pointer-events-none'}`}>
                       <div className="flex items-center gap-2 group cursor-pointer" onClick={() => setIsDarkMode(!isDarkMode)}>
                           <div className={`w-10 h-10 rounded-full border shadow-sm flex items-center justify-center transition-all hover:scale-110 ${isDarkMode ? 'bg-slate-800 text-yellow-400 border-slate-700' : 'bg-white text-slate-500 border-slate-200'}`}>
@@ -798,12 +816,12 @@ export const TimerScreen: React.FC<TimerScreenProps> = ({
                           </span>
                       </div>
                       
-                      <div className="flex items-center gap-2 group cursor-not-allowed opacity-50 grayscale">
-                          <div className={`w-10 h-10 rounded-full border shadow-sm flex items-center justify-center ${isDarkMode ? 'bg-slate-800 text-slate-400 border-slate-700' : 'bg-white text-slate-400 border-slate-200'}`}>
+                      <div className="flex items-center gap-2 group cursor-pointer" onClick={handleExportProfile}>
+                          <div className={`w-10 h-10 rounded-full border shadow-sm flex items-center justify-center transition-all hover:scale-110 ${isDarkMode ? 'bg-slate-800 text-slate-100 border-slate-700' : 'bg-white text-slate-600 border-slate-200'}`}>
                             <Save size={18} />
                           </div>
-                          <span className={`text-[10px] font-black px-2 py-1 rounded-lg border border-border bg-surface/90 backdrop-blur-sm shadow-sm whitespace-nowrap`}>
-                            저장 (준비 중)
+                          <span className={`text-[10px] font-black px-2 py-1 rounded-lg border border-border bg-surface/90 backdrop-blur-sm shadow-sm transition-opacity ${isSettingsOpen ? 'opacity-100' : 'opacity-0'} whitespace-nowrap`}>
+                            저장하기
                           </span>
                       </div>
 
@@ -835,7 +853,6 @@ export const TimerScreen: React.FC<TimerScreenProps> = ({
                   </div>
                 ) : (
                   <div className="relative">
-                    {/* SVG Cooldown Staring Animation with Gradient and No Gray Background */}
                     {cooldownRemaining > 0 && (
                       <div className="absolute -inset-3 pointer-events-none z-10">
                         <svg className="w-full h-full" viewBox="0 0 100 100" preserveAspectRatio="none">
@@ -866,14 +883,12 @@ export const TimerScreen: React.FC<TimerScreenProps> = ({
                         <img src={profile.imageSrc || ''} alt={profile.name} className="w-full h-full object-cover" />
                     </div>
 
-                    {/* Staring Status Badge */}
                     {cooldownRemaining > 0 && (
                         <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 bg-primary/90 text-white text-[9px] font-black px-3 py-1 rounded-full whitespace-nowrap shadow-lg backdrop-blur-sm z-20 border border-white/20 animate-pulse">
                             가만히 바라보는 중...
                         </div>
                     )}
 
-                    {/* API Key Update Toast / Popup */}
                     {isApiKeyInputVisible && (
                        <div className="absolute -top-32 left-1/2 transform -translate-x-1/2 w-[340px] md:w-[380px] z-[60] animate-in fade-in slide-in-from-bottom-4 duration-300">
                           <div className={`p-5 rounded-[24px] shadow-2xl border backdrop-blur-xl relative space-y-3 ${isDarkMode ? 'bg-slate-900/90 border-white/10 shadow-black/40' : 'bg-surface/95 border-border shadow-slate-200/50'}`}>
