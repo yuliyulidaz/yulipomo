@@ -5,6 +5,7 @@ import { CharacterProfile } from '../types';
 import { GoogleGenAI, HarmCategory, HarmBlockThreshold, Type } from "@google/genai";
 import { ObservationDiary } from './ObservationDiary';
 import { OnboardingGuide } from './OnboardingGuide';
+import { ApiKeyExpiryModal } from './ApiKeyExpiryModal';
 
 interface TimerScreenProps {
   profile: CharacterProfile;
@@ -104,7 +105,6 @@ export const TimerScreen: React.FC<TimerScreenProps> = ({
   const [clicks, setClicks] = useState(profile.cycleStats?.clicks ?? 0);
   
   const [showReport, setShowReport] = useState(false);
-  const [isGeneratingReport, setIsGeneratingReport] = useState(false);
 
   const [badgeClicks, setBadgeClicks] = useState(0);
   const [showAdminAuth, setShowAdminAuth] = useState(false);
@@ -112,13 +112,11 @@ export const TimerScreen: React.FC<TimerScreenProps> = ({
   const [isAdminMode, setIsAdminMode] = useState(false);
   const [showAdminPanel, setShowAdminPanel] = useState(false);
 
-  // 롱 프레스 초기화 관련 상태
   const [isResetHolding, setIsResetHolding] = useState(false);
   const [resetHoldProgress, setResetHoldProgress] = useState(0);
   const resetHoldTimerRef = useRef<any>(null);
   const resetStartTimeRef = useRef<number | null>(null);
 
-  // 온보딩 가이드 관련 상태 및 Ref
   const [showOnboarding, setShowOnboarding] = useState(false);
   const settingsBtnRef = useRef<HTMLDivElement>(null);
   const characterBoxRef = useRef<HTMLDivElement>(null);
@@ -159,13 +157,11 @@ export const TimerScreen: React.FC<TimerScreenProps> = ({
   const [isDarkMode, setIsDarkMode] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   
-  const [isApiKeyPopupVisible, setIsApiKeyPopupVisible] = useState(false);
-  const [popupType, setPopupType] = useState<'EXPIRED' | 'MANUAL'>('MANUAL');
+  // API 키 모달 관련 상태
+  const [isApiKeyModalOpen, setIsApiKeyModalOpen] = useState(false);
+  const [apiKeyPopupType, setApiKeyPopupType] = useState<'EXPIRED' | 'MANUAL'>('MANUAL');
   const [pendingExpiryAlert, setPendingExpiryAlert] = useState(false);
   
-  const [tempApiKey, setTempApiKey] = useState('');
-  const [apiKeyError, setApiKeyError] = useState<string | null>(null);
-  const [isValidating, setIsValidating] = useState(false);
   const [cooldownRemaining, setCooldownRemaining] = useState(0);
 
   const cooldownIntervalRef = useRef<any>(null);
@@ -199,18 +195,17 @@ export const TimerScreen: React.FC<TimerScreenProps> = ({
   }, [timeLeft, isActive, isBreak, sessionInCycle, distractions, clicks, onUpdateProfile]);
 
   useEffect(() => {
-    if (message && !isApiKeyPopupVisible) {
+    if (message && !isApiKeyModalOpen) {
       const timer = window.setTimeout(() => { setMessage(""); }, 12000);
       return () => window.clearTimeout(timer);
     }
-  }, [message, isApiKeyPopupVisible]);
+  }, [message, isApiKeyModalOpen]);
 
+  // 휴식 시간에 들어갔을 때, 대기 중인 API 만료 알림이 있다면 즉시 띄움
   useEffect(() => {
     if (isBreak && pendingExpiryAlert) {
-      setPopupType('EXPIRED');
-      setTempApiKey('');
-      setApiKeyError(null);
-      setIsApiKeyPopupVisible(true);
+      setApiKeyPopupType('EXPIRED');
+      setIsApiKeyModalOpen(true);
       setPendingExpiryAlert(false);
     }
   }, [isBreak, pendingExpiryAlert]);
@@ -235,7 +230,8 @@ export const TimerScreen: React.FC<TimerScreenProps> = ({
         onUpdateProfile({ dialogueCache: { ...currentProfile.dialogueCache, [category]: [...currentProfile.dialogueCache[category], ...newLines] } });
       }
     } catch (e: any) {
-        if (e.message?.includes('API_KEY_INVALID') || e.status === 401 || e.status === 403) {
+        // API 오류 감지 로직 강화
+        if (e.message?.includes('API_KEY_INVALID') || e.status === 401 || e.status === 403 || e.message?.includes('INVALID_ARGUMENT')) {
             setPendingExpiryAlert(true);
         }
     } finally { isRefillingRef.current[categoryKey] = false; }
@@ -273,50 +269,6 @@ export const TimerScreen: React.FC<TimerScreenProps> = ({
       addToRefillQueue(category);
     });
   }, [addToRefillQueue]);
-
-  const validateAndApplyKey = async (key: string) => {
-    if (!key || key.length < 20) {
-        setApiKeyError("유효한 키가 아닙니다. 다른 키를 입력해 주세요.");
-        return;
-    }
-    setIsValidating(true);
-    setApiKeyError(null);
-    try {
-        const ai = new GoogleGenAI({ apiKey: key });
-        const result = await ai.models.generateContent({ 
-            model: 'gemini-3-flash-preview', 
-            contents: 'Hello',
-            config: { maxOutputTokens: 1 }
-        });
-        if (result) {
-            onUpdateProfile({ apiKey: key });
-            setIsApiKeyPopupVisible(false);
-            setMessage("API 키가 성공적으로 적용되었습니다.");
-        }
-    } catch (e) {
-        setApiKeyError("유효한 키가 아닙니다. 다른 키를 입력해 주세요.");
-    } finally {
-        setIsValidating(false);
-    }
-  };
-
-  useEffect(() => {
-    if (tempApiKey && tempApiKey !== profile.apiKey) {
-        const timer = setTimeout(() => {
-            validateAndApplyKey(tempApiKey);
-        }, 1000);
-        return () => clearTimeout(timer);
-    }
-  }, [tempApiKey]);
-
-  const handlePasteKey = async () => {
-    try {
-        const text = await navigator.clipboard.readText();
-        const cleanText = text.trim();
-        setTempApiKey(cleanText);
-        validateAndApplyKey(cleanText);
-    } catch (err) {}
-  };
 
   const triggerAIResponse = useCallback((type: 'START' | 'FINISH' | 'DISTRACTION' | 'IDLE' | 'CLICK' | 'PAUSE' | 'READY' | 'RETURN' | 'CYCLE_LONG' | 'CYCLE_SHORT') => {
     const cacheKeyMap: Record<string, keyof typeof profile.dialogueCache> = {
@@ -529,10 +481,15 @@ export const TimerScreen: React.FC<TimerScreenProps> = ({
     setMessage("벌써 쉬는 시간 끝내게? 열정이 대단하네... 계속하자!");
   };
 
+  const handleManualApiKeyOpen = () => {
+    setApiKeyPopupType('MANUAL');
+    setIsApiKeyModalOpen(true);
+    setIsSettingsOpen(false);
+  };
+
   return (
     <div className={`relative w-full h-screen flex transition-colors duration-700 overflow-hidden font-sans select-none ${isDarkMode ? 'bg-[#0B0E14] text-slate-100' : 'bg-background text-text-primary'}`}>
       
-      {/* 온보딩 레이어 컴포넌트 호출 */}
       {showOnboarding && (
         <OnboardingGuide 
           isDarkMode={isDarkMode} 
@@ -633,7 +590,6 @@ export const TimerScreen: React.FC<TimerScreenProps> = ({
         </div>
       )}
 
-      {/* 비밀 관찰 일지 통합 */}
       {showReport && (
         <ObservationDiary 
           profile={profile} 
@@ -668,7 +624,17 @@ export const TimerScreen: React.FC<TimerScreenProps> = ({
         </div>
       )}
 
-      {(isSettingsOpen || isApiKeyPopupVisible) && <div className="fixed inset-0 z-30" onClick={() => { setIsSettingsOpen(false); setIsApiKeyPopupVisible(false); }} />}
+      {/* 별도 컴포넌트로 분리된 API 키 모달 */}
+      <ApiKeyExpiryModal 
+        isOpen={isApiKeyModalOpen}
+        onClose={() => setIsApiKeyModalOpen(false)}
+        type={apiKeyPopupType}
+        currentApiKey={profile.apiKey || ''}
+        isDarkMode={isDarkMode}
+        onUpdateKey={(newKey) => onUpdateProfile({ apiKey: newKey })}
+      />
+
+      {(isSettingsOpen || isApiKeyModalOpen) && <div className="fixed inset-0 z-30" onClick={() => { setIsSettingsOpen(false); setIsApiKeyModalOpen(false); }} />}
 
       <main className="w-full h-full flex flex-col items-center justify-center relative p-4 md:p-8">
           <div className="mb-[-1px] z-20 animate-in slide-in-from-top-4 duration-700">
@@ -684,7 +650,7 @@ export const TimerScreen: React.FC<TimerScreenProps> = ({
             </div>
           </div>
 
-          <div className={`w-full max-md backdrop-blur-xl border p-6 md:p-8 rounded-[40px] shadow-[0_20px_50px_rgba(74,95,122,0.1)] flex flex-col items-center gap-6 md:gap-8 animate-in fade-in zoom-in duration-500 relative transition-colors duration-700 ${isDarkMode ? 'bg-[#161B22]/90 border-[#30363D]' : 'bg-surface/90 border-border'} ${isApiKeyPopupVisible || isSettingsOpen ? 'overflow-visible z-40' : 'overflow-hidden'}`}>
+          <div className={`w-full max-md backdrop-blur-xl border p-6 md:p-8 rounded-[40px] shadow-[0_20px_50px_rgba(74,95,122,0.1)] flex flex-col items-center gap-6 md:gap-8 animate-in fade-in zoom-in duration-500 relative transition-colors duration-700 ${isDarkMode ? 'bg-[#161B22]/90 border-[#30363D]' : 'bg-surface/90 border-border'} ${isApiKeyModalOpen || isSettingsOpen ? 'overflow-visible z-40' : 'overflow-hidden'}`}>
             <div className={`absolute top-2.5 inset-x-8 h-1.5 z-10 ${isDarkMode ? 'bg-slate-700/20' : 'bg-border/20'} rounded-full overflow-hidden`}>
               <div className="h-full bg-gradient-to-r from-primary to-accent transition-all duration-1000 ease-out rounded-full" style={{ width: `${progressPercent}%` }} />
             </div>
@@ -695,16 +661,16 @@ export const TimerScreen: React.FC<TimerScreenProps> = ({
                   <div className={`absolute top-full left-0 mt-3.5 flex flex-col gap-3.5 transition-all duration-500 origin-top z-50 ${isSettingsOpen ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-4 pointer-events-none'}`}>
                       <div className="flex items-center gap-3 cursor-pointer" onClick={(e) => { e.stopPropagation(); setIsDarkMode(!isDarkMode); }}><div className={`w-12 h-12 rounded-full border shadow-sm flex items-center justify-center transition-all hover:scale-110 ${isDarkMode ? 'bg-slate-800 text-yellow-400 border-slate-700' : 'bg-white border-slate-200'}`}>{isDarkMode ? <Sun size={20} /> : <Moon size={20} />}</div><span className={`text-[10px] font-black px-2.5 py-1.5 rounded-lg border shadow-sm whitespace-nowrap min-w-[60px] text-center ${isDarkMode ? 'bg-slate-800 border-slate-700 text-slate-100' : 'bg-surface/90 border-border'}`}>{isDarkMode ? '라이트' : '다크'}</span></div>
                       <div className="flex items-center gap-3 cursor-pointer" onClick={(e) => { e.stopPropagation(); handleExportProfile(); }}><div className={`w-12 h-12 rounded-full border shadow-sm flex items-center justify-center transition-all hover:scale-110 ${isDarkMode ? 'bg-slate-800 text-slate-100 border-slate-700' : 'bg-white border-slate-200'}`}><Save size={20} /></div><span className={`text-[10px] font-black px-2.5 py-1.5 rounded-lg border shadow-sm whitespace-nowrap min-w-[60px] text-center ${isDarkMode ? 'bg-slate-800 border-slate-700 text-slate-100' : 'bg-surface/90 border-border'}`}>저장</span></div>
-                      <div className="flex items-center gap-3 cursor-pointer" onClick={(e) => { e.stopPropagation(); setPopupType('MANUAL'); setTempApiKey(profile.apiKey || ''); setApiKeyError(null); setIsApiKeyPopupVisible(true); setIsSettingsOpen(false); }}><div className={`w-12 h-12 rounded-full border shadow-sm flex items-center justify-center transition-all hover:scale-110 ${isDarkMode ? 'bg-slate-800 text-slate-400 border-slate-700 hover:bg-slate-700' : 'bg-white border-slate-200'}`}><Key size={20} /></div><span className={`text-[10px] font-black px-2.5 py-1.5 rounded-lg border shadow-sm bg-slate-800 border-slate-700 text-slate-100 whitespace-nowrap min-w-[60px] text-center`}>API키</span></div>
+                      <div className="flex items-center gap-3 cursor-pointer" onClick={(e) => { e.stopPropagation(); handleManualApiKeyOpen(); }}><div className={`w-12 h-12 rounded-full border shadow-sm flex items-center justify-center transition-all hover:scale-110 ${isDarkMode ? 'bg-slate-800 text-slate-400 border-slate-700 hover:bg-slate-700' : 'bg-white border-slate-200'}`}><Key size={20} /></div><span className={`text-[10px] font-black px-2.5 py-1.5 rounded-lg border shadow-sm bg-slate-800 border-slate-700 text-slate-100 whitespace-nowrap min-w-[60px] text-center`}>API키</span></div>
                       {isAdminMode && (
                         <div className="flex items-center gap-3 cursor-pointer" onClick={(e) => { e.stopPropagation(); setShowAdminPanel(!showAdminPanel); setIsSettingsOpen(false); }}><div className={`w-12 h-12 rounded-full border shadow-sm flex items-center justify-center transition-all hover:scale-110 bg-primary text-white border-primary-dark`}><Terminal size={20} /></div><span className={`text-[10px] font-black px-2.5 py-1.5 rounded-lg border shadow-sm bg-primary border-primary-dark text-white whitespace-nowrap min-w-[60px] text-center`}>패널</span></div>
                       )}
                   </div>
                 </div>
-                <button onClick={onReset} className={`p-2.5 rounded-full transition-all border border-transparent ${isDarkMode ? 'text-slate-400 hover:bg-rose-900/30 hover:text-rose-400' : 'text-text-secondary hover:bg-rose-50 hover:text-rose-500'}`} title="초기화"><X size={20} /></button>
+                <button onClick={onReset} className={`p-2.5 rounded-full transition-all border border-transparent ${isDarkMode ? text-slate-400 hover:bg-rose-900/30 hover:text-rose-400 : text-text-secondary hover:bg-rose-50 hover:text-rose-500}`} title="초기화"><X size={20} /></button>
             </div>
 
-            <div className={`relative mt-9 md:mt-11 min-h-[180px] md:min-h-[220px] flex items-center justify-center w-full transition-all ${isApiKeyPopupVisible ? 'z-50' : 'z-20'}`}>
+            <div className={`relative mt-9 md:mt-11 min-h-[180px] md:min-h-[220px] flex items-center justify-center w-full transition-all ${isApiKeyModalOpen ? 'z-50' : 'z-20'}`}>
                 <div className="relative">
                   {isBreak ? (
                     <div className="flex flex-col items-center gap-4 animate-pulse text-primary-light/40 mb-4">
@@ -732,55 +698,7 @@ export const TimerScreen: React.FC<TimerScreenProps> = ({
                     </>
                   )}
 
-                  {isApiKeyPopupVisible && (
-                     <div className="absolute -top-32 left-1/2 transform -translate-x-1/2 w-[340px] md:w-[380px] z-50 animate-in fade-in zoom-in duration-300" onClick={(e) => e.stopPropagation()}>
-                        <div className={`p-7 rounded-[2rem] shadow-[0_25px_60px_-15px_rgba(0,0,0,0.3)] border backdrop-blur-2xl space-y-6 ${isDarkMode ? 'bg-slate-900/95 border-white/10' : 'bg-white/95 border-slate-200'}`}>
-                           <div className="flex justify-between items-start gap-4">
-                                <div className="space-y-1">
-                                    <h3 className={`text-sm font-black leading-tight ${isDarkMode ? 'text-slate-100' : 'text-slate-800'}`}>
-                                        {popupType === 'EXPIRED' ? 'API 키가 만료 되었습니다.\n새로운 API 키를 입력해 주세요.' : 'API 키를 새로 입력하시겠어요?'}
-                                    </h3>
-                                </div>
-                                <button onClick={() => setIsApiKeyPopupVisible(false)} className={`p-1 rounded-full transition-colors ${isDarkMode ? 'hover:bg-white/10 text-white/40' : 'hover:bg-slate-100 text-slate-400'}`}><X size={18} /></button>
-                           </div>
-
-                           <div className="flex gap-2">
-                                <a href="https://aistudio.google.com/app/apikey" target="_blank" rel="noopener noreferrer" className={`flex-1 h-10 flex items-center justify-center gap-1.5 rounded-xl border text-[10px] font-black transition-all ${isDarkMode ? 'bg-slate-800/50 border-white/5 text-slate-300 hover:bg-slate-800' : 'bg-slate-50 border-slate-200 text-slate-600 hover:bg-slate-100'}`}>
-                                    키 발급받기 <ExternalLink size={12} />
-                                </a>
-                                <button onClick={handlePasteKey} className="flex-1 h-10 bg-primary hover:bg-primary-light text-white text-[10px] font-black rounded-xl shadow-lg shadow-primary/20 flex items-center justify-center gap-1.5 transition-all active:scale-95">
-                                    복사해 온 키 붙여넣기 <ClipboardPaste size={12} />
-                                </button>
-                           </div>
-
-                           <div className="space-y-2">
-                                <div className="relative group">
-                                    <input 
-                                        type="password" 
-                                        value={tempApiKey} 
-                                        onChange={(e) => setTempApiKey(e.target.value)} 
-                                        placeholder="API 키를 입력하세요" 
-                                        className={`w-full h-12 px-5 pr-12 rounded-xl border-2 outline-none font-mono text-[13px] transition-all ${isDarkMode ? 'bg-black/40 border-white/5 focus:border-primary text-slate-100' : 'bg-slate-50 border-slate-100 focus:border-primary text-slate-800'}`} 
-                                    />
-                                    {tempApiKey && (
-                                        <button onClick={() => setTempApiKey('')} className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-primary transition-colors"><RotateCcw size={14} /></button>
-                                    )}
-                                </div>
-                                {apiKeyError && <p className="text-[10px] text-rose-500 font-bold px-1 animate-in fade-in slide-in-from-top-1">{apiKeyError}</p>}
-                                {isValidating && <div className="flex items-center gap-2 px-1"><Loader2 size={12} className="animate-spin text-primary" /><p className="text-[10px] text-primary font-bold animate-pulse">키 유효성 검사 중...</p></div>}
-                           </div>
-
-                           {popupType === 'EXPIRED' && (
-                               <div className={`space-y-1 pt-2 border-t ${isDarkMode ? 'border-white/5' : 'border-slate-100'}`}>
-                                    <p className={`text-[9px] font-bold ${isDarkMode ? 'text-slate-500' : 'text-slate-400'}`}>*지금 당장 키를 입력하지 않아도 계속 사용할 수 있어요.</p>
-                                    <p className={`text-[9px] font-bold ${isDarkMode ? 'text-slate-500' : 'text-slate-400'}`}>*설정에서 API키 입력 메뉴로 다시 키를 설정할 수 있어요.</p>
-                               </div>
-                           )}
-                        </div>
-                     </div>
-                  )}
-                  
-                  {message && !isApiKeyPopupVisible && (
+                  {message && !isApiKeyModalOpen && (
                     <div className="absolute -top-20 left-1/2 transform -translate-x-1/2 w-64 text-center z-20 animate-in fade-in slide-in-from-bottom-2 pointer-events-none">
                       <div className={`text-xs md:text-sm font-medium px-6 py-3 rounded-[20px] shadow-2xl backdrop-blur-lg border ${isDarkMode ? 'bg-slate-900/80 border-white/10 text-slate-100' : 'bg-surface/80 border-white/50 text-text-primary'}`}>
                         "{message}"
