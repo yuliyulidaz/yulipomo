@@ -1,6 +1,7 @@
 
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { Play, Pause, RotateCcw, X, Heart, Timer as TimerIcon, Coffee, Bed, CheckCircle2, Moon, Sun, Settings, Save, Key, ExternalLink, ClipboardPaste, ClipboardCheck, Zap, MousePointer2, Ghost, Download, Loader2, FileSearch, Terminal, FastForward, SlidersHorizontal } from 'lucide-react';
+// Added ArrowRight to the imports from lucide-react to fix the "Cannot find name 'ArrowRight'" error.
+import { Play, Pause, RotateCcw, X, Heart, Timer as TimerIcon, Coffee, Bed, CheckCircle2, Moon, Sun, Settings, Save, Key, ExternalLink, ClipboardPaste, ClipboardCheck, Zap, MousePointer2, Ghost, Download, Loader2, FileSearch, Terminal, FastForward, SlidersHorizontal, User as UserIcon, Calendar, BookOpen, ArrowRight } from 'lucide-react';
 import { CharacterProfile } from '../types';
 import { GoogleGenAI, HarmCategory, HarmBlockThreshold, Type } from "@google/genai";
 
@@ -355,18 +356,26 @@ export const TimerScreen: React.FC<TimerScreenProps> = ({
     setIsGeneratingReport(true);
     try {
       const ai = new GoogleGenAI({ apiKey: profile.apiKey || process.env.API_KEY });
-      const mood = profile.level <= 3 ? "Cold" : profile.level <= 7 ? "Warm" : "Obsessive";
+      const mood = profile.level <= 3 ? "Cold and Distant" : profile.level <= 7 ? "Warm and Observant" : "Deeply Affectionate and Attentive";
+      const taskContext = profile.todayTask ? `User's task today was: "${profile.todayTask}".` : "User did not specify a specific task.";
       const prompt = `Roleplay as ${profile.name}. User: ${profile.honorific}. Personality: ${profile.personality.join(',')}. Mood: ${mood}.
         Situation: The user just finished 4 pomodoro sessions (100min focus).
         Stats: ${distractions} distractions (tab switches), ${clicks} clicks (interactions).
-        Task: Write a secret observation report about the user's behavior.
+        Streak: We have worked together for ${profile.streak} days.
+        ${taskContext}
+        Task: Write a secret "Observation Note" about the user. 
+        - Grade should reflect focus (A+ for 0 distractions, B if distractions > 3, etc.)
+        - typeTitle: A creative nickname based on their behavior (e.g., 'The Relentless Academic', 'Click-Happy Distractee').
+        - analysis: Narrate your observation in character. Mention the distraction/click count naturally. IF a task was specified, comment on how they seemed to handle it.
+        - comment: A closing emotional sentence.
+        - stamp: A one-word summary stamp (EXCELLENT, LOVELY, RETRY, etc.)
         Return JSON ONLY:
         {
           "grade": "S, A+, B, C etc.",
-          "typeTitle": "Catchy title like 'The Silent Grinder' or 'Distraction Expert'",
-          "analysis": "Briefly analyze their stats in character",
-          "comment": "Final heartfelt or strict comment for the cycle",
-          "stamp": "One word for the approval stamp (e.g. APPROVED, PERFECT, FAIL)"
+          "typeTitle": "string",
+          "analysis": "string in Korean",
+          "comment": "string in Korean",
+          "stamp": "string"
         }`;
 
       const response = await ai.models.generateContent({
@@ -381,8 +390,8 @@ export const TimerScreen: React.FC<TimerScreenProps> = ({
       setReportData({
         grade: distractions === 0 ? "S" : "A",
         typeTitle: distractions === 0 ? "완벽한 몰입가" : "성실한 노력파",
-        analysis: `${clicks}번이나 나를 찾으며 열심히 집중하셨네요.`,
-        comment: "고생 많았어요. 잠시 쉬어가는 건 어떨까요?",
+        analysis: `${clicks}번이나 나를 찾으며 열심히 집중하는 모습, 다 지켜봤어. ${profile.todayTask ? `'${profile.todayTask}'에 꽤나 진심인 것 같던데.` : ''}`,
+        comment: "벌써 우리 함께한 지 며칠째네. 너의 노력이 헛되지 않게 내가 계속 곁에 있을게.",
         stamp: "PASS"
       });
     } finally {
@@ -583,73 +592,121 @@ export const TimerScreen: React.FC<TimerScreenProps> = ({
       )}
 
       {showReport && (
-        <div className="fixed inset-0 z-[110] flex items-center justify-center p-4 bg-primary-dark/60 backdrop-blur-xl animate-in fade-in duration-500">
-          <div className="w-full max-w-lg bg-[#FAF9F6] text-[#2D3436] rounded-[2rem] shadow-2xl overflow-hidden relative border-8 border-white/50 transform animate-in zoom-in-95 duration-500">
-            <div className="bg-[#E9E4D4] px-8 py-4 border-b-2 border-dashed border-[#B2A88E] flex justify-between items-center">
-              <div className="flex items-center gap-2">
-                <div className="bg-rose-500 text-white text-[9px] font-black px-2 py-0.5 rounded tracking-tighter">TOP SECRET</div>
-                <h3 className="font-serif italic font-bold text-lg text-[#5D5747]">Observation Log</h3>
+        <div className="fixed inset-0 z-[110] flex items-center justify-center p-4 bg-primary-dark/70 backdrop-blur-xl animate-in fade-in duration-500">
+          <div className="w-full max-w-lg bg-[#FAF9F6] text-[#2D3436] rounded-lg shadow-2xl overflow-hidden relative border-[12px] border-white/80 transform animate-in zoom-in-95 duration-500 flex flex-col h-[85vh]">
+            <div className="bg-[#E9E4D4]/50 px-8 py-5 border-b-2 border-[#D1CAB0] flex justify-between items-center relative overflow-hidden">
+              <div className="absolute top-0 left-0 w-full h-full opacity-10 pointer-events-none bg-[url('https://www.transparenttextures.com/patterns/pinstriped-suit.png')]"></div>
+              <div className="flex flex-col">
+                <div className="flex items-center gap-2 mb-1">
+                  <div className="bg-[#5D5747] text-[#E9E4D4] text-[8px] font-black px-1.5 py-0.5 rounded tracking-widest uppercase">Secret Log</div>
+                  <h3 className="font-serif italic font-bold text-xl text-[#5D5747] tracking-tight">Observation Note</h3>
+                </div>
+                <div className="flex items-center gap-1.5 text-[10px] font-bold text-[#8B836C]">
+                  <Calendar size={12} />
+                  <span>Together for {profile.streak} Days</span>
+                </div>
               </div>
-              <span className="text-[10px] font-black text-[#8B836C] uppercase tracking-widest">{new Date().toLocaleDateString()}</span>
+              <div className="flex flex-col items-end">
+                <span className="text-[10px] font-black text-[#8B836C] uppercase tracking-widest">{new Date().toLocaleDateString()}</span>
+                <span className="text-[9px] font-bold text-primary italic">Affinity Lv.{profile.level}</span>
+              </div>
             </div>
 
-            <div className="p-8 space-y-8 min-h-[400px] flex flex-col">
+            <div className="flex-1 overflow-y-auto p-8 space-y-8 bg-[#FAF9F6] bg-[url('https://www.transparenttextures.com/patterns/paper-fibers.png')] relative">
               {isGeneratingReport ? (
-                <div className="flex-1 flex flex-col items-center justify-center gap-4 text-[#8B836C]">
+                <div className="h-full flex flex-col items-center justify-center gap-4 text-[#8B836C]">
                   <Loader2 className="animate-spin" size={40} />
-                  <p className="font-bold text-sm animate-pulse">최애가 당신을 분석하는 중...</p>
+                  <p className="font-bold text-sm animate-pulse tracking-tight">{profile.name}이(가) 당신의 기록을 정리하는 중...</p>
                 </div>
               ) : reportData ? (
-                <>
-                  <div className="flex justify-between items-start">
-                    <div className="space-y-1">
-                      <p className="text-[10px] font-black text-[#8B836C] uppercase">Subject Name</p>
-                      <h4 className="text-2xl font-bold font-serif">{profile.honorific || profile.userName}</h4>
+                <div className="animate-in fade-in slide-in-from-bottom-4 duration-1000 space-y-8">
+                  <div className="flex justify-between items-start gap-6">
+                    <div className="space-y-4 flex-1">
+                      <div className="space-y-1">
+                        <p className="text-[9px] font-black text-[#8B836C] uppercase tracking-tighter">Subject of Observation</p>
+                        <h4 className="text-3xl font-bold font-serif border-b-2 border-[#D1CAB0] pb-1 inline-block min-w-[120px]">{profile.honorific || profile.userName}</h4>
+                      </div>
+                      
+                      {profile.todayTask && (
+                        <div className="space-y-1">
+                          <p className="text-[9px] font-black text-[#8B836C] uppercase tracking-tighter">Current Assignment</p>
+                          <div className="flex items-center gap-2 text-[#4A4434] font-bold text-sm bg-[#E9E4D4]/30 p-2 rounded-md border border-[#D1CAB0]/40">
+                             <BookOpen size={14} className="text-[#8B836C]" />
+                             <span>{profile.todayTask}</span>
+                          </div>
+                        </div>
+                      )}
                     </div>
-                    <div className="text-right">
-                      <p className="text-[10px] font-black text-[#8B836C] uppercase tracking-widest">Focus Grade</p>
-                      <div className="text-5xl font-black text-primary italic leading-none">{reportData.grade}</div>
+                    
+                    <div className="w-24 h-24 md:w-32 md:h-32 bg-white p-1.5 shadow-md border border-[#D1CAB0] rotate-2 flex-shrink-0 group relative">
+                       <img src={profile.imageSrc || ''} className="w-full h-full object-cover grayscale-[0.3] group-hover:grayscale-0 transition-all duration-700" alt="Passport" />
+                       <div className="absolute inset-0 bg-primary/5 pointer-events-none"></div>
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-3 gap-4 py-4 border-y-2 border-dashed border-[#B2A88E]">
-                    <div className="flex flex-col items-center gap-1.5">
-                      <TimerIcon size={18} className="text-[#8B836C]" />
-                      <span className="text-[9px] font-black uppercase text-[#8B836C]">Focus Time</span>
+                  <div className="grid grid-cols-3 gap-6 py-6 border-y-2 border-dashed border-[#D1CAB0]">
+                    <div className="flex flex-col items-center gap-2">
+                      <div className="w-10 h-10 rounded-full bg-[#E9E4D4] flex items-center justify-center text-[#5D5747] mb-1 shadow-inner"><TimerIcon size={20} /></div>
+                      <span className="text-[9px] font-black uppercase text-[#8B836C] tracking-widest">Focus</span>
                       <span className="font-bold text-sm">100:00</span>
                     </div>
-                    <div className="flex flex-col items-center gap-1.5">
-                      <Ghost size={18} className="text-[#8B836C]" />
-                      <span className="text-[9px] font-black uppercase text-[#8B836C]">Distractions</span>
-                      <span className="font-bold text-sm text-rose-500">{distractions}회</span>
+                    <div className="flex flex-col items-center gap-2">
+                      <div className="w-10 h-10 rounded-full bg-rose-50 flex items-center justify-center text-rose-400 mb-1 shadow-inner"><Ghost size={20} /></div>
+                      <span className="text-[9px] font-black uppercase text-[#8B836C] tracking-widest">Wander</span>
+                      <span className="font-bold text-sm text-rose-500">{distractions} Times</span>
                     </div>
-                    <div className="flex flex-col items-center gap-1.5">
-                      <MousePointer2 size={18} className="text-[#8B836C]" />
-                      <span className="text-[9px] font-black uppercase text-[#8B836C]">Interactions</span>
-                      <span className="font-bold text-sm text-primary">{clicks}회</span>
-                    </div>
-                  </div>
-
-                  <div className="space-y-4 flex-1">
-                    <div className="space-y-1">
-                      <span className="inline-block bg-[#E9E4D4] px-2 py-0.5 rounded text-[10px] font-bold text-[#5D5747]">Focus Type: {reportData.typeTitle}</span>
-                    </div>
-                    <div className="relative p-6 bg-[#EFEDE3] rounded-2xl border-l-4 border-[#B2A88E] italic text-sm leading-relaxed text-[#4A4434]">
-                      <p className="mb-4">"{reportData.analysis}"</p>
-                      <p className="font-bold text-[#2D3436]">"{reportData.comment}"</p>
-                      <div className="absolute -bottom-2 -right-2 transform rotate-12 bg-white/40 p-1 rounded-full"><div className="w-16 h-16 rounded-full border-4 border-rose-500/30 flex items-center justify-center text-rose-500/40 font-black text-[10px] select-none">{reportData.stamp}</div></div>
+                    <div className="flex flex-col items-center gap-2">
+                      <div className="w-10 h-10 rounded-full bg-primary/5 flex items-center justify-center text-primary mb-1 shadow-inner"><MousePointer2 size={20} /></div>
+                      <span className="text-[9px] font-black uppercase text-[#8B836C] tracking-widest">Connect</span>
+                      <span className="font-bold text-sm text-primary">{clicks} Times</span>
                     </div>
                   </div>
 
-                  <div className="flex gap-3 pt-4">
-                    <button onClick={closeReportAndShowChoice} className="flex-1 py-4 bg-[#2D3436] text-white rounded-2xl font-black text-sm hover:bg-black transition-all active:scale-95 shadow-xl">보고서 닫기 및 휴식</button>
+                  <div className="space-y-6">
+                    <div className="flex justify-between items-end">
+                       <div className="space-y-1">
+                         <span className="inline-block bg-[#5D5747] px-2.5 py-0.5 rounded text-[10px] font-bold text-[#E9E4D4] uppercase tracking-widest">Focus Analysis</span>
+                         <h5 className="text-lg font-black text-[#2D3436] tracking-tight">{reportData.typeTitle}</h5>
+                       </div>
+                       <div className="text-right">
+                         <p className="text-[9px] font-black text-[#8B836C] uppercase tracking-widest mb-1">Efficiency Rating</p>
+                         <div className="text-5xl font-black text-primary italic leading-none select-none drop-shadow-sm">{reportData.grade}</div>
+                       </div>
+                    </div>
+                    
+                    <div className="relative p-7 bg-[#E9E4D4]/20 rounded-xl border border-[#D1CAB0] italic text-[15px] leading-relaxed text-[#4A4434] shadow-inner font-serif">
+                      <p className="mb-6 whitespace-pre-wrap leading-relaxed">"{reportData.analysis}"</p>
+                      <p className="font-bold text-[#2D3436] border-t border-[#D1CAB0] pt-4">"{reportData.comment}"</p>
+                      
+                      <div className="absolute -bottom-4 -right-4 transform -rotate-12 select-none pointer-events-none opacity-60">
+                        <div className="w-24 h-24 rounded-full border-4 border-rose-500 flex items-center justify-center">
+                           <div className="text-rose-500 font-black text-xs text-center leading-tight uppercase tracking-tighter">
+                             {reportData.stamp}<br/>STAMP
+                           </div>
+                        </div>
+                      </div>
+                    </div>
                   </div>
-                </>
+                </div>
               ) : null}
             </div>
 
-            <div className="bg-[#E9E4D4] px-8 py-2 flex justify-center border-t-2 border-dashed border-[#B2A88E]">
-              <p className="text-[9px] font-bold text-[#8B836C]">OBSERVER: {profile.name} • CONFIDENTIAL RECORD</p>
+            <div className="bg-[#E9E4D4] px-8 py-5 flex items-center justify-between border-t-2 border-[#D1CAB0] z-20">
+              <div className="flex items-center gap-3">
+                 <div className="w-8 h-8 rounded-full border border-[#B2A88E] overflow-hidden bg-white flex-shrink-0">
+                    <img src={profile.imageSrc || ''} className="w-full h-full object-cover" alt="Author" />
+                 </div>
+                 <div className="flex flex-col">
+                   <p className="text-[9px] font-black text-[#8B836C] uppercase">Written by</p>
+                   <p className="text-sm font-black text-[#5D5747] tracking-tight">{profile.name}</p>
+                 </div>
+              </div>
+              <button 
+                onClick={closeReportAndShowChoice} 
+                className="px-6 py-3 bg-[#2D3436] text-white rounded-xl font-black text-xs hover:bg-black transition-all active:scale-95 shadow-lg shadow-black/20 flex items-center gap-2 group"
+              >
+                쪽지 닫기 <ArrowRight size={14} className="group-hover:translate-x-1 transition-transform" />
+              </button>
             </div>
           </div>
         </div>
@@ -704,7 +761,7 @@ export const TimerScreen: React.FC<TimerScreenProps> = ({
                   <div className={`absolute top-full left-0 mt-3.5 flex flex-col gap-3.5 transition-all duration-500 origin-top z-50 ${isSettingsOpen ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-4 pointer-events-none'}`}>
                       <div className="flex items-center gap-3 cursor-pointer" onClick={(e) => { e.stopPropagation(); setIsDarkMode(!isDarkMode); }}><div className={`w-12 h-12 rounded-full border shadow-sm flex items-center justify-center transition-all hover:scale-110 ${isDarkMode ? 'bg-slate-800 text-yellow-400 border-slate-700' : 'bg-white border-slate-200'}`}>{isDarkMode ? <Sun size={20} /> : <Moon size={20} />}</div><span className={`text-[10px] font-black px-2.5 py-1.5 rounded-lg border shadow-sm whitespace-nowrap min-w-[60px] text-center ${isDarkMode ? 'bg-slate-800 border-slate-700 text-slate-100' : 'bg-surface/90 border-border'}`}>{isDarkMode ? '라이트' : '다크'}</span></div>
                       <div className="flex items-center gap-3 cursor-pointer" onClick={(e) => { e.stopPropagation(); handleExportProfile(); }}><div className={`w-12 h-12 rounded-full border shadow-sm flex items-center justify-center transition-all hover:scale-110 ${isDarkMode ? 'bg-slate-800 text-slate-100 border-slate-700' : 'bg-white border-slate-200'}`}><Save size={20} /></div><span className={`text-[10px] font-black px-2.5 py-1.5 rounded-lg border shadow-sm whitespace-nowrap min-w-[60px] text-center ${isDarkMode ? 'bg-slate-800 border-slate-700 text-slate-100' : 'bg-surface/90 border-border'}`}>저장</span></div>
-                      <div className="flex items-center gap-3 cursor-pointer" onClick={(e) => { e.stopPropagation(); setPopupType('MANUAL'); setTempApiKey(profile.apiKey || ''); setApiKeyError(null); setIsApiKeyPopupVisible(true); setIsSettingsOpen(false); }}><div className={`w-12 h-12 rounded-full border shadow-sm flex items-center justify-center transition-all hover:scale-110 ${isDarkMode ? 'bg-slate-800 text-slate-400 border-slate-700' : 'bg-white border-slate-200'}`}><Key size={20} /></div><span className={`text-[10px] font-black px-2.5 py-1.5 rounded-lg border shadow-sm whitespace-nowrap min-w-[60px] text-center ${isDarkMode ? 'bg-slate-800 border-slate-700 text-slate-100' : 'bg-surface/90 border-border'}`}>API키</span></div>
+                      <div className="flex items-center gap-3 cursor-pointer" onClick={(e) => { e.stopPropagation(); setPopupType('MANUAL'); setTempApiKey(profile.apiKey || ''); setApiKeyError(null); setIsApiKeyPopupVisible(true); setIsSettingsOpen(false); }}><div className={`w-12 h-12 rounded-full border shadow-sm flex items-center justify-center transition-all hover:scale-110 ${isDarkMode ? 'bg-slate-800 text-slate-400 border-slate-700 hover:bg-slate-700' : 'bg-white border-slate-200'}`}><Key size={20} /></div><span className={`text-[10px] font-black px-2.5 py-1.5 rounded-lg border shadow-sm whitespace-nowrap min-w-[60px] text-center ${isDarkMode ? 'bg-slate-800 border-slate-700 text-slate-100' : 'bg-surface/90 border-border'}`}>API키</span></div>
                       {isAdminMode && (
                         <div className="flex items-center gap-3 cursor-pointer" onClick={(e) => { e.stopPropagation(); setShowAdminPanel(!showAdminPanel); setIsSettingsOpen(false); }}><div className={`w-12 h-12 rounded-full border shadow-sm flex items-center justify-center transition-all hover:scale-110 bg-primary text-white border-primary-dark`}><Terminal size={20} /></div><span className={`text-[10px] font-black px-2.5 py-1.5 rounded-lg border shadow-sm bg-primary border-primary-dark text-white whitespace-nowrap min-w-[60px] text-center`}>패널</span></div>
                       )}
