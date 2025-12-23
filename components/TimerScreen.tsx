@@ -642,17 +642,17 @@ export const TimerScreen: React.FC<TimerScreenProps> = ({
             className="absolute z-[310] flex flex-col items-center pointer-events-none transition-all duration-500 ease-in-out"
             style={{ 
               top: onboardingStep === 1 ? spotlight.cy + spotlight.r + 20 : 
-                   onboardingStep === 2 ? spotlight.cy - spotlight.r - 140 :
-                   onboardingStep === 3 ? spotlight.cy - spotlight.r - 180 :
-                   spotlight.cy - spotlight.r - 160,
-              left: Math.max(20, Math.min(window.innerWidth - 300, spotlight.cx - 140))
+                   onboardingStep === 2 ? spotlight.cy - spotlight.r - 180 :
+                   onboardingStep === 3 ? spotlight.cy - spotlight.r - 220 :
+                   spotlight.cy - spotlight.r - 200,
+              left: onboardingStep === 1 ? Math.max(20, spotlight.cx - 50) : Math.max(20, Math.min(window.innerWidth - 300, spotlight.cx - 140))
             }}
           >
             <div className={`w-72 bg-surface p-6 rounded-3xl shadow-2xl pointer-events-auto border border-border animate-in zoom-in-95 duration-300 ${isDarkMode ? 'bg-slate-900 border-white/10' : ''}`}>
                <div className="flex items-center gap-2 mb-3">
                   <div className="bg-primary text-white text-[10px] font-black px-2 py-0.5 rounded-full uppercase tracking-widest">Guide {onboardingStep}/4</div>
                </div>
-               <p className={`text-sm font-bold leading-relaxed mb-6 ${isDarkMode ? 'text-slate-200' : 'text-text-primary'}`}>
+               <p className={`text-sm font-bold leading-relaxed mb-6 whitespace-pre-line ${isDarkMode ? 'text-slate-200' : 'text-text-primary'}`}>
                   {onboardingStep === 1 && "설정: 다크모드, API키 등 설정을 변경할 수 있습니다."}
                   {onboardingStep === 2 && "캐릭터: 최애를 톡톡 눌러서 응원을 받으세요."}
                   {onboardingStep === 3 && "되돌아가기:\n한 번 누르면 현재 세션 초기화,\n길게 누르면 사이클이 통째로 초기화 됩니다."}
@@ -688,7 +688,11 @@ export const TimerScreen: React.FC<TimerScreenProps> = ({
             {/* Arrow decoration */}
             <div 
               className={`w-4 h-4 transform rotate-45 border-t border-l absolute ${isDarkMode ? 'bg-slate-900 border-white/10' : 'bg-surface border-border'} ${onboardingStep === 1 ? '-top-2' : '-bottom-2'}`}
-              style={{ left: '140px', top: onboardingStep === 1 ? '-8px' : 'auto', bottom: onboardingStep !== 1 ? '-8px' : 'auto' }}
+              style={{ 
+                left: onboardingStep === 1 ? '24px' : '140px', 
+                top: onboardingStep === 1 ? '-8px' : 'auto', 
+                bottom: onboardingStep !== 1 ? '-8px' : 'auto' 
+              }}
             ></div>
           </div>
         </div>
