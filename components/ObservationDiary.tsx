@@ -79,7 +79,7 @@ export const ObservationDiary: React.FC<ObservationDiaryProps> = ({ profile, sta
           1. '${profile.name}'의 말투와 성격을 완벽히 유지하세요.
           2. **중요: 유저와의 호감도(${relationshipTitle}, ${intimacyLevel})를 문장에 적극 반영하세요.** 
              - 낮은 레벨이면 관찰자로서의 거리감을 유지하고, 높은 레벨이면 유저를 향한 강한 애착과 세밀한 관찰이 드러나야 합니다.
-          3. 유저를 관찰하며 느낀 감정을 당신 성격이 허락하는 한 아주 감성적이고 서정적으로 서술하세요.
+          3. 유저를 관찰하며 느낀 감정을 아주 감성적이고 서정적으로 서술하세요.
           4. 딴짓 횟수와 클릭 횟수를 단순 숫자로 나열하지 마세요. "잠시 창 밖으로 시선을 던지던 순간"이나 "나를 애타게 찾던 그 손길"처럼 문맥 속에 자연스럽게 녹여내세요.
           5. ${timeContext}와 같은 시간적 배경을 언급하여 현장감을 더하세요.
           6. 한국어로 3~4문장 내외로 작성하세요.
@@ -152,7 +152,13 @@ export const ObservationDiary: React.FC<ObservationDiaryProps> = ({ profile, sta
 
       <div 
         className={`w-full max-w-[340px] aspect-[9/16] bg-[#FAF8F1] rounded-2xl shadow-2xl relative border-8 border-white/90 overflow-hidden transform transition-all duration-700 flex flex-col origin-center ${isScreenshotMode ? 'scale-105' : 'animate-in zoom-in-95'}`}
-        onClick={(e) => isScreenshotMode && e.stopPropagation()}
+        onClick={(e) => {
+          if (isScreenshotMode) {
+            onClose();
+          } else {
+            e.stopPropagation();
+          }
+        }}
       >
         <div className="absolute inset-0 pointer-events-none opacity-30 mix-blend-multiply bg-[url('https://www.transparenttextures.com/patterns/grid-me.png')]"></div>
         
@@ -179,7 +185,7 @@ export const ObservationDiary: React.FC<ObservationDiaryProps> = ({ profile, sta
               </div>
             </div>
 
-            <div className="relative mx-auto mt-1">
+            <div className="relative mx-auto mt-1 flex-shrink-0">
                 <div className="w-32 h-32 bg-white p-2 shadow-lg border border-primary/5 rotate-2 relative">
                     <img src={profile.imageSrc || ''} className="w-full h-full object-cover grayscale-[0.2] sepia-[0.1]" alt="Character" />
                     <div className="absolute inset-0 bg-primary/5 pointer-events-none"></div>
@@ -188,7 +194,7 @@ export const ObservationDiary: React.FC<ObservationDiaryProps> = ({ profile, sta
             </div>
 
             <div className="flex-1 mt-2 flex flex-col overflow-hidden">
-               <div className="flex items-center gap-2 mb-2">
+               <div className="flex items-center gap-2 mb-2 flex-shrink-0">
                   <PenTool size={14} className="text-primary-light" />
                   <span className="text-[10px] font-bold text-primary-light uppercase tracking-widest">Observation Note</span>
                </div>
@@ -199,13 +205,15 @@ export const ObservationDiary: React.FC<ObservationDiaryProps> = ({ profile, sta
                    <p className="font-diary text-xl animate-pulse tracking-tight">{profile.name}이(가) 기록 중...</p>
                  </div>
                ) : (
-                 <div className={`font-diary leading-tight text-[#4A4434] whitespace-pre-wrap animate-in fade-in slide-in-from-bottom-2 duration-1000 ${getFontSize()}`}>
-                    {content}
+                 <div className="flex-1 overflow-y-auto pr-1">
+                   <div className={`font-diary leading-tight text-[#4A4434] whitespace-pre-wrap animate-in fade-in slide-in-from-bottom-2 duration-1000 ${getFontSize()}`}>
+                      {content}
+                   </div>
                  </div>
                )}
             </div>
 
-            <div className="text-right pt-4 mt-auto border-t border-primary/10">
+            <div className="text-right pt-4 mt-auto border-t border-primary/10 flex-shrink-0">
                 <p className="font-diary text-2xl text-primary-dark">
                     <span className="text-sm opacity-60 mr-1">{LEVEL_TITLES[profile.level]}</span>
                     {profile.name} 씀.
@@ -228,13 +236,13 @@ export const ObservationDiary: React.FC<ObservationDiaryProps> = ({ profile, sta
                 </div>
                 <div className="flex gap-2">
                   <button 
-                      onClick={enterScreenshotMode} 
+                      onClick={(e) => { e.stopPropagation(); enterScreenshotMode(); }} 
                       className="px-4 py-2 bg-accent text-white rounded-full font-black text-[10px] hover:bg-accent-dark transition-all active:scale-95 shadow-md flex items-center gap-1.5"
                   >
                       <Camera size={12} /> 스샷 모드
                   </button>
                   <button 
-                      onClick={onClose} 
+                      onClick={(e) => { e.stopPropagation(); onClose(); }} 
                       className="px-4 py-2 bg-primary text-white rounded-full font-black text-[10px] hover:bg-primary-dark transition-all active:scale-95 shadow-md flex items-center gap-1.5"
                   >
                       닫기 <ArrowRight size={12} />
