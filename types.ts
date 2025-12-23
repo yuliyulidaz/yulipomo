@@ -41,6 +41,7 @@ export interface CharacterProfile {
   };
 
   initialGreeting: string;
+  todayTask?: string; // 오늘 집중해야 할 일
 
   // 사이클 통계 기록용 (보고서용)
   cycleStats?: {
