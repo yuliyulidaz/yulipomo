@@ -285,7 +285,7 @@ export const SetupScreen: React.FC<SetupScreenProps> = ({ onComplete }) => {
               <div className="space-y-3">
                 <div className="flex items-center justify-center gap-2 mb-1">
                     <Heart size={14} className="text-accent fill-accent" />
-                    <span className="text-[10px] font-black text-primary tracking-widest uppercase">최애와 딱 두 시간 집중하기</span>
+                    <span className="text-[10px] font-black text-primary tracking-widest uppercase">최애와 딱 100분 집중하기</span>
                 </div>
                 <h1 className="text-xl md:text-2xl font-bold text-text-primary tracking-tight">최애 뽀모도로</h1>
                 <p className="text-text-secondary text-sm font-medium">당신과 함께 할 상대는 누구인가요?</p>
