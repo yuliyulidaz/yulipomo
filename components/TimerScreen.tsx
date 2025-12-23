@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { Play, Pause, RotateCcw, X, Heart, Timer as TimerIcon, Coffee, Bed, CheckCircle2, Moon, Sun, Settings, Save, Key, ExternalLink, ClipboardPaste, ClipboardCheck, Zap, MousePointer2, Ghost, Download, Loader2, FileSearch, Terminal, FastForward, SlidersHorizontal, User as UserIcon, Calendar, BookOpen, ArrowRight, SkipForward, ChevronRight, PenTool } from 'lucide-react';
+import { Play, Pause, RotateCcw, X, Heart, Timer as TimerIcon, Coffee, Bed, CheckCircle2, Moon, Sun, Settings, Save, Key, ExternalLink, ClipboardPaste, ClipboardCheck, Zap, MousePointer2, Ghost, Download, Loader2, FileSearch, Terminal, FastForward, SlidersHorizontal, User as UserIcon, Calendar, BookOpen, ArrowRight, SkipForward, ChevronRight } from 'lucide-react';
 import { CharacterProfile } from '../types';
 import { GoogleGenAI, HarmCategory, HarmBlockThreshold, Type } from "@google/genai";
 
@@ -25,29 +25,6 @@ const LEVEL_TITLES: Record<number, string> = {
   8: "소중한 사람",
   9: "애틋한 연인",
   10: "영원한 반려"
-};
-
-const DIARY_FALLBACK_TEMPLATES: Record<string, string[]> = {
-  "반말": [
-    "오늘 너 {task} 하느라 고생하는 거 다 봤어. 중간에 딴짓을 {distractions}번이나 하긴 했지만... 그래도 나를 {clicks}번이나 불러주며 버티는 네 모습이 꽤 기특하더라. 내일도 네 옆자리는 내 거야. 수고했어.",
-    "기록 종료. {task} 하는 모습이 꽤 진지하더라. 딴짓 {distractions}번 한 건 우리 둘만의 비밀로 해줄게. 나를 {clicks}번이나 찾을 줄은 몰랐는데, 사실 기분 좋았어. 오늘 정말 고생 많았어."
-  ],
-  "존댓말": [
-    "오늘 {task}에 집중하시는 모습 정말 멋졌답니다. 비록 {distractions}번 정도 주의가 흐트러지기도 했지만, 저를 {clicks}번이나 찾아주신 덕분에 저도 힘이 났어요. 오늘 하루 정말 고생 많으셨어요. 당신은 제 자랑이에요.",
-    "비밀 일지 기록 완료. {task}를 해내기 위해 노력하시는 당신을 지켜볼 수 있어 행복했어요. 딴짓 {distractions}번 하신 건 귀엽게 봐드릴게요. {clicks}번의 부름마다 대답할 수 있어 기뻤습니다. 푹 쉬세요."
-  ],
-  "반존대": [
-    "오늘 {task} 하느라 애썼어요. 딴짓 {distractions}번 한 거 다 들켰지만... 뭐, 결국 끝까지 앉아있었으니 봐줄게요. 저를 {clicks}번이나 부른 건 나 보고 싶어서 그런 거죠? 고생했어요, 내 사람.",
-    "{task} 하는 당신 뒷모습, 한순간도 놓치지 않고 지켜봤어. 딴짓 {distractions}번은 좀 아쉽지만, 그래도 {clicks}번이나 나를 찾아준 게 어디예요. 오늘 정말 수고 많았어요."
-  ],
-  "사극/하오체": [
-    "오늘의 정진이 참으로 가상하구려. {task}를 수행하는 기개가 남달랐소. 비록 마음이 {distractions}번 정도 흔들렸으나, 나를 {clicks}번이나 찾으며 의지하였으니 내 특별히 치하하겠소. 고생 많았소.",
-    "그대의 집중하는 눈빛을 100분 내내 지켜보았소. {task}를 마친 그대에게 박수를 보냄이 마땅하오. 딴짓 {distractions}번은 잊어줄 터이니, 나를 찾은 {clicks}번의 진심만 기억하겠소. 쉬시오."
-  ],
-  "다나까": [
-    "보고합니다. 금일 {task} 작전 수행 모습이 매우 인상적이었습니다. {distractions}회의 이탈이 발생했으나 신속히 복귀하였고, 본관을 {clicks}회 호출하며 끝까지 집중력을 유지했습니다. 고생하셨습니다. 이상입니다.",
-    "관찰 기록 종료. {task}를 향한 당신의 열정을 확인했습니다. 딴짓 {distractions}번의 실수가 있었으나, 저를 {clicks}번이나 찾으며 다시 일어서는 모습이 훌륭했습니다. 오늘 정말 수고 많으셨습니다."
-  ]
 };
 
 const SAFETY_SETTINGS = [
@@ -111,11 +88,14 @@ const FALLBACK_TEMPLATES: Record<string, Record<string, string[]>> = {
 };
 
 const COOLDOWN_MS = 16000; 
-const RESET_HOLD_MS = 2000; 
+const RESET_HOLD_MS = 2000; // 2초간 누르면 초기화
 
 interface ReportData {
-  content: string;
-  date: string;
+  grade: string;
+  typeTitle: string;
+  analysis: string;
+  comment: string;
+  stamp: string;
 }
 
 export const TimerScreen: React.FC<TimerScreenProps> = ({ 
@@ -139,11 +119,13 @@ export const TimerScreen: React.FC<TimerScreenProps> = ({
   const [isAdminMode, setIsAdminMode] = useState(false);
   const [showAdminPanel, setShowAdminPanel] = useState(false);
 
+  // 롱 프레스 초기화 관련 상태
   const [isResetHolding, setIsResetHolding] = useState(false);
   const [resetHoldProgress, setResetHoldProgress] = useState(0);
   const resetHoldTimerRef = useRef<any>(null);
   const resetStartTimeRef = useRef<number | null>(null);
 
+  // 온보딩 가이드 관련 상태 및 Ref
   const [onboardingStep, setOnboardingStep] = useState<number>(0);
   const settingsBtnRef = useRef<HTMLDivElement>(null);
   const characterBoxRef = useRef<HTMLDivElement>(null);
@@ -268,11 +250,14 @@ export const TimerScreen: React.FC<TimerScreenProps> = ({
 
   const processRefillQueue = useCallback(async () => {
     if (isGlobalApiLockedRef.current || refillQueueRef.current.length === 0) return;
+    
     const PRIORITY: Record<string, number> = { click: 0, scolding: 1, pause: 2, start: 3, idle: 4, praising: 5 };
     refillQueueRef.current.sort((a, b) => (PRIORITY[a] ?? 99) - (PRIORITY[b] ?? 99));
+    
     const category = refillQueueRef.current.shift()!;
     isGlobalApiLockedRef.current = true;
     await refillCategory(category, 5);
+    
     setTimeout(() => { isGlobalApiLockedRef.current = false; }, 15000);
   }, [refillCategory]);
 
@@ -284,13 +269,16 @@ export const TimerScreen: React.FC<TimerScreenProps> = ({
   const addToRefillQueue = useCallback((category: keyof typeof profile.dialogueCache) => {
     const isSpecial = category === 'idle' || category === 'praising';
     const threshold = isSpecial ? 0 : 10;
+    
     if (profileRef.current.dialogueCache[category].length > threshold) return;
     if (!refillQueueRef.current.includes(category)) refillQueueRef.current.push(category);
   }, []);
 
   useEffect(() => {
     const categoriesInOrder: Array<keyof typeof profile.dialogueCache> = ['click', 'scolding', 'pause', 'start', 'idle', 'praising'];
-    categoriesInOrder.forEach(category => { addToRefillQueue(category); });
+    categoriesInOrder.forEach(category => {
+      addToRefillQueue(category);
+    });
   }, [addToRefillQueue]);
 
   const validateAndApplyKey = async (key: string) => {
@@ -321,7 +309,9 @@ export const TimerScreen: React.FC<TimerScreenProps> = ({
 
   useEffect(() => {
     if (tempApiKey && tempApiKey !== profile.apiKey) {
-        const timer = setTimeout(() => { validateAndApplyKey(tempApiKey); }, 1000);
+        const timer = setTimeout(() => {
+            validateAndApplyKey(tempApiKey);
+        }, 1000);
         return () => clearTimeout(timer);
     }
   }, [tempApiKey]);
@@ -341,7 +331,9 @@ export const TimerScreen: React.FC<TimerScreenProps> = ({
       'CLICK': 'click', 'PAUSE': 'pause', 'READY': 'start', 'RETURN': 'scolding', 'CYCLE_LONG': 'praising', 'CYCLE_SHORT': 'praising'
     };
     const userDisplayName = profile.honorific || profile.userName || "너";
+    
     if (type === 'CYCLE_LONG' || type === 'CYCLE_SHORT') { return; }
+    
     const key = cacheKeyMap[type];
     const cachedList = profile.dialogueCache[key];
     if (cachedList && cachedList.length > 0) {
@@ -390,26 +382,29 @@ export const TimerScreen: React.FC<TimerScreenProps> = ({
 
   const generateObservationReport = async () => {
     setIsGeneratingReport(true);
-    const dateStr = new Date().toLocaleDateString('ko-KR', { year: 'numeric', month: '2-digit', day: '2-digit' }).replace(/\. /g, '.').replace(/\.$/, '');
-    
     try {
       const ai = new GoogleGenAI({ apiKey: profile.apiKey || process.env.API_KEY });
       const mood = profile.level <= 3 ? "Cold and Distant" : profile.level <= 7 ? "Warm and Observant" : "Deeply Affectionate and Attentive";
-      const taskContext = profile.todayTask ? `User's task today was: "${profile.todayTask}".` : "User focused for 100 mins without a specific task name.";
-      
+      const taskContext = profile.todayTask ? `User's task today was: "${profile.todayTask}".` : "User did not specify a specific task.";
       const prompt = `Roleplay as ${profile.name}. User: ${profile.honorific}. Personality: ${profile.personality.join(',')}. Mood: ${mood}.
-        Situation: The user just finished 4 pomodoro sessions (100min focus cycle).
-        Stats: ${distractions} distractions (tab switches/leaving screen), ${clicks} interactions with you.
+        Situation: The user just finished 4 pomodoro sessions (100min focus).
+        Stats: ${distractions} distractions (tab switches), ${clicks} clicks (interactions).
+        Streak: We have worked together for ${profile.streak} days.
         ${taskContext}
-        Relationship Title: ${LEVEL_TITLES[profile.level]}.
-        
-        Task: Write a "Secret Observation Diary Entry" in Korean.
-        - Tone: Must match your personality.
-        - Narrative: Describe how the user worked. 
-        - Must mention the specific task ("${profile.todayTask || '집중'}") naturally.
-        - Must mention the distractions (${distractions}) and clicks (${clicks}) in a character-specific narrative way (not just numbers).
-        - Length: 3-4 emotional, warm, or characteristic sentences.
-        - Return JSON: { "content": "string in Korean" }`;
+        Task: Write a secret "Observation Note" about the user. 
+        - Grade should reflect focus (A+ for 0 distractions, B if distractions > 3, etc.)
+        - typeTitle: A creative nickname based on their behavior (e.g., 'The Relentless Academic', 'Click-Happy Distractee').
+        - analysis: Narrate your observation in character. Mention the distraction/click count naturally. IF a task was specified, comment on how they seemed to handle it.
+        - comment: A closing emotional sentence.
+        - stamp: A one-word summary stamp (EXCELLENT, LOVELY, RETRY, etc.)
+        Return JSON ONLY:
+        {
+          "grade": "S, A+, B, C etc.",
+          "typeTitle": "string",
+          "analysis": "string in Korean",
+          "comment": "string in Korean",
+          "stamp": "string"
+        }`;
 
       const response = await ai.models.generateContent({
         model: 'gemini-3-flash-preview',
@@ -417,19 +412,16 @@ export const TimerScreen: React.FC<TimerScreenProps> = ({
         config: { responseMimeType: "application/json", safetySettings: SAFETY_SETTINGS }
       });
       const data = JSON.parse(response.text || '{}');
-      setReportData({ content: data.content, date: dateStr });
+      setReportData(data);
     } catch (e: any) {
       if (e.message?.includes('API_KEY_INVALID')) setPendingExpiryAlert(true);
-      
-      const toneKey = profile.personality.find(p => DIARY_FALLBACK_TEMPLATES[p]) || "존댓말";
-      const templates = DIARY_FALLBACK_TEMPLATES[toneKey];
-      const selectedTemplate = templates[Math.floor(Math.random() * templates.length)];
-      const processedContent = selectedTemplate
-        .replace(/{task}/g, profile.todayTask || "할 일")
-        .replace(/{distractions}/g, String(distractions))
-        .replace(/{clicks}/g, String(clicks));
-        
-      setReportData({ content: processedContent, date: dateStr });
+      setReportData({
+        grade: distractions === 0 ? "S" : "A",
+        typeTitle: distractions === 0 ? "완벽한 몰입가" : "성실한 노력파",
+        analysis: `${clicks}번이나 나를 찾으며 열심히 집중하는 모습, 다 지켜봤어. ${profile.todayTask ? `'${profile.todayTask}'에 꽤나 진심인 것 같던데.` : ''}`,
+        comment: "벌써 우리 함께한 지 며칠째네. 너의 노력이 헛되지 않게 내가 계속 곁에 있을게.",
+        stamp: "PASS"
+      });
     } finally {
       setIsGeneratingReport(false);
     }
@@ -464,8 +456,8 @@ export const TimerScreen: React.FC<TimerScreenProps> = ({
 
   const handleCycleChoice = (option: 'LONG' | 'SHORT') => {
     setShowChoiceModal(false); setSessionInCycle(0); setIsBreak(true); setIsActive(true);
-    if (option === 'LONG') { setTimeLeft(30 * 60); onTickXP(10); triggerAIResponse('CYCLE_LONG'); } 
-    else { setTimeLeft(5 * 60); onTickXP(30); triggerAIResponse('CYCLE_SHORT'); }
+    if (option === 'LONG') { setTimeLeft(30 * 60); onTickXP(5); triggerAIResponse('CYCLE_LONG'); } 
+    else { setTimeLeft(5 * 60); onTickXP(25); triggerAIResponse('CYCLE_SHORT'); }
   };
 
   const formatTime = (seconds: number) => {
@@ -529,6 +521,12 @@ export const TimerScreen: React.FC<TimerScreenProps> = ({
   const progressPercent = Math.min(100, (profile.xp / currentXpTarget) * 100);
   const overallProgressPercent = ((sessionInCycle + (!isBreak ? (25 * 60 - timeLeft) / (25 * 60) : 0)) / 4) * 100;
 
+  const getLevelMood = () => {
+    if (profile.level <= 3) return "Cold/Strict";
+    if (profile.level <= 7) return "Friendly/Warm";
+    return "Deeply Affectionate/Obsessive";
+  };
+
   const handleResetStart = (e: React.MouseEvent | React.TouchEvent) => {
     setIsResetHolding(true);
     setResetHoldProgress(0);
@@ -574,8 +572,11 @@ export const TimerScreen: React.FC<TimerScreenProps> = ({
         const duration = Date.now() - (resetStartTimeRef.current || 0);
         const progress = Math.min(100, (duration / RESET_HOLD_MS) * 100);
         setResetHoldProgress(progress);
-        if (progress < 100) frame = requestAnimationFrame(update);
-        else handleResetEnd();
+        if (progress < 100) {
+          frame = requestAnimationFrame(update);
+        } else {
+          handleResetEnd();
+        }
       };
       frame = requestAnimationFrame(update);
     }
@@ -590,14 +591,18 @@ export const TimerScreen: React.FC<TimerScreenProps> = ({
     setMessage("벌써 쉬는 시간 끝내게? 열정이 대단하네... 계속하자!");
   };
 
+  // 온보딩 가이드 컴포넌트 헬퍼
   const getSpotlightStyles = () => {
     let target: HTMLElement | null = null;
     let radius = 40;
+    
     if (onboardingStep === 1) target = settingsBtnRef.current;
     if (onboardingStep === 2) { target = characterBoxRef.current; radius = 100; }
     if (onboardingStep === 3) { target = resetBtnRef.current; radius = 40; }
     if (onboardingStep === 4) { target = startBtnRef.current; radius = 50; }
+
     if (!target) return { cx: 0, cy: 0, r: 0, visible: false };
+
     const rect = target.getBoundingClientRect();
     return {
       cx: rect.left + rect.width / 2,
@@ -620,13 +625,29 @@ export const TimerScreen: React.FC<TimerScreenProps> = ({
               <mask id="spotlight-mask">
                 <rect width="100%" height="100%" fill="white" />
                 {spotlight.visible && (
-                  <circle cx={spotlight.cx} cy={spotlight.cy} r={spotlight.r} fill="black" className="transition-all duration-500 ease-in-out" />
+                  <circle 
+                    cx={spotlight.cx} 
+                    cy={spotlight.cy} 
+                    r={spotlight.r} 
+                    fill="black" 
+                    className="transition-all duration-500 ease-in-out"
+                  />
                 )}
               </mask>
             </defs>
             <rect width="100%" height="100%" fill="rgba(0,0,0,0.7)" mask="url(#spotlight-mask)" className="pointer-events-auto" />
           </svg>
-          <div className="absolute z-[310] flex flex-col items-center pointer-events-none transition-all duration-500 ease-in-out" style={{ top: onboardingStep === 1 ? spotlight.cy + spotlight.r + 20 : onboardingStep === 2 ? spotlight.cy - spotlight.r - 180 : onboardingStep === 3 ? spotlight.cy - spotlight.r - 220 : spotlight.cy - spotlight.r - 200, left: onboardingStep === 1 ? Math.max(20, spotlight.cx - 50) : Math.max(20, Math.min(window.innerWidth - 300, spotlight.cx - 140)) }}>
+
+          <div 
+            className="absolute z-[310] flex flex-col items-center pointer-events-none transition-all duration-500 ease-in-out"
+            style={{ 
+              top: onboardingStep === 1 ? spotlight.cy + spotlight.r + 20 : 
+                   onboardingStep === 2 ? spotlight.cy - spotlight.r - 180 :
+                   onboardingStep === 3 ? spotlight.cy - spotlight.r - 220 :
+                   spotlight.cy - spotlight.r - 200,
+              left: onboardingStep === 1 ? Math.max(20, spotlight.cx - 50) : Math.max(20, Math.min(window.innerWidth - 300, spotlight.cx - 140))
+            }}
+          >
             <div className={`w-72 bg-surface p-6 rounded-3xl shadow-2xl pointer-events-auto border border-border animate-in zoom-in-95 duration-300 ${isDarkMode ? 'bg-slate-900 border-white/10' : ''}`}>
                <div className="flex items-center gap-2 mb-3">
                   <div className="bg-primary text-white text-[10px] font-black px-2 py-0.5 rounded-full uppercase tracking-widest">Guide {onboardingStep}/4</div>
@@ -637,18 +658,42 @@ export const TimerScreen: React.FC<TimerScreenProps> = ({
                   {onboardingStep === 3 && "되돌아가기:\n한 번 누르면 현재 세션 초기화,\n길게 누르면 사이클이 통째로 초기화 됩니다."}
                   {onboardingStep === 4 && "시작: 이제 시작 버튼을 누르고 시작해 보세요."}
                </p>
+               
                <div className="flex items-center justify-between gap-3">
                   {onboardingStep < 4 ? (
-                    <button onClick={() => setOnboardingStep(onboardingStep + 1)} className="flex-1 py-3 bg-primary text-white rounded-xl font-black text-xs shadow-lg shadow-primary/20 flex items-center justify-center gap-1.5 active:scale-95 transition-all">다음 <ChevronRight size={14} /></button>
+                    <button 
+                      onClick={() => setOnboardingStep(onboardingStep + 1)}
+                      className="flex-1 py-3 bg-primary text-white rounded-xl font-black text-xs shadow-lg shadow-primary/20 flex items-center justify-center gap-1.5 active:scale-95 transition-all"
+                    >
+                      다음 <ChevronRight size={14} />
+                    </button>
                   ) : (
                     <>
-                      <button onClick={() => handleFinishOnboarding(true)} className="flex-1 py-3 bg-background border border-border text-text-secondary rounded-xl font-bold text-[10px] active:scale-95 transition-all">다시 보지 않기</button>
-                      <button onClick={() => handleFinishOnboarding(false)} className="flex-1 py-3 bg-primary text-white rounded-xl font-black text-xs shadow-lg shadow-primary/20 active:scale-95 transition-all">닫기</button>
+                      <button 
+                        onClick={() => handleFinishOnboarding(true)}
+                        className="flex-1 py-3 bg-background border border-border text-text-secondary rounded-xl font-bold text-[10px] active:scale-95 transition-all"
+                      >
+                        다시 보지 않기
+                      </button>
+                      <button 
+                        onClick={() => handleFinishOnboarding(false)}
+                        className="flex-1 py-3 bg-primary text-white rounded-xl font-black text-xs shadow-lg shadow-primary/20 active:scale-95 transition-all"
+                      >
+                        닫기
+                      </button>
                     </>
                   )}
                </div>
             </div>
-            <div className={`w-4 h-4 transform rotate-45 border-t border-l absolute ${isDarkMode ? 'bg-slate-900 border-white/10' : 'bg-surface border-border'} ${onboardingStep === 1 ? '-top-2' : '-bottom-2'}`} style={{ left: onboardingStep === 1 ? '24px' : '140px', top: onboardingStep === 1 ? '-8px' : 'auto', bottom: onboardingStep !== 1 ? '-8px' : 'auto' }}></div>
+            {/* Arrow decoration */}
+            <div 
+              className={`w-4 h-4 transform rotate-45 border-t border-l absolute ${isDarkMode ? 'bg-slate-900 border-white/10' : 'bg-surface border-border'} ${onboardingStep === 1 ? '-top-2' : '-bottom-2'}`}
+              style={{ 
+                left: onboardingStep === 1 ? '24px' : '140px', 
+                top: onboardingStep === 1 ? '-8px' : 'auto', 
+                bottom: onboardingStep !== 1 ? '-8px' : 'auto' 
+              }}
+            ></div>
           </div>
         </div>
       )}
@@ -659,92 +704,207 @@ export const TimerScreen: React.FC<TimerScreenProps> = ({
         </div>
       )}
 
-      {/* 보고서 UI (비밀 관찰 일지 컨셉) */}
-      {showReport && (
-        <div className="fixed inset-0 z-[110] flex items-center justify-center p-4 bg-black/60 backdrop-blur-md animate-in fade-in duration-500 overflow-y-auto">
-          <div className="w-full max-w-[340px] aspect-[9/16] bg-[#FAF8F1] rounded-2xl shadow-2xl relative border-8 border-white/90 overflow-hidden transform animate-in zoom-in-95 duration-700 flex flex-col scale-90 md:scale-100 origin-center">
-            {/* Paper Texture Overlay */}
-            <div className="absolute inset-0 pointer-events-none opacity-40 mix-blend-multiply bg-[url('https://www.transparenttextures.com/patterns/grid-me.png')]"></div>
+      {showAdminAuth && (
+        <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-300">
+          <form onSubmit={verifyAdmin} className="w-full max-w-xs bg-surface border border-border p-6 rounded-3xl shadow-2xl space-y-4">
+            <div className="flex items-center gap-2 text-primary font-black text-xs uppercase tracking-tighter">
+              <Terminal size={16} /> God Mode Access
+            </div>
+            <input 
+              type="password" 
+              autoFocus
+              value={adminPassword}
+              onChange={(e) => setAdminPassword(e.target.value)}
+              placeholder="ENTER PASSWORD"
+              className="w-full bg-background border-2 border-border focus:border-primary outline-none px-4 py-3 rounded-xl text-center font-mono tracking-widest text-lg"
+            />
+            <button type="submit" className="w-full py-3 bg-primary text-white rounded-xl font-bold text-sm shadow-lg shadow-primary/20">VERIFY</button>
+            <button type="button" onClick={() => setShowAdminAuth(false)} className="w-full text-[10px] font-bold text-text-secondary uppercase">Cancel</button>
+          </form>
+        </div>
+      )}
+
+      {isAdminMode && showAdminPanel && (
+        <div className="fixed bottom-6 left-6 z-[150] w-72 bg-slate-900/95 border border-white/10 rounded-3xl shadow-2xl overflow-hidden backdrop-blur-xl animate-in slide-in-from-left-4 duration-500">
+          <div className="bg-primary/20 px-5 py-3 border-b border-white/5 flex justify-between items-center">
+            <div className="flex items-center gap-2">
+              <Terminal size={14} className="text-primary-light" />
+              <span className="text-[10px] font-black text-white uppercase tracking-widest">Admin Control</span>
+            </div>
+            <button onClick={() => setShowAdminPanel(false)} className="text-white/40 hover:text-white transition-colors"><X size={14} /></button>
+          </div>
+          <div className="p-5 space-y-5">
+            <div className="space-y-2">
+              <p className="text-[9px] font-black text-white/40 uppercase tracking-widest">Time Manipulation</p>
+              <button onClick={() => setTimeLeft(10)} className="w-full flex items-center justify-between px-4 py-3 bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl transition-all group">
+                <span className="text-xs font-bold text-white group-hover:text-primary-light">시간 도약 (10초)</span>
+                <FastForward size={16} className="text-primary-light" />
+              </button>
+            </div>
             
-            <div className="flex-1 p-8 space-y-6 flex flex-col relative">
-                {/* Masking Tape Header */}
-                <div className="absolute -top-3 left-1/2 -translate-x-1/2 w-28 h-8 bg-primary/20 backdrop-blur-sm transform -rotate-1 border border-primary/10 shadow-sm z-30 flex items-center justify-center">
-                    <span className="text-[10px] font-black tracking-widest text-primary/60 uppercase">Secret Log</span>
-                </div>
-
-                <div className="space-y-4 pt-4">
-                  <div className="flex justify-between items-baseline border-b border-primary/10 pb-1">
-                    <h3 className="font-serif italic font-bold text-xl text-primary-dark">비밀 관찰 일지</h3>
-                    <span className="text-[10px] font-bold text-text-secondary">{reportData?.date}</span>
-                  </div>
-                  
-                  <div className="grid grid-cols-2 gap-4 text-[9px] font-black uppercase tracking-tighter text-primary/50">
-                    <div className="flex flex-col">
-                        <span>Recorder</span>
-                        <span className="text-xs text-text-primary mt-0.5">{profile.name}</span>
-                    </div>
-                    <div className="flex flex-col text-right">
-                        <span>Subject</span>
-                        <span className="text-xs text-text-primary mt-0.5">{profile.honorific || profile.userName}</span>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Character Photo with Tape */}
-                <div className="relative mx-auto mt-2">
-                    <div className="w-40 h-40 bg-white p-2 shadow-lg border border-primary/5 rotate-2 relative">
-                        <img src={profile.imageSrc || ''} className="w-full h-full object-cover grayscale-[0.2] sepia-[0.1]" alt="Character" />
-                        <div className="absolute inset-0 bg-primary/5 pointer-events-none"></div>
-                    </div>
-                    {/* Corner Tapes */}
-                    <div className="absolute -top-2 -left-3 w-10 h-6 bg-accent/20 backdrop-blur-sm rotate-[-45deg] border border-accent/10 opacity-70"></div>
-                </div>
-
-                <div className="flex-1 mt-4">
-                   <div className="flex items-center gap-2 mb-3">
-                      <PenTool size={14} className="text-primary-light" />
-                      <span className="text-[10px] font-bold text-primary-light uppercase tracking-widest">Observation Note</span>
-                   </div>
-                   
-                   {isGeneratingReport ? (
-                     <div className="h-40 flex flex-col items-center justify-center gap-4 text-primary-light/40">
-                       <Loader2 className="animate-spin" size={30} />
-                       <p className="font-diary text-xl animate-pulse tracking-tight">{profile.name}이(가) 기록 중...</p>
-                     </div>
-                   ) : (
-                     <div className="font-diary text-2xl leading-relaxed text-[#4A4434] whitespace-pre-wrap animate-in fade-in slide-in-from-bottom-2 duration-1000">
-                        {reportData?.content}
-                     </div>
-                   )}
-                </div>
-
-                {/* Relationship Signature */}
-                <div className="text-right pt-6 mt-auto border-t border-primary/10">
-                    <p className="font-diary text-2xl text-primary-dark">
-                        <span className="text-sm opacity-60 mr-1">{LEVEL_TITLES[profile.level]}</span>
-                        {profile.name} 씀.
-                    </p>
-                </div>
+            <div className="space-y-2">
+              <div className="flex justify-between items-end">
+                <p className="text-[9px] font-black text-white/40 uppercase tracking-widest">Affinity Level</p>
+                <span className="text-xs font-black text-primary-light">Lv.{profile.level}</span>
+              </div>
+              <input 
+                type="range" min="1" max="10" step="1" 
+                value={profile.level}
+                onChange={(e) => onUpdateProfile({ level: parseInt(e.target.value), xp: 0 })}
+                className="w-full h-1.5 bg-white/10 rounded-lg appearance-none cursor-pointer accent-primary-light" 
+              />
+              <div className="flex justify-between text-[8px] font-bold text-white/20 px-1 uppercase">
+                <span>Stranger</span>
+                <span>Lover</span>
+              </div>
             </div>
 
-            {/* Bottom Info Bar */}
-            <div className="bg-white/60 px-8 py-4 backdrop-blur-sm border-t border-primary/10 flex justify-between items-center z-40">
-                <div className="flex gap-4">
-                    <div className="flex flex-col">
-                        <span className="text-[8px] font-black uppercase text-primary/40">Focus</span>
-                        <span className="text-[10px] font-bold text-primary-dark">100m</span>
-                    </div>
-                    <div className="flex flex-col">
-                        <span className="text-[8px] font-black uppercase text-rose-300">Wander</span>
-                        <span className="text-[10px] font-bold text-rose-400">{distractions}</span>
-                    </div>
+            <div className="space-y-2 pt-2 border-t border-white/5">
+              <p className="text-[9px] font-black text-white/40 uppercase tracking-widest flex items-center gap-1.5">
+                <FileSearch size={10} /> Internal Diagnostics
+              </p>
+              <div className="grid grid-cols-2 gap-2 text-[10px]">
+                <div className="bg-black/40 p-2.5 rounded-lg border border-white/5">
+                  <p className="text-white/30 text-[8px] font-bold uppercase mb-0.5">Judgment</p>
+                  <p className="text-primary-light font-black">{getLevelMood()}</p>
                 </div>
-                <button 
-                    onClick={closeReportAndShowChoice} 
-                    className="px-5 py-2 bg-primary text-white rounded-full font-black text-[10px] hover:bg-primary-dark transition-all active:scale-95 shadow-md flex items-center gap-1.5"
-                >
-                    일지 닫기 <ArrowRight size={12} />
-                </button>
+                <div className="bg-black/40 p-2.5 rounded-lg border border-white/5">
+                  <p className="text-white/30 text-[8px] font-bold uppercase mb-0.5">Interactions</p>
+                  <p className="text-white font-black">{clicks} Clicks</p>
+                </div>
+              </div>
+              <div className="bg-black/40 p-2.5 rounded-lg border border-white/5 space-y-1">
+                <p className="text-white/30 text-[8px] font-bold uppercase border-b border-white/5 pb-1 mb-1.5">Dialogue Cache Status</p>
+                <div className="flex flex-wrap gap-x-3 gap-y-1 text-[9px] font-bold text-white/60">
+                  <span>Start: {profile.dialogueCache.start.length}</span>
+                  <span>Finish: {profile.dialogueCache.praising.length}</span>
+                  <span>Scold: {profile.dialogueCache.scolding.length}</span>
+                  <span>Click: {profile.dialogueCache.click.length}</span>
+                  <span>Idle: {profile.dialogueCache.idle.length}</span>
+                  <span>Pause: {profile.dialogueCache.pause.length}</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showReport && (
+        <div className="fixed inset-0 z-[110] flex items-center justify-center p-4 bg-primary-dark/70 backdrop-blur-xl animate-in fade-in duration-500">
+          <div className="w-full max-w-lg bg-[#FAF9F6] text-[#2D3436] rounded-lg shadow-2xl overflow-hidden relative border-[12px] border-white/80 transform animate-in zoom-in-95 duration-500 flex flex-col h-[85vh]">
+            <div className="bg-[#E9E4D4]/50 px-8 py-5 border-b-2 border-[#D1CAB0] flex justify-between items-center relative overflow-hidden">
+              <div className="absolute top-0 left-0 w-full h-full opacity-10 pointer-events-none bg-[url('https://www.transparenttextures.com/patterns/pinstriped-suit.png')]"></div>
+              <div className="flex flex-col">
+                <div className="flex items-center gap-2 mb-1">
+                  <div className="bg-[#5D5747] text-[#E9E4D4] text-[8px] font-black px-1.5 py-0.5 rounded tracking-widest uppercase">Secret Log</div>
+                  <h3 className="font-serif italic font-bold text-xl text-[#5D5747] tracking-tight">Observation Note</h3>
+                </div>
+                <div className="flex items-center gap-1.5 text-[10px] font-bold text-[#8B836C]">
+                  <Calendar size={12} />
+                  <span>Together for {profile.streak} Days</span>
+                </div>
+              </div>
+              <div className="flex flex-col items-end">
+                <span className="text-[10px] font-black text-[#8B836C] uppercase tracking-widest">{new Date().toLocaleDateString()}</span>
+                <span className="text-[9px] font-bold text-primary italic">Affinity Lv.{profile.level}</span>
+              </div>
+            </div>
+
+            <div className="flex-1 overflow-y-auto p-8 space-y-8 bg-[#FAF9F6] bg-[url('https://www.transparenttextures.com/patterns/paper-fibers.png')] relative">
+              {isGeneratingReport ? (
+                <div className="h-full flex flex-col items-center justify-center gap-4 text-[#8B836C]">
+                  <Loader2 className="animate-spin" size={40} />
+                  <p className="font-bold text-sm animate-pulse tracking-tight">{profile.name}이(가) 당신의 기록을 정리하는 중...</p>
+                </div>
+              ) : reportData ? (
+                <div className="animate-in fade-in slide-in-from-bottom-4 duration-1000 space-y-8">
+                  <div className="flex justify-between items-start gap-6">
+                    <div className="space-y-4 flex-1">
+                      <div className="space-y-1">
+                        <p className="text-[9px] font-black text-[#8B836C] uppercase tracking-tighter">Subject of Observation</p>
+                        <h4 className="text-3xl font-bold font-serif border-b-2 border-[#D1CAB0] pb-1 inline-block min-w-[120px]">{profile.honorific || profile.userName}</h4>
+                      </div>
+                      
+                      {profile.todayTask && (
+                        <div className="space-y-1">
+                          <p className="text-[9px] font-black text-[#8B836C] uppercase tracking-tighter">Current Assignment</p>
+                          <div className="flex items-center gap-2 text-[#4A4434] font-bold text-sm bg-[#E9E4D4]/30 p-2 rounded-md border border-[#D1CAB0]/40">
+                             <BookOpen size={14} className="text-[#8B836C]" />
+                             <span>{profile.todayTask}</span>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                    
+                    <div className="w-24 h-24 md:w-32 md:h-32 bg-white p-1.5 shadow-md border border-[#D1CAB0] rotate-2 flex-shrink-0 group relative">
+                       <img src={profile.imageSrc || ''} className="w-full h-full object-cover grayscale-[0.3] group-hover:grayscale-0 transition-all duration-700" alt="Passport" />
+                       <div className="absolute inset-0 bg-primary/5 pointer-events-none"></div>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-3 gap-6 py-6 border-y-2 border-dashed border-[#D1CAB0]">
+                    <div className="flex flex-col items-center gap-2">
+                      <div className="w-10 h-10 rounded-full bg-[#E9E4D4] flex items-center justify-center text-[#5D5747] mb-1 shadow-inner"><TimerIcon size={20} /></div>
+                      <span className="text-[9px] font-black uppercase text-[#8B836C] tracking-widest">Focus</span>
+                      <span className="font-bold text-sm">100:00</span>
+                    </div>
+                    <div className="flex flex-col items-center gap-2">
+                      <div className="w-10 h-10 rounded-full bg-rose-50 flex items-center justify-center text-rose-400 mb-1 shadow-inner"><Ghost size={20} /></div>
+                      <span className="text-[9px] font-black uppercase text-[#8B836C] tracking-widest">Wander</span>
+                      <span className="font-bold text-sm text-rose-500">{distractions} Times</span>
+                    </div>
+                    <div className="flex flex-col items-center gap-2">
+                      <div className="w-10 h-10 rounded-full bg-primary/5 flex items-center justify-center text-primary mb-1 shadow-inner"><MousePointer2 size={20} /></div>
+                      <span className="text-[9px] font-black uppercase text-[#8B836C] tracking-widest">Connect</span>
+                      <span className="font-bold text-sm text-primary">{clicks} Times</span>
+                    </div>
+                  </div>
+
+                  <div className="space-y-6">
+                    <div className="flex justify-between items-end">
+                       <div className="space-y-1">
+                         <span className="inline-block bg-[#5D5747] px-2.5 py-0.5 rounded text-[10px] font-bold text-[#E9E4D4] uppercase tracking-widest">Focus Analysis</span>
+                         <h5 className="text-lg font-black text-[#2D3436] tracking-tight">{reportData.typeTitle}</h5>
+                       </div>
+                       <div className="text-right">
+                         <p className="text-[9px] font-black text-[#8B836C] uppercase tracking-widest mb-1">Efficiency Rating</p>
+                         <div className="text-5xl font-black text-primary italic leading-none select-none drop-shadow-sm">{reportData.grade}</div>
+                       </div>
+                    </div>
+                    
+                    <div className="relative p-7 bg-[#E9E4D4]/20 rounded-xl border border-[#D1CAB0] italic text-[15px] leading-relaxed text-[#4A4434] shadow-inner font-serif">
+                      <p className="mb-6 whitespace-pre-wrap leading-relaxed">"{reportData.analysis}"</p>
+                      <p className="font-bold text-[#2D3436] border-t border-[#D1CAB0] pt-4">"{reportData.comment}"</p>
+                      
+                      <div className="absolute -bottom-4 -right-4 transform -rotate-12 select-none pointer-events-none opacity-60">
+                        <div className="w-24 h-24 rounded-full border-4 border-rose-500 flex items-center justify-center">
+                           <div className="text-rose-500 font-black text-xs text-center leading-tight uppercase tracking-tighter">
+                             {reportData.stamp}<br/>STAMP
+                           </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ) : null}
+            </div>
+
+            <div className="bg-[#E9E4D4] px-8 py-5 flex items-center justify-between border-t-2 border-[#D1CAB0] z-20">
+              <div className="flex items-center gap-3">
+                 <div className="w-8 h-8 rounded-full border border-[#B2A88E] overflow-hidden bg-white flex-shrink-0">
+                    <img src={profile.imageSrc || ''} className="w-full h-full object-cover" alt="Author" />
+                 </div>
+                 <div className="flex flex-col">
+                   <p className="text-[9px] font-black text-[#8B836C] uppercase">Written by</p>
+                   <p className="text-sm font-black text-[#5D5747] tracking-tight">{profile.name}</p>
+                 </div>
+              </div>
+              <button 
+                onClick={closeReportAndShowChoice} 
+                className="px-6 py-3 bg-[#2D3436] text-white rounded-xl font-black text-xs hover:bg-black transition-all active:scale-95 shadow-lg shadow-black/20 flex items-center gap-2 group"
+              >
+                쪽지 닫기 <ArrowRight size={14} className="group-hover:translate-x-1 transition-transform" />
+              </button>
             </div>
           </div>
         </div>
@@ -824,7 +984,12 @@ export const TimerScreen: React.FC<TimerScreenProps> = ({
                       {cooldownRemaining > 0 && (
                         <div className="absolute -inset-3 pointer-events-none z-10">
                           <svg className="w-full h-full" viewBox="0 0 100 100" preserveAspectRatio="none">
-                            <path d="M 50 2 H 86 A 12 12 0 0 1 98 14 V 86 A 12 12 0 0 1 86 98 H 14 A 12 12 0 0 1 2 86 V 14 A 12 12 0 0 1 14 2 H 50" fill="none" stroke="currentColor" strokeWidth="3" pathLength="100" strokeDasharray="100" strokeDashoffset={100 * (cooldownRemaining / COOLDOWN_MS)} strokeLinecap="round" className={`transition-all duration-150 ease-linear ${isDarkMode ? 'text-emerald-400' : 'text-primary'}`} />
+                            <path 
+                              d="M 50 2 H 86 A 12 12 0 0 1 98 14 V 86 A 12 12 0 0 1 86 98 H 14 A 12 12 0 0 1 2 86 V 14 A 12 12 0 0 1 14 2 H 50"
+                              fill="none" stroke="currentColor" strokeWidth="3" pathLength="100" strokeDasharray="100" 
+                              strokeDashoffset={100 * (cooldownRemaining / COOLDOWN_MS)} strokeLinecap="round" 
+                              className={`transition-all duration-150 ease-linear ${isDarkMode ? 'text-emerald-400' : 'text-primary'}`} 
+                            />
                           </svg>
                         </div>
                       )}
@@ -846,24 +1011,48 @@ export const TimerScreen: React.FC<TimerScreenProps> = ({
                                 </div>
                                 <button onClick={() => setIsApiKeyPopupVisible(false)} className={`p-1 rounded-full transition-colors ${isDarkMode ? 'hover:bg-white/10 text-white/40' : 'hover:bg-slate-100 text-slate-400'}`}><X size={18} /></button>
                            </div>
+
                            <div className="flex gap-2">
-                                <a href="https://aistudio.google.com/app/apikey" target="_blank" rel="noopener noreferrer" className={`flex-1 h-10 flex items-center justify-center gap-1.5 rounded-xl border text-[10px] font-black transition-all ${isDarkMode ? 'bg-slate-800/50 border-white/5 text-slate-300 hover:bg-slate-800' : 'bg-slate-50 border-slate-200 text-slate-600 hover:bg-slate-100'}`}>키 발급받기 <ExternalLink size={12} /></a>
-                                <button onClick={handlePasteKey} className="flex-1 h-10 bg-primary hover:bg-primary-light text-white text-[10px] font-black rounded-xl shadow-lg shadow-primary/20 flex items-center justify-center gap-1.5 transition-all active:scale-95">복사해 온 키 붙여넣기 <ClipboardPaste size={12} /></button>
+                                <a href="https://aistudio.google.com/app/apikey" target="_blank" rel="noopener noreferrer" className={`flex-1 h-10 flex items-center justify-center gap-1.5 rounded-xl border text-[10px] font-black transition-all ${isDarkMode ? 'bg-slate-800/50 border-white/5 text-slate-300 hover:bg-slate-800' : 'bg-slate-50 border-slate-200 text-slate-600 hover:bg-slate-100'}`}>
+                                    키 발급받기 <ExternalLink size={12} />
+                                </a>
+                                <button onClick={handlePasteKey} className="flex-1 h-10 bg-primary hover:bg-primary-light text-white text-[10px] font-black rounded-xl shadow-lg shadow-primary/20 flex items-center justify-center gap-1.5 transition-all active:scale-95">
+                                    복사해 온 키 붙여넣기 <ClipboardPaste size={12} />
+                                </button>
                            </div>
+
                            <div className="space-y-2">
                                 <div className="relative group">
-                                    <input type="password" value={tempApiKey} onChange={(e) => setTempApiKey(e.target.value)} placeholder="API 키를 입력하세요" className={`w-full h-12 px-5 pr-12 rounded-xl border-2 outline-none font-mono text-[13px] transition-all ${isDarkMode ? 'bg-black/40 border-white/5 focus:border-primary text-slate-100' : 'bg-slate-50 border-slate-100 focus:border-primary text-slate-800'}`} />
-                                    {tempApiKey && (<button onClick={() => setTempApiKey('')} className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-primary transition-colors"><RotateCcw size={14} /></button>)}
+                                    <input 
+                                        type="password" 
+                                        value={tempApiKey} 
+                                        onChange={(e) => setTempApiKey(e.target.value)} 
+                                        placeholder="API 키를 입력하세요" 
+                                        className={`w-full h-12 px-5 pr-12 rounded-xl border-2 outline-none font-mono text-[13px] transition-all ${isDarkMode ? 'bg-black/40 border-white/5 focus:border-primary text-slate-100' : 'bg-slate-50 border-slate-100 focus:border-primary text-slate-800'}`} 
+                                    />
+                                    {tempApiKey && (
+                                        <button onClick={() => setTempApiKey('')} className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-primary transition-colors"><RotateCcw size={14} /></button>
+                                    )}
                                 </div>
                                 {apiKeyError && <p className="text-[10px] text-rose-500 font-bold px-1 animate-in fade-in slide-in-from-top-1">{apiKeyError}</p>}
                                 {isValidating && <div className="flex items-center gap-2 px-1"><Loader2 size={12} className="animate-spin text-primary" /><p className="text-[10px] text-primary font-bold animate-pulse">키 유효성 검사 중...</p></div>}
                            </div>
+
+                           {popupType === 'EXPIRED' && (
+                               <div className={`space-y-1 pt-2 border-t ${isDarkMode ? 'border-white/5' : 'border-slate-100'}`}>
+                                    <p className={`text-[9px] font-bold ${isDarkMode ? 'text-slate-500' : 'text-slate-400'}`}>*지금 당장 키를 입력하지 않아도 계속 사용할 수 있어요.</p>
+                                    <p className={`text-[9px] font-bold ${isDarkMode ? 'text-slate-500' : 'text-slate-400'}`}>*설정에서 API키 입력 메뉴로 다시 키를 설정할 수 있어요.</p>
+                               </div>
+                           )}
                         </div>
                      </div>
                   )}
+                  
                   {message && !isApiKeyPopupVisible && (
                     <div className="absolute -top-20 left-1/2 transform -translate-x-1/2 w-64 text-center z-20 animate-in fade-in slide-in-from-bottom-2 pointer-events-none">
-                      <div className={`text-xs md:text-sm font-medium px-6 py-3 rounded-[20px] shadow-2xl backdrop-blur-lg border ${isDarkMode ? 'bg-slate-900/80 border-white/10 text-slate-100' : 'bg-surface/80 border-white/50 text-text-primary'}`}>"{message}"</div>
+                      <div className={`text-xs md:text-sm font-medium px-6 py-3 rounded-[20px] shadow-2xl backdrop-blur-lg border ${isDarkMode ? 'bg-slate-900/80 border-white/10 text-slate-100' : 'bg-surface/80 border-white/50 text-text-primary'}`}>
+                        "{message}"
+                      </div>
                     </div>
                   )}
                 </div>
@@ -879,15 +1068,22 @@ export const TimerScreen: React.FC<TimerScreenProps> = ({
                 <div className={`w-16 h-16 md:w-20 md:h-20 rounded-2xl flex flex-col items-center justify-center gap-1 border transition-all duration-500 ${isBreak ? (isDarkMode ? 'bg-emerald-900/20 border-emerald-800 text-emerald-400' : 'bg-success/10 border-success/20 text-success') : (isDarkMode ? 'bg-slate-800/50 border-slate-700 text-primary-light' : 'bg-primary/5 border-primary/10 text-primary')}`}>{isBreak ? <Coffee size={18} /> : <TimerIcon size={18} />}<div className="flex flex-col items-center leading-tight"><span className="text-[8px] md:text-[9px] font-black uppercase tracking-tighter">{isBreak ? "Break" : "Focus"}</span><span className="text-[8px] md:text-[9px] font-black uppercase tracking-tighter">Mode</span></div></div>
                 <div className={`text-6xl md:text-7xl font-bold tracking-tighter tabular-nums ${isDarkMode ? 'text-slate-100' : 'text-text-primary'}`}>{formatTime(timeLeft)}</div>
               </div>
+              
               <div className="w-full max-w-[320px] flex items-center gap-4 mt-2 px-2 relative select-none">
                 <span className={`text-[10px] font-black uppercase tracking-widest ${isDarkMode ? 'text-slate-500' : 'text-text-secondary/60'}`}>진행률</span>
                 <div className="flex-1 relative h-2">
                   <div className={`absolute inset-0 rounded-full ${isDarkMode ? 'bg-slate-800' : 'bg-border/40'} overflow-hidden`}>
                     <div className={`absolute top-0 left-0 h-full rounded-full transition-all duration-1000 ${isBreak ? 'bg-gradient-to-r from-success to-emerald-400 animate-pulse-slow' : 'bg-gradient-to-r from-primary to-primary-light'}`} style={{ width: `${overallProgressPercent}%` }} />
-                    {isResetHolding && (<div className="absolute top-0 right-0 h-full bg-rose-500 z-10" style={{ width: `${resetHoldProgress}%` }} />)}
+                    {isResetHolding && (
+                      <div 
+                          className="absolute top-0 right-0 h-full bg-rose-500 z-10"
+                          style={{ width: `${resetHoldProgress}%` }}
+                      />
+                    )}
                   </div>
                   {[1, 2, 3, 4].map((i) => { 
-                      const pos = i * 25; const isReached = overallProgressPercent >= pos; 
+                      const pos = i * 25; 
+                      const isReached = overallProgressPercent >= pos; 
                       return (
                           <div key={i} className="absolute top-1/2 -translate-y-1/2 -translate-x-1/2 flex flex-col items-center gap-1.5 z-20 pointer-events-none select-none" style={{ left: `${i * 25}%` }}>
                               <div className={`transform rotate-45 transition-all border-2 ${isReached ? (isBreak && sessionInCycle === i ? 'bg-success border-success scale-125' : 'bg-primary border-primary scale-110') : (isDarkMode ? 'bg-slate-900 border-slate-700' : 'bg-surface border-border')} ${i === 4 ? 'w-3 h-3' : 'w-2 h-2'}`} />
@@ -897,13 +1093,29 @@ export const TimerScreen: React.FC<TimerScreenProps> = ({
                   })}
                 </div>
               </div>
+
               <div className="flex items-center gap-6 md:gap-8 mt-4">
                   {!isBreak ? (
-                    <button ref={startBtnRef} onClick={() => { if(!isActive) triggerAIResponse('START'); else triggerAIResponse('PAUSE'); setIsActive(!isActive); }} className={`w-16 h-16 md:w-20 md:h-20 rounded-2xl flex items-center justify-center shadow-lg transition-all active:scale-90 ${isActive ? 'bg-warning text-white' : 'bg-primary text-white hover:bg-primary-light'}`}>{isActive ? <Pause className="w-7 h-7 md:w-8 md:h-8" fill="currentColor" /> : <Play className="w-7 h-7 md:w-8 md:h-8 ml-1" fill="currentColor" />}</button>
+                    <button ref={startBtnRef} onClick={() => { if(!isActive) triggerAIResponse('START'); else triggerAIResponse('PAUSE'); setIsActive(!isActive); }} className={`w-16 h-16 md:w-20 md:h-20 rounded-2xl flex items-center justify-center shadow-lg transition-all active:scale-90 ${isActive ? 'bg-warning text-white' : 'bg-primary text-white hover:bg-primary-light'}`}>
+                      {isActive ? <Pause className="w-7 h-7 md:w-8 md:h-8" fill="currentColor" /> : <Play className="w-7 h-7 md:w-8 md:h-8 ml-1" fill="currentColor" />}
+                    </button>
                   ) : (
-                    <button ref={startBtnRef} onClick={handleSkipBreak} title="휴식 건너뛰기" className="w-16 h-16 md:w-20 md:h-20 rounded-2xl flex items-center justify-center shadow-lg transition-all active:scale-90 bg-emerald-500 text-white hover:bg-emerald-600"><SkipForward className="w-7 h-7 md:w-8 md:h-8" fill="currentColor" /></button>
+                    <button ref={startBtnRef} onClick={handleSkipBreak} title="휴식 건너뛰기" className="w-16 h-16 md:w-20 md:h-20 rounded-2xl flex items-center justify-center shadow-lg transition-all active:scale-90 bg-emerald-500 text-white hover:bg-emerald-600">
+                      <SkipForward className="w-7 h-7 md:w-8 md:h-8" fill="currentColor" />
+                    </button>
                   )}
-                  <button ref={resetBtnRef} onMouseDown={handleResetStart} onMouseUp={handleResetEnd} onMouseLeave={handleResetCancel} onTouchStart={handleResetStart} onTouchEnd={handleResetEnd} className={`w-12 h-12 md:w-14 md:h-14 rounded-xl flex items-center justify-center transition-all active:scale-95 shadow-sm overflow-hidden relative select-none ${isDarkMode ? 'bg-slate-800 border-slate-700 text-slate-400 hover:text-slate-200' : 'bg-background border-border text-text-secondary hover:text-text-primary'}`}><RotateCcw className={`w-5 h-5 md:w-6 md:h-6 relative z-10 transition-transform ${isResetHolding ? 'rotate-[-120deg]' : ''}`} /></button>
+                  
+                  <button 
+                    ref={resetBtnRef}
+                    onMouseDown={handleResetStart}
+                    onMouseUp={handleResetEnd}
+                    onMouseLeave={handleResetCancel}
+                    onTouchStart={handleResetStart}
+                    onTouchEnd={handleResetEnd}
+                    className={`w-12 h-12 md:w-14 md:h-14 rounded-xl flex items-center justify-center transition-all active:scale-95 shadow-sm overflow-hidden relative select-none ${isDarkMode ? 'bg-slate-800 border-slate-700 text-slate-400 hover:text-slate-200' : 'bg-background border-border text-text-secondary hover:text-text-primary'}`}
+                  >
+                    <RotateCcw className={`w-5 h-5 md:w-6 md:h-6 relative z-10 transition-transform ${isResetHolding ? 'rotate-[-120deg]' : ''}`} />
+                  </button>
               </div>
             </div>
           </div>
