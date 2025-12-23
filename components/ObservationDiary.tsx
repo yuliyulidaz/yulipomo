@@ -49,25 +49,62 @@ export const ObservationDiary: React.FC<ObservationDiaryProps> = ({ profile, sta
     const generateDiary = async () => {
       try {
         const ai = new GoogleGenAI({ apiKey: profile.apiKey || process.env.API_KEY });
-        const mood = profile.level <= 3 ? "Cold and Distant" : profile.level <= 7 ? "Warm and Observant" : "Deeply Affectionate and Attentive";
-        const taskInfo = profile.todayTask ? `오늘 할 일은 "${profile.todayTask}"였습니다.` : "사용자는 집중 사이클을 마쳤습니다.";
         
-        const prompt = `Roleplay as ${profile.name}. Character Persona: ${profile.personality.join(',')}. User: ${profile.honorific}. Current Relationship: ${LEVEL_TITLES[profile.level]}.
-          Situation: User just finished 100min focus. Stats: Distractions: ${stats.distractions}, Interactions: ${stats.clicks}. ${taskInfo}
-          Task: Write a "Secret Observation Log" in Korean. 
-          - Tone: In character. 
-          - Narrative: Describe the user's focus naturally, mentioning the task, distractions, and clicks in a storytelling way. 
-          - Length: Exactly 3-4 sentences.
-          Return JSON ONLY: { "content": "text in Korean" }`;
+        const hour = new Date().getHours();
+        const timeContext = hour >= 5 && hour < 12 ? "싱그러운 아침 공기" : 
+                           hour >= 12 && hour < 17 ? "나른한 오후의 햇살" :
+                           hour >= 17 && hour < 21 ? "짙게 물드는 노을빛" : "고요한 새벽의 정적";
+        
+        // 호감도에 따른 구체적인 태도 설정
+        const relationshipTitle = LEVEL_TITLES[profile.level];
+        const intimacyLevel = profile.level <= 3 ? "사무적이고 관찰 위주의 차가운" : 
+                             profile.level <= 7 ? "서로를 알아가는 단계의 다정한" : 
+                             "깊은 애정과 신뢰가 느껴지는 매우 친밀한";
+        
+        const taskText = profile.todayTask ? `"${profile.todayTask}"에 매진하던` : "무언가에 깊이 몰입하던";
+
+        const prompt = `당신은 '${profile.name}'이라는 캐릭터입니다. 
+          성격: ${profile.personality.join(', ')}. 
+          유저와의 현재 관계: ${relationshipTitle} (호감도 레벨 ${profile.level}/10).
+          
+          방금 유저가 100분간의 집중 세션을 마쳤습니다. 당신은 옆에서 그 모습을 지켜보며 몰래 관찰 일지를 썼습니다.
+          
+          상황 정보:
+          - 유저가 한 일: ${taskText} 모습
+          - 딴짓(이탈) 횟수: ${stats.distractions}번
+          - 당신을 클릭(상호작용)한 횟수: ${stats.clicks}번
+          - 현재 분위기: ${timeContext}
+          
+          요구사항:
+          1. '${profile.name}'의 말투와 성격을 완벽히 유지하세요.
+          2. **중요: 유저와의 호감도(${relationshipTitle}, ${intimacyLevel})를 문장에 적극 반영하세요.** 
+             - 낮은 레벨이면 관찰자로서의 거리감을 유지하고, 높은 레벨이면 유저를 향한 강한 애착과 세밀한 관찰이 드러나야 합니다.
+          3. 유저를 관찰하며 느낀 감정을 아주 감성적이고 서정적으로 서술하세요.
+          4. 딴짓 횟수와 클릭 횟수를 단순 숫자로 나열하지 마세요. "잠시 창 밖으로 시선을 던지던 순간"이나 "나를 애타게 찾던 그 손길"처럼 문맥 속에 자연스럽게 녹여내세요.
+          5. ${timeContext}와 같은 시간적 배경을 언급하여 현장감을 더하세요.
+          6. 한국어로 3~4문장 내외로 작성하세요.
+          
+          반드시 다음 JSON 형식으로만 응답하세요:
+          { "content": "작성된 일지 내용" }`;
 
         const response = await ai.models.generateContent({
           model: 'gemini-3-flash-preview',
           contents: prompt,
-          config: { responseMimeType: "application/json", safetySettings: SAFETY_SETTINGS }
+          config: { 
+            responseMimeType: "application/json", 
+            safetySettings: SAFETY_SETTINGS,
+            temperature: 0.8
+          }
         });
+        
         const data = JSON.parse(response.text || '{}');
-        setContent(data.content);
+        if (data.content) {
+          setContent(data.content);
+        } else {
+          throw new Error("Empty content");
+        }
       } catch (e) {
+        console.error("Diary generation failed:", e);
         const toneKey = profile.personality[0] || "존댓말";
         const templates = FALLBACK_DIARY[toneKey] || FALLBACK_DIARY["존댓말"];
         const fallback = templates[0]
@@ -95,10 +132,10 @@ export const ObservationDiary: React.FC<ObservationDiaryProps> = ({ profile, sta
     }
   };
 
-  // 텍스트 길이에 따른 폰트 크기 계산 (스크롤 방지)
   const getFontSize = () => {
-    if (content.length > 180) return 'text-xl';
-    if (content.length > 130) return 'text-2xl';
+    if (content.length > 200) return 'text-lg';
+    if (content.length > 160) return 'text-xl';
+    if (content.length > 120) return 'text-2xl';
     return 'text-3xl';
   };
 
@@ -107,7 +144,6 @@ export const ObservationDiary: React.FC<ObservationDiaryProps> = ({ profile, sta
       className="fixed inset-0 z-[500] flex items-center justify-center p-4 bg-black/60 backdrop-blur-md animate-in fade-in duration-500"
       onClick={handleContainerClick}
     >
-      {/* Toast Message */}
       {showToast && (
         <div className="fixed top-10 left-1/2 -translate-x-1/2 z-[600] bg-black/80 text-white px-6 py-3 rounded-full text-sm font-bold shadow-2xl animate-in fade-in slide-in-from-top-4 duration-500">
           📸 스샷 후 아무데나 터치하면 창이 닫혀요.
@@ -118,11 +154,9 @@ export const ObservationDiary: React.FC<ObservationDiaryProps> = ({ profile, sta
         className={`w-full max-w-[340px] aspect-[9/16] bg-[#FAF8F1] rounded-2xl shadow-2xl relative border-8 border-white/90 overflow-hidden transform transition-all duration-700 flex flex-col origin-center ${isScreenshotMode ? 'scale-105' : 'animate-in zoom-in-95'}`}
         onClick={(e) => isScreenshotMode && e.stopPropagation()}
       >
-        {/* Paper Texture */}
         <div className="absolute inset-0 pointer-events-none opacity-30 mix-blend-multiply bg-[url('https://www.transparenttextures.com/patterns/grid-me.png')]"></div>
         
         <div className="flex-1 p-8 space-y-4 flex flex-col relative overflow-hidden">
-            {/* Header Tape */}
             <div className="absolute -top-3 left-1/2 -translate-x-1/2 w-28 h-8 bg-primary/20 backdrop-blur-sm transform -rotate-1 border border-primary/10 shadow-sm z-30 flex items-center justify-center">
                 <span className="text-[10px] font-black tracking-widest text-primary/60 uppercase">Secret Log</span>
             </div>
@@ -145,7 +179,6 @@ export const ObservationDiary: React.FC<ObservationDiaryProps> = ({ profile, sta
               </div>
             </div>
 
-            {/* Character Photo */}
             <div className="relative mx-auto mt-1">
                 <div className="w-32 h-32 bg-white p-2 shadow-lg border border-primary/5 rotate-2 relative">
                     <img src={profile.imageSrc || ''} className="w-full h-full object-cover grayscale-[0.2] sepia-[0.1]" alt="Character" />
@@ -172,7 +205,6 @@ export const ObservationDiary: React.FC<ObservationDiaryProps> = ({ profile, sta
                )}
             </div>
 
-            {/* Relationship Signature */}
             <div className="text-right pt-4 mt-auto border-t border-primary/10">
                 <p className="font-diary text-2xl text-primary-dark">
                     <span className="text-sm opacity-60 mr-1">{LEVEL_TITLES[profile.level]}</span>
@@ -181,7 +213,6 @@ export const ObservationDiary: React.FC<ObservationDiaryProps> = ({ profile, sta
             </div>
         </div>
 
-        {/* Bottom Bar - Hidden in Screenshot Mode */}
         {!isScreenshotMode && (
           <div className="bg-white/60 px-6 py-4 backdrop-blur-sm border-t border-primary/10 flex flex-col gap-3 z-40">
               <div className="flex justify-between items-center">
