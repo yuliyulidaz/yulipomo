@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { Play, Pause, RotateCcw, X, Heart, Timer as TimerIcon, Coffee, Bed, CheckCircle2, Moon, Sun, Settings, Save, Key, ExternalLink, ClipboardPaste, ClipboardCheck, Zap, MousePointer2, Ghost, Download, Loader2, FileSearch, Terminal, FastForward, SlidersHorizontal, User as UserIcon, Calendar, BookOpen, ArrowRight, SkipForward } from 'lucide-react';
+import { Play, Pause, RotateCcw, X, Heart, Timer as TimerIcon, Coffee, Bed, CheckCircle2, Moon, Sun, Settings, Save, Key, ExternalLink, ClipboardPaste, ClipboardCheck, Zap, MousePointer2, Ghost, Download, Loader2, FileSearch, Terminal, FastForward, SlidersHorizontal, User as UserIcon, Calendar, BookOpen, ArrowRight, SkipForward, ChevronRight } from 'lucide-react';
 import { CharacterProfile } from '../types';
 import { GoogleGenAI, HarmCategory, HarmBlockThreshold, Type } from "@google/genai";
 
@@ -124,6 +124,27 @@ export const TimerScreen: React.FC<TimerScreenProps> = ({
   const [resetHoldProgress, setResetHoldProgress] = useState(0);
   const resetHoldTimerRef = useRef<any>(null);
   const resetStartTimeRef = useRef<number | null>(null);
+
+  // 온보딩 가이드 관련 상태 및 Ref
+  const [onboardingStep, setOnboardingStep] = useState<number>(0);
+  const settingsBtnRef = useRef<HTMLDivElement>(null);
+  const characterBoxRef = useRef<HTMLDivElement>(null);
+  const resetBtnRef = useRef<HTMLButtonElement>(null);
+  const startBtnRef = useRef<HTMLButtonElement>(null);
+
+  useEffect(() => {
+    const isFirstTime = localStorage.getItem('pomodoro_onboarding_done') !== 'true';
+    if (isFirstTime) {
+      setTimeout(() => setOnboardingStep(1), 1000);
+    }
+  }, []);
+
+  const handleFinishOnboarding = (neverShowAgain: boolean) => {
+    if (neverShowAgain) {
+      localStorage.setItem('pomodoro_onboarding_done', 'true');
+    }
+    setOnboardingStep(0);
+  };
 
   const cleanDialogue = (text: string, honorific: string) => {
     return text.replace(/{honorific}|{이름}|{user}/g, honorific).replace(/{([^}]+)}/g, '$1');
@@ -311,7 +332,6 @@ export const TimerScreen: React.FC<TimerScreenProps> = ({
     };
     const userDisplayName = profile.honorific || profile.userName || "너";
     
-    // Removed dialogue display for CYCLE_LONG and CYCLE_SHORT as requested
     if (type === 'CYCLE_LONG' || type === 'CYCLE_SHORT') { return; }
     
     const key = cacheKeyMap[type];
@@ -507,14 +527,10 @@ export const TimerScreen: React.FC<TimerScreenProps> = ({
     return "Deeply Affectionate/Obsessive";
   };
 
-  // 롱 프레스 핸들러들
   const handleResetStart = (e: React.MouseEvent | React.TouchEvent) => {
-    // Prevent dragging or other unintended behaviors
     setIsResetHolding(true);
     setResetHoldProgress(0);
     resetStartTimeRef.current = Date.now();
-    
-    // 1초 뒤에 토스트 메시지 표시
     resetHoldTimerRef.current = setTimeout(() => {
         setMessage("처음부터 재시작됩니다.");
     }, 1000);
@@ -522,11 +538,8 @@ export const TimerScreen: React.FC<TimerScreenProps> = ({
 
   const handleResetEnd = () => {
     if (!isResetHolding) return;
-    
     const duration = Date.now() - (resetStartTimeRef.current || 0);
-    
     if (duration >= RESET_HOLD_MS) {
-      // 사이클 전체 초기화 (오래 누름)
       setSessionInCycle(0);
       setIsBreak(false);
       setTimeLeft(25 * 60);
@@ -535,12 +548,10 @@ export const TimerScreen: React.FC<TimerScreenProps> = ({
       setClicks(0);
       setMessage("마음을 새로 먹었나 보네? 처음부터 다시 시작하자.");
     } else {
-      // 현재 세션 초기화 (짧게 누름)
       setIsActive(false);
       setTimeLeft(isBreak ? (sessionInCycle === 0 ? 30 * 60 : 5 * 60) : 25 * 60);
       setMessage("응? 다시 하고 싶어? 좋아, 다시 집중해보자.");
     }
-    
     handleResetCancel();
   };
 
@@ -554,7 +565,6 @@ export const TimerScreen: React.FC<TimerScreenProps> = ({
     }
   };
 
-  // 애니메이션 효과를 위한 tick
   useEffect(() => {
     let frame: any;
     if (isResetHolding) {
@@ -565,7 +575,6 @@ export const TimerScreen: React.FC<TimerScreenProps> = ({
         if (progress < 100) {
           frame = requestAnimationFrame(update);
         } else {
-          // 100% 도달 시 즉시 초기화 실행
           handleResetEnd();
         }
       };
@@ -574,7 +583,6 @@ export const TimerScreen: React.FC<TimerScreenProps> = ({
     return () => cancelAnimationFrame(frame);
   }, [isResetHolding]);
 
-  // 휴식 넘기기 핸들러
   const handleSkipBreak = () => {
     setIsBreak(false);
     setTimeLeft(25 * 60);
@@ -583,8 +591,109 @@ export const TimerScreen: React.FC<TimerScreenProps> = ({
     setMessage("벌써 쉬는 시간 끝내게? 열정이 대단하네... 계속하자!");
   };
 
+  // 온보딩 가이드 컴포넌트 헬퍼
+  const getSpotlightStyles = () => {
+    let target: HTMLElement | null = null;
+    let radius = 40;
+    
+    if (onboardingStep === 1) target = settingsBtnRef.current;
+    if (onboardingStep === 2) { target = characterBoxRef.current; radius = 100; }
+    if (onboardingStep === 3) { target = resetBtnRef.current; radius = 40; }
+    if (onboardingStep === 4) { target = startBtnRef.current; radius = 50; }
+
+    if (!target) return { cx: 0, cy: 0, r: 0, visible: false };
+
+    const rect = target.getBoundingClientRect();
+    return {
+      cx: rect.left + rect.width / 2,
+      cy: rect.top + rect.height / 2,
+      r: Math.max(rect.width, rect.height) / 2 + 10,
+      visible: true
+    };
+  };
+
+  const spotlight = getSpotlightStyles();
+
   return (
     <div className={`relative w-full h-screen flex transition-colors duration-700 overflow-hidden font-sans select-none ${isDarkMode ? 'bg-[#0B0E14] text-slate-100' : 'bg-background text-text-primary'}`}>
+      
+      {/* 온보딩 레이어 */}
+      {onboardingStep > 0 && (
+        <div className="fixed inset-0 z-[300] overflow-hidden">
+          <svg className="absolute inset-0 w-full h-full pointer-events-none">
+            <defs>
+              <mask id="spotlight-mask">
+                <rect width="100%" height="100%" fill="white" />
+                {spotlight.visible && (
+                  <circle 
+                    cx={spotlight.cx} 
+                    cy={spotlight.cy} 
+                    r={spotlight.r} 
+                    fill="black" 
+                    className="transition-all duration-500 ease-in-out"
+                  />
+                )}
+              </mask>
+            </defs>
+            <rect width="100%" height="100%" fill="rgba(0,0,0,0.7)" mask="url(#spotlight-mask)" className="pointer-events-auto" />
+          </svg>
+
+          <div 
+            className="absolute z-[310] flex flex-col items-center pointer-events-none transition-all duration-500 ease-in-out"
+            style={{ 
+              top: onboardingStep === 1 ? spotlight.cy + spotlight.r + 20 : 
+                   onboardingStep === 2 ? spotlight.cy - spotlight.r - 140 :
+                   onboardingStep === 3 ? spotlight.cy - spotlight.r - 180 :
+                   spotlight.cy - spotlight.r - 160,
+              left: Math.max(20, Math.min(window.innerWidth - 300, spotlight.cx - 140))
+            }}
+          >
+            <div className={`w-72 bg-surface p-6 rounded-3xl shadow-2xl pointer-events-auto border border-border animate-in zoom-in-95 duration-300 ${isDarkMode ? 'bg-slate-900 border-white/10' : ''}`}>
+               <div className="flex items-center gap-2 mb-3">
+                  <div className="bg-primary text-white text-[10px] font-black px-2 py-0.5 rounded-full uppercase tracking-widest">Guide {onboardingStep}/4</div>
+               </div>
+               <p className={`text-sm font-bold leading-relaxed mb-6 ${isDarkMode ? 'text-slate-200' : 'text-text-primary'}`}>
+                  {onboardingStep === 1 && "설정: 다크모드, API키 등 설정을 변경할 수 있습니다."}
+                  {onboardingStep === 2 && "캐릭터: 최애를 톡톡 눌러서 응원을 받으세요."}
+                  {onboardingStep === 3 && "되돌아가기:\n한 번 누르면 현재 세션 초기화,\n길게 누르면 사이클이 통째로 초기화 됩니다."}
+                  {onboardingStep === 4 && "시작: 이제 시작 버튼을 누르고 시작해 보세요."}
+               </p>
+               
+               <div className="flex items-center justify-between gap-3">
+                  {onboardingStep < 4 ? (
+                    <button 
+                      onClick={() => setOnboardingStep(onboardingStep + 1)}
+                      className="flex-1 py-3 bg-primary text-white rounded-xl font-black text-xs shadow-lg shadow-primary/20 flex items-center justify-center gap-1.5 active:scale-95 transition-all"
+                    >
+                      다음 <ChevronRight size={14} />
+                    </button>
+                  ) : (
+                    <>
+                      <button 
+                        onClick={() => handleFinishOnboarding(true)}
+                        className="flex-1 py-3 bg-background border border-border text-text-secondary rounded-xl font-bold text-[10px] active:scale-95 transition-all"
+                      >
+                        다시 보지 않기
+                      </button>
+                      <button 
+                        onClick={() => handleFinishOnboarding(false)}
+                        className="flex-1 py-3 bg-primary text-white rounded-xl font-black text-xs shadow-lg shadow-primary/20 active:scale-95 transition-all"
+                      >
+                        닫기
+                      </button>
+                    </>
+                  )}
+               </div>
+            </div>
+            {/* Arrow decoration */}
+            <div 
+              className={`w-4 h-4 transform rotate-45 border-t border-l absolute ${isDarkMode ? 'bg-slate-900 border-white/10' : 'bg-surface border-border'} ${onboardingStep === 1 ? '-top-2' : '-bottom-2'}`}
+              style={{ left: '140px', top: onboardingStep === 1 ? '-8px' : 'auto', bottom: onboardingStep !== 1 ? '-8px' : 'auto' }}
+            ></div>
+          </div>
+        </div>
+      )}
+
       {profile.imageSrc && (
         <div className={`absolute inset-0 z-0 transition-opacity duration-700 ${isDarkMode ? 'opacity-5' : 'opacity-10'}`}>
           <img src={profile.imageSrc} alt="Background" className="w-full h-full object-cover blur-md scale-110" />
@@ -839,13 +948,13 @@ export const TimerScreen: React.FC<TimerScreenProps> = ({
             </div>
           </div>
 
-          <div className={`w-full max-w-md backdrop-blur-xl border p-6 md:p-8 rounded-[40px] shadow-[0_20px_50px_rgba(74,95,122,0.1)] flex flex-col items-center gap-6 md:gap-8 animate-in fade-in zoom-in duration-500 relative transition-colors duration-700 ${isDarkMode ? 'bg-[#161B22]/90 border-[#30363D]' : 'bg-surface/90 border-border'} ${isApiKeyPopupVisible || isSettingsOpen ? 'overflow-visible z-40' : 'overflow-hidden'}`}>
+          <div className={`w-full max-md backdrop-blur-xl border p-6 md:p-8 rounded-[40px] shadow-[0_20px_50px_rgba(74,95,122,0.1)] flex flex-col items-center gap-6 md:gap-8 animate-in fade-in zoom-in duration-500 relative transition-colors duration-700 ${isDarkMode ? 'bg-[#161B22]/90 border-[#30363D]' : 'bg-surface/90 border-border'} ${isApiKeyPopupVisible || isSettingsOpen ? 'overflow-visible z-40' : 'overflow-hidden'}`}>
             <div className={`absolute top-2.5 inset-x-8 h-1.5 z-10 ${isDarkMode ? 'bg-slate-700/20' : 'bg-border/20'} rounded-full overflow-hidden`}>
               <div className="h-full bg-gradient-to-r from-primary to-accent transition-all duration-1000 ease-out rounded-full" style={{ width: `${progressPercent}%` }} />
             </div>
 
             <div className="w-full flex justify-between items-start mt-2 px-2 relative z-50">
-                <div className="relative">
+                <div className="relative" ref={settingsBtnRef}>
                   <button onClick={() => setIsSettingsOpen(!isSettingsOpen)} className={`p-2.5 rounded-full transition-all border shadow-sm ${isSettingsOpen ? 'bg-primary text-white border-primary-dark rotate-45 scale-110' : (isDarkMode ? 'bg-slate-800 text-slate-400 border-slate-700 hover:bg-slate-700' : 'bg-slate-50 text-slate-500 border-slate-200 hover:bg-slate-100')}`} title="설정"><Settings size={20} /></button>
                   <div className={`absolute top-full left-0 mt-3.5 flex flex-col gap-3.5 transition-all duration-500 origin-top z-50 ${isSettingsOpen ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-4 pointer-events-none'}`}>
                       <div className="flex items-center gap-3 cursor-pointer" onClick={(e) => { e.stopPropagation(); setIsDarkMode(!isDarkMode); }}><div className={`w-12 h-12 rounded-full border shadow-sm flex items-center justify-center transition-all hover:scale-110 ${isDarkMode ? 'bg-slate-800 text-yellow-400 border-slate-700' : 'bg-white border-slate-200'}`}>{isDarkMode ? <Sun size={20} /> : <Moon size={20} />}</div><span className={`text-[10px] font-black px-2.5 py-1.5 rounded-lg border shadow-sm whitespace-nowrap min-w-[60px] text-center ${isDarkMode ? 'bg-slate-800 border-slate-700 text-slate-100' : 'bg-surface/90 border-border'}`}>{isDarkMode ? '라이트' : '다크'}</span></div>
@@ -880,7 +989,7 @@ export const TimerScreen: React.FC<TimerScreenProps> = ({
                           </svg>
                         </div>
                       )}
-                      <div onClick={handleCharacterClick} className={`w-32 h-32 md:w-44 md:h-44 rounded-2xl border-4 overflow-hidden shadow-xl mx-auto transition-all duration-500 group-hover:scale-105 group-hover:border-primary cursor-pointer active:scale-95 ${isDarkMode ? 'border-slate-800' : 'border-border'}`}>
+                      <div onClick={handleCharacterClick} ref={characterBoxRef} className={`w-32 h-32 md:w-44 md:h-44 rounded-2xl border-4 overflow-hidden shadow-xl mx-auto transition-all duration-500 group-hover:scale-105 group-hover:border-primary cursor-pointer active:scale-95 ${isDarkMode ? 'border-slate-800' : 'border-border'}`}>
                         <img src={profile.imageSrc || ''} alt={profile.name} className="w-full h-full object-cover" />
                       </div>
                       {cooldownRemaining > 0 && (<div className="absolute -bottom-2 left-1/2 -translate-x-1/2 bg-primary/90 text-white text-[9px] font-black px-3 py-1 rounded-full shadow-lg animate-pulse whitespace-nowrap z-20">가만히 바라보는 중...</div>)}
@@ -958,41 +1067,42 @@ export const TimerScreen: React.FC<TimerScreenProps> = ({
               
               <div className="w-full max-w-[320px] flex items-center gap-4 mt-2 px-2 relative select-none">
                 <span className={`text-[10px] font-black uppercase tracking-widest ${isDarkMode ? 'text-slate-500' : 'text-text-secondary/60'}`}>진행률</span>
-                <div className={`relative h-2 flex-1 rounded-full ${isDarkMode ? 'bg-slate-800' : 'bg-border/40'} overflow-hidden`}>
-                  <div className={`absolute top-0 left-0 h-full rounded-full transition-all duration-1000 ${isBreak ? 'bg-gradient-to-r from-success to-emerald-400 animate-pulse-slow' : 'bg-gradient-to-r from-primary to-primary-light'}`} style={{ width: `${overallProgressPercent}%` }} />
-                  
-                  {/* 롱 프레스 리셋 애니메이션 레이어: 우측(4번 지점)에서 좌측(0번)으로 부드럽게 차오름 */}
-                  {isResetHolding && (
-                    <div 
-                        className="absolute top-0 right-0 h-full bg-rose-500 z-10"
-                        style={{ width: `${resetHoldProgress}%` }}
-                    />
-                  )}
+                <div className="flex-1 relative h-2">
+                  <div className={`absolute inset-0 rounded-full ${isDarkMode ? 'bg-slate-800' : 'bg-border/40'} overflow-hidden`}>
+                    <div className={`absolute top-0 left-0 h-full rounded-full transition-all duration-1000 ${isBreak ? 'bg-gradient-to-r from-success to-emerald-400 animate-pulse-slow' : 'bg-gradient-to-r from-primary to-primary-light'}`} style={{ width: `${overallProgressPercent}%` }} />
+                    {isResetHolding && (
+                      <div 
+                          className="absolute top-0 right-0 h-full bg-rose-500 z-10"
+                          style={{ width: `${resetHoldProgress}%` }}
+                      />
+                    )}
+                  </div>
+                  {[1, 2, 3, 4].map((i) => { 
+                      const pos = i * 25; 
+                      const isReached = overallProgressPercent >= pos; 
+                      return (
+                          <div key={i} className="absolute top-1/2 -translate-y-1/2 -translate-x-1/2 flex flex-col items-center gap-1.5 z-20 pointer-events-none select-none" style={{ left: `${i * 25}%` }}>
+                              <div className={`transform rotate-45 transition-all border-2 ${isReached ? (isBreak && sessionInCycle === i ? 'bg-success border-success scale-125' : 'bg-primary border-primary scale-110') : (isDarkMode ? 'bg-slate-900 border-slate-700' : 'bg-surface border-border')} ${i === 4 ? 'w-3 h-3' : 'w-2 h-2'}`} />
+                              <span className={`text-[9px] font-black absolute -bottom-4 select-none ${isReached ? 'text-primary' : (isDarkMode ? 'text-slate-600' : 'text-text-secondary/40')}`}>{i}</span>
+                          </div>
+                      ); 
+                  })}
                 </div>
-                {[1, 2, 3, 4].map((i) => { 
-                    const pos = i * 25; 
-                    const isReached = overallProgressPercent >= pos; 
-                    return (
-                        <div key={i} className="absolute top-1/2 -translate-y-1/2 -translate-x-1/2 flex flex-col items-center gap-1.5 z-20 pointer-events-none select-none" style={{ left: `calc(52px + ${i * 18.2}%)` }}>
-                            <div className={`transform rotate-45 transition-all border-2 ${isReached ? (isBreak && sessionInCycle === i ? 'bg-success border-success scale-125' : 'bg-primary border-primary scale-110') : (isDarkMode ? 'bg-slate-900 border-slate-700' : 'bg-surface border-border')} ${i === 4 ? 'w-3 h-3' : 'w-2 h-2'}`} />
-                            <span className={`text-[9px] font-black absolute -bottom-4 select-none ${isReached ? 'text-primary' : (isDarkMode ? 'text-slate-600' : 'text-text-secondary/40')}`}>{i}</span>
-                        </div>
-                    ); 
-                })}
               </div>
 
               <div className="flex items-center gap-6 md:gap-8 mt-4">
                   {!isBreak ? (
-                    <button onClick={() => { if(!isActive) triggerAIResponse('START'); else triggerAIResponse('PAUSE'); setIsActive(!isActive); }} className={`w-16 h-16 md:w-20 md:h-20 rounded-2xl flex items-center justify-center shadow-lg transition-all active:scale-90 ${isActive ? 'bg-warning text-white' : 'bg-primary text-white hover:bg-primary-light'}`}>
+                    <button ref={startBtnRef} onClick={() => { if(!isActive) triggerAIResponse('START'); else triggerAIResponse('PAUSE'); setIsActive(!isActive); }} className={`w-16 h-16 md:w-20 md:h-20 rounded-2xl flex items-center justify-center shadow-lg transition-all active:scale-90 ${isActive ? 'bg-warning text-white' : 'bg-primary text-white hover:bg-primary-light'}`}>
                       {isActive ? <Pause className="w-7 h-7 md:w-8 md:h-8" fill="currentColor" /> : <Play className="w-7 h-7 md:w-8 md:h-8 ml-1" fill="currentColor" />}
                     </button>
                   ) : (
-                    <button onClick={handleSkipBreak} title="휴식 건너뛰기" className="w-16 h-16 md:w-20 md:h-20 rounded-2xl flex items-center justify-center shadow-lg transition-all active:scale-90 bg-emerald-500 text-white hover:bg-emerald-600">
+                    <button ref={startBtnRef} onClick={handleSkipBreak} title="휴식 건너뛰기" className="w-16 h-16 md:w-20 md:h-20 rounded-2xl flex items-center justify-center shadow-lg transition-all active:scale-90 bg-emerald-500 text-white hover:bg-emerald-600">
                       <SkipForward className="w-7 h-7 md:w-8 md:h-8" fill="currentColor" />
                     </button>
                   )}
                   
                   <button 
+                    ref={resetBtnRef}
                     onMouseDown={handleResetStart}
                     onMouseUp={handleResetEnd}
                     onMouseLeave={handleResetCancel}
