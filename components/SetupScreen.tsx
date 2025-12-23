@@ -105,16 +105,13 @@ export const TimerScreen: React.FC<TimerScreenProps> = ({
   const [isBreak, setIsBreak] = useState(profile.savedIsBreak ?? false);
   const [sessionInCycle, setSessionInCycle] = useState(profile.savedSessionInCycle ?? 0); 
   
-  // 사이클 통계 추적
   const [distractions, setDistractions] = useState(profile.cycleStats?.distractions ?? 0);
   const [clicks, setClicks] = useState(profile.cycleStats?.clicks ?? 0);
   
-  // 보고서 관련 상태
   const [showReport, setShowReport] = useState(false);
   const [isGeneratingReport, setIsGeneratingReport] = useState(false);
   const [reportData, setReportData] = useState<ReportData | null>(null);
 
-  // 관리자(God Mode) 관련 상태
   const [badgeClicks, setBadgeClicks] = useState(0);
   const [showAdminAuth, setShowAdminAuth] = useState(false);
   const [adminPassword, setAdminPassword] = useState('');
@@ -150,7 +147,6 @@ export const TimerScreen: React.FC<TimerScreenProps> = ({
   const isRefillingRef = useRef<Record<string, boolean>>({});
   const isGlobalApiLockedRef = useRef<boolean>(false);
   const refillQueueRef = useRef<Array<keyof typeof profile.dialogueCache>>([]);
-  const randomEncouragementTimerRef = useRef<any>(null);
   const wakeLockRef = useRef<any>(null);
   
   const profileRef = useRef(profile);
@@ -208,15 +204,15 @@ export const TimerScreen: React.FC<TimerScreenProps> = ({
 
   const processRefillQueue = useCallback(async () => {
     if (isGlobalApiLockedRef.current || refillQueueRef.current.length === 0) return;
-    const PRIORITY: Record<string, number> = { click: 0, start: 1, scolding: 1, praising: 2, pause: 2, idle: 3 };
+    
+    // 유저 제안 순서에 따른 가중치 (우선순위)
+    const PRIORITY: Record<string, number> = { click: 0, scolding: 1, pause: 2, start: 3, idle: 4, praising: 5 };
     refillQueueRef.current.sort((a, b) => (PRIORITY[a] ?? 99) - (PRIORITY[b] ?? 99));
-    const currentProfile = profileRef.current;
-    if (currentProfile.dialogueCache.click.length === 0 && refillQueueRef.current.includes('click')) {
-        const idx = refillQueueRef.current.indexOf('click'); refillQueueRef.current.splice(idx, 1);
-        isGlobalApiLockedRef.current = true; await refillCategory('click', 5);
-    } else {
-        const category = refillQueueRef.current.shift()!; isGlobalApiLockedRef.current = true; await refillCategory(category, 5);
-    }
+    
+    const category = refillQueueRef.current.shift()!;
+    isGlobalApiLockedRef.current = true;
+    await refillCategory(category, 5);
+    
     setTimeout(() => { isGlobalApiLockedRef.current = false; }, 15000);
   }, [refillCategory]);
 
@@ -225,10 +221,22 @@ export const TimerScreen: React.FC<TimerScreenProps> = ({
     return () => clearInterval(queueTimer);
   }, [processRefillQueue]);
 
+  // 충전 기준 로직 업데이트 (일반: < 10, 특별: == 0)
   const addToRefillQueue = useCallback((category: keyof typeof profile.dialogueCache) => {
-    if (profileRef.current.dialogueCache[category].length >= 10) return;
+    const isSpecial = category === 'idle' || category === 'praising';
+    const threshold = isSpecial ? 0 : 10;
+    
+    if (profileRef.current.dialogueCache[category].length > threshold) return;
     if (!refillQueueRef.current.includes(category)) refillQueueRef.current.push(category);
   }, []);
+
+  // --- 추가된 기능: 앱 시작 시 자동 프리페치 (Startup Prefetch) ---
+  useEffect(() => {
+    const categoriesInOrder: Array<keyof typeof profile.dialogueCache> = ['click', 'scolding', 'pause', 'start', 'idle', 'praising'];
+    categoriesInOrder.forEach(category => {
+      addToRefillQueue(category);
+    });
+  }, [addToRefillQueue]);
 
   const triggerAIResponse = useCallback((type: 'START' | 'FINISH' | 'DISTRACTION' | 'IDLE' | 'CLICK' | 'PAUSE' | 'READY' | 'RETURN' | 'CYCLE_LONG' | 'CYCLE_SHORT') => {
     const cacheKeyMap: Record<string, keyof typeof profile.dialogueCache> = {
@@ -246,7 +254,7 @@ export const TimerScreen: React.FC<TimerScreenProps> = ({
         setMessage(cleanDialogue(randomMsg, userDisplayName));
         const newCacheList = [...cachedList]; newCacheList.splice(randomIndex, 1);
         onUpdateProfile({ dialogueCache: { ...profile.dialogueCache, [key]: newCacheList } });
-        if (newCacheList.length < 10) addToRefillQueue(key);
+        addToRefillQueue(key); // 사용 후 즉시 보충 체크
     } else {
         const toneKey = profile.personality.find(p => FALLBACK_TEMPLATES[p]) || "존댓말";
         const template = FALLBACK_TEMPLATES[toneKey];
@@ -259,7 +267,7 @@ export const TimerScreen: React.FC<TimerScreenProps> = ({
 
   const handleCharacterClick = () => {
     if (isBreak) return;
-    if (isActive && !isBreak) setClicks(prev => prev + 1); // 클릭 횟수 기록
+    if (isActive && !isBreak) setClicks(prev => prev + 1);
     if (cooldownRemaining > 0) { setMessage("가만히 바라보는 중..."); return; }
     triggerAIResponse('CLICK');
     setCooldownRemaining(COOLDOWN_MS);
@@ -329,8 +337,8 @@ export const TimerScreen: React.FC<TimerScreenProps> = ({
       setSessionInCycle(nextSessionCount);
       if (nextSessionCount === 4) {
         setIsActive(false);
-        generateObservationReport(); // 보고서 데이터 생성 시작
-        setShowReport(true); // 보고서 모달 띄우기
+        generateObservationReport();
+        setShowReport(true);
       } else { 
         triggerAIResponse('FINISH'); setIsBreak(true); setTimeLeft(5 * 60); 
       }
@@ -344,7 +352,7 @@ export const TimerScreen: React.FC<TimerScreenProps> = ({
   const closeReportAndShowChoice = () => {
     setShowReport(false);
     setReportData(null);
-    setDistractions(0); // 사이클 리셋
+    setDistractions(0);
     setClicks(0);
     setShowChoiceModal(true);
   };
@@ -364,7 +372,7 @@ export const TimerScreen: React.FC<TimerScreenProps> = ({
     const handleVisibilityChange = () => {
       if (document.hidden) {
         if (isActive && !isBreak) { 
-          setDistractions(prev => prev + 1); // 딴짓 횟수 기록
+          setDistractions(prev => prev + 1);
           triggerAIResponse('DISTRACTION'); document.title = "⚠️ 딴짓 금지!"; 
         }
       } else {
@@ -387,7 +395,6 @@ export const TimerScreen: React.FC<TimerScreenProps> = ({
     setIsSettingsOpen(false); setMessage("저장되었습니다.");
   };
 
-  // 관리자 모드 진입 핸들러
   const handleBadgeClick = () => {
     const nextCount = badgeClicks + 1;
     setBadgeClicks(nextCount);
@@ -395,7 +402,6 @@ export const TimerScreen: React.FC<TimerScreenProps> = ({
       setBadgeClicks(0);
       setShowAdminAuth(true);
     }
-    // 2초 동안 클릭 없으면 카운트 리셋
     setTimeout(() => setBadgeClicks(0), 2000);
   };
 
@@ -418,7 +424,6 @@ export const TimerScreen: React.FC<TimerScreenProps> = ({
   const progressPercent = Math.min(100, (profile.xp / currentXpTarget) * 100);
   const overallProgressPercent = ((sessionInCycle + (!isBreak ? (25 * 60 - timeLeft) / (25 * 60) : 0)) / 4) * 100;
 
-  // 디버그 데이터 계산
   const getDebugMood = () => {
     if (profile.level <= 3) return "Cold/Strict";
     if (profile.level <= 7) return "Friendly/Warm";
@@ -433,7 +438,6 @@ export const TimerScreen: React.FC<TimerScreenProps> = ({
         </div>
       )}
 
-      {/* 관리자 비밀번호 팝업 */}
       {showAdminAuth && (
         <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-300">
           <form onSubmit={verifyAdmin} className="w-full max-w-xs bg-surface border border-border p-6 rounded-3xl shadow-2xl space-y-4">
@@ -454,7 +458,6 @@ export const TimerScreen: React.FC<TimerScreenProps> = ({
         </div>
       )}
 
-      {/* 관리자 패널 UI */}
       {isAdminMode && showAdminPanel && (
         <div className="fixed bottom-6 left-6 z-[150] w-72 bg-slate-900/95 border border-white/10 rounded-3xl shadow-2xl overflow-hidden backdrop-blur-xl animate-in slide-in-from-left-4 duration-500">
           <div className="bg-primary/20 px-5 py-3 border-b border-white/5 flex justify-between items-center">
@@ -519,11 +522,9 @@ export const TimerScreen: React.FC<TimerScreenProps> = ({
         </div>
       )}
 
-      {/* 최애의 관찰 보고서 모달 */}
       {showReport && (
         <div className="fixed inset-0 z-[110] flex items-center justify-center p-4 bg-primary-dark/60 backdrop-blur-xl animate-in fade-in duration-500">
           <div className="w-full max-w-lg bg-[#FAF9F6] text-[#2D3436] rounded-[2rem] shadow-2xl overflow-hidden relative border-8 border-white/50 transform animate-in zoom-in-95 duration-500">
-            {/* 상단 띠 */}
             <div className="bg-[#E9E4D4] px-8 py-4 border-b-2 border-dashed border-[#B2A88E] flex justify-between items-center">
               <div className="flex items-center gap-2">
                 <div className="bg-rose-500 text-white text-[9px] font-black px-2 py-0.5 rounded tracking-tighter">TOP SECRET</div>
@@ -587,7 +588,6 @@ export const TimerScreen: React.FC<TimerScreenProps> = ({
               ) : null}
             </div>
 
-            {/* 하단 장식 */}
             <div className="bg-[#E9E4D4] px-8 py-2 flex justify-center border-t-2 border-dashed border-[#B2A88E]">
               <p className="text-[9px] font-bold text-[#8B836C]">OBSERVER: {profile.name} • CONFIDENTIAL RECORD</p>
             </div>
