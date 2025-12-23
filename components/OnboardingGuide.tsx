@@ -54,9 +54,11 @@ export const OnboardingGuide: React.FC<OnboardingGuideProps> = ({ isDarkMode, ta
 
   const getGuidePosition = () => {
     const isBottomHalf = spotlight.cy > window.innerHeight / 2;
-    // 말풍선의 위치를 타겟의 위치에 따라 유동적으로 조절
+    // 리셋 버튼(Step 3) 설명창이 버튼을 가리지 않도록 오프셋을 180에서 210으로 늘려 위로 올림
+    const aboveOffset = step === 3 ? 210 : 180;
+    
     return {
-      top: isBottomHalf ? spotlight.cy - spotlight.r - 180 : spotlight.cy + spotlight.r + 20,
+      top: isBottomHalf ? spotlight.cy - spotlight.r - aboveOffset : spotlight.cy + spotlight.r + 20,
       left: Math.max(20, Math.min(window.innerWidth - 300, spotlight.cx - 140)),
       arrowAtTop: !isBottomHalf
     };
