@@ -4,6 +4,7 @@ import { Play, Pause, RotateCcw, X, Heart, Timer as TimerIcon, Coffee, Bed, Chec
 import { CharacterProfile } from '../types';
 import { GoogleGenAI, HarmCategory, HarmBlockThreshold, Type } from "@google/genai";
 import { ObservationDiary } from './ObservationDiary';
+import { OnboardingGuide } from './OnboardingGuide';
 
 interface TimerScreenProps {
   profile: CharacterProfile;
@@ -118,7 +119,7 @@ export const TimerScreen: React.FC<TimerScreenProps> = ({
   const resetStartTimeRef = useRef<number | null>(null);
 
   // 온보딩 가이드 관련 상태 및 Ref
-  const [onboardingStep, setOnboardingStep] = useState<number>(0);
+  const [showOnboarding, setShowOnboarding] = useState(false);
   const settingsBtnRef = useRef<HTMLDivElement>(null);
   const characterBoxRef = useRef<HTMLDivElement>(null);
   const resetBtnRef = useRef<HTMLButtonElement>(null);
@@ -127,7 +128,7 @@ export const TimerScreen: React.FC<TimerScreenProps> = ({
   useEffect(() => {
     const isFirstTime = localStorage.getItem('pomodoro_onboarding_done') !== 'true';
     if (isFirstTime) {
-      setTimeout(() => setOnboardingStep(1), 1000);
+      setTimeout(() => setShowOnboarding(true), 1000);
     }
   }, []);
 
@@ -135,7 +136,7 @@ export const TimerScreen: React.FC<TimerScreenProps> = ({
     if (neverShowAgain) {
       localStorage.setItem('pomodoro_onboarding_done', 'true');
     }
-    setOnboardingStep(0);
+    setShowOnboarding(false);
   };
 
   const cleanDialogue = (text: string, honorific: string) => {
@@ -528,111 +529,21 @@ export const TimerScreen: React.FC<TimerScreenProps> = ({
     setMessage("벌써 쉬는 시간 끝내게? 열정이 대단하네... 계속하자!");
   };
 
-  // 온보딩 가이드 컴포넌트 헬퍼
-  const getSpotlightStyles = () => {
-    let target: HTMLElement | null = null;
-    let radius = 40;
-    
-    if (onboardingStep === 1) target = settingsBtnRef.current;
-    if (onboardingStep === 2) { target = characterBoxRef.current; radius = 100; }
-    if (onboardingStep === 3) { target = resetBtnRef.current; radius = 40; }
-    if (onboardingStep === 4) { target = startBtnRef.current; radius = 50; }
-
-    if (!target) return { cx: 0, cy: 0, r: 0, visible: false };
-
-    const rect = target.getBoundingClientRect();
-    return {
-      cx: rect.left + rect.width / 2,
-      cy: rect.top + rect.height / 2,
-      r: Math.max(rect.width, rect.height) / 2 + 10,
-      visible: true
-    };
-  };
-
-  const spotlight = getSpotlightStyles();
-
   return (
     <div className={`relative w-full h-screen flex transition-colors duration-700 overflow-hidden font-sans select-none ${isDarkMode ? 'bg-[#0B0E14] text-slate-100' : 'bg-background text-text-primary'}`}>
       
-      {/* 온보딩 레이어 */}
-      {onboardingStep > 0 && (
-        <div className="fixed inset-0 z-[300] overflow-hidden">
-          <svg className="absolute inset-0 w-full h-full pointer-events-none">
-            <defs>
-              <mask id="spotlight-mask">
-                <rect width="100%" height="100%" fill="white" />
-                {spotlight.visible && (
-                  <circle 
-                    cx={spotlight.cx} 
-                    cy={spotlight.cy} 
-                    r={spotlight.r} 
-                    fill="black" 
-                    className="transition-all duration-500 ease-in-out"
-                  />
-                )}
-              </mask>
-            </defs>
-            <rect width="100%" height="100%" fill="rgba(0,0,0,0.7)" mask="url(#spotlight-mask)" className="pointer-events-auto" />
-          </svg>
-
-          <div 
-            className="absolute z-[310] flex flex-col items-center pointer-events-none transition-all duration-500 ease-in-out"
-            style={{ 
-              top: onboardingStep === 1 ? spotlight.cy + spotlight.r + 20 : 
-                   onboardingStep === 2 ? spotlight.cy - spotlight.r - 180 :
-                   onboardingStep === 3 ? spotlight.cy - spotlight.r - 220 :
-                   spotlight.cy - spotlight.r - 200,
-              left: onboardingStep === 1 ? Math.max(20, spotlight.cx - 50) : Math.max(20, Math.min(window.innerWidth - 300, spotlight.cx - 140))
-            }}
-          >
-            <div className={`w-72 bg-surface p-6 rounded-3xl shadow-2xl pointer-events-auto border border-border animate-in zoom-in-95 duration-300 ${isDarkMode ? 'bg-slate-900 border-white/10' : ''}`}>
-               <div className="flex items-center gap-2 mb-3">
-                  <div className="bg-primary text-white text-[10px] font-black px-2 py-0.5 rounded-full uppercase tracking-widest">Guide {onboardingStep}/4</div>
-               </div>
-               <p className={`text-sm font-bold leading-relaxed mb-6 whitespace-pre-line ${isDarkMode ? 'text-slate-200' : 'text-text-primary'}`}>
-                  {onboardingStep === 1 && "설정: 다크모드, API키 등 설정을 변경할 수 있습니다."}
-                  {onboardingStep === 2 && "캐릭터: 최애를 톡톡 눌러서 응원을 받으세요."}
-                  {onboardingStep === 3 && "되돌아가기:\n한 번 누르면 현재 세션 초기화,\n길게 누르면 사이클이 통째로 초기화 됩니다."}
-                  {onboardingStep === 4 && "시작: 이제 시작 버튼을 누르고 시작해 보세요."}
-               </p>
-               
-               <div className="flex items-center justify-between gap-3">
-                  {onboardingStep < 4 ? (
-                    <button 
-                      onClick={() => setOnboardingStep(onboardingStep + 1)}
-                      className="flex-1 py-3 bg-primary text-white rounded-xl font-black text-xs shadow-lg shadow-primary/20 flex items-center justify-center gap-1.5 active:scale-95 transition-all"
-                    >
-                      다음 <ChevronRight size={14} />
-                    </button>
-                  ) : (
-                    <>
-                      <button 
-                        onClick={() => handleFinishOnboarding(true)}
-                        className="flex-1 py-3 bg-background border border-border text-text-secondary rounded-xl font-bold text-[10px] active:scale-95 transition-all"
-                      >
-                        다시 보지 않기
-                      </button>
-                      <button 
-                        onClick={() => handleFinishOnboarding(false)}
-                        className="flex-1 py-3 bg-primary text-white rounded-xl font-black text-xs shadow-lg shadow-primary/20 active:scale-95 transition-all"
-                      >
-                        닫기
-                      </button>
-                    </>
-                  )}
-               </div>
-            </div>
-            {/* Arrow decoration */}
-            <div 
-              className={`w-4 h-4 transform rotate-45 border-t border-l absolute ${isDarkMode ? 'bg-slate-900 border-white/10' : 'bg-surface border-border'} ${onboardingStep === 1 ? '-top-2' : '-bottom-2'}`}
-              style={{ 
-                left: onboardingStep === 1 ? '24px' : '140px', 
-                top: onboardingStep === 1 ? '-8px' : 'auto', 
-                bottom: onboardingStep !== 1 ? '-8px' : 'auto' 
-              }}
-            ></div>
-          </div>
-        </div>
+      {/* 온보딩 레이어 컴포넌트 호출 */}
+      {showOnboarding && (
+        <OnboardingGuide 
+          isDarkMode={isDarkMode} 
+          targets={{
+            settings: settingsBtnRef,
+            character: characterBoxRef,
+            reset: resetBtnRef,
+            start: startBtnRef
+          }}
+          onClose={handleFinishOnboarding}
+        />
       )}
 
       {profile.imageSrc && (
