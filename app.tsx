@@ -39,16 +39,8 @@ function App() {
       const dialogueCache = { ...defaults.dialogueCache, ...parsed.dialogueCache };
       let restoredProfile = { ...defaults, ...parsed, dialogueCache };
 
-      // --- 시간 복구 로직 (1시간 기준) ---
-      const now = Date.now();
-      const oneHourInMs = 60 * 60 * 1000;
-      
-      if (restoredProfile.lastActive && (now - restoredProfile.lastActive > oneHourInMs)) {
-        // 1시간 초과: 시간 리셋 (호감도, 사이클은 유지)
-        restoredProfile.savedTimeLeft = 25 * 60;
-        restoredProfile.savedIsBreak = false;
-        restoredProfile.savedIsActive = false;
-      }
+      // --- 시간 및 사이클 유지 로직 ---
+      // 이전에는 1시간 경과 시 강제 리셋했으나, 이제 마지막 상태를 그대로 불러옵니다.
       
       return restoredProfile;
     } catch (e) {
