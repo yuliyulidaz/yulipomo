@@ -37,7 +37,7 @@ const SAFETY_SETTINGS = [
 const FALLBACK_TEMPLATES: Record<string, Record<string, string[]>> = {
   "반말": {
     START: ["자, 시작하자. {honorific}, 집중해.", "이제 시작이야. 화이팅!", "준비됐지? {honorific}.", "{honorific}, 해보자고."],
-    FINISH: ["끝났네? 고생했어. 좀 쉴까?"],
+    FINISH: ["끝났네? 고생했어. 좀쉴까?"],
     PAUSE: ["어디 가? 얼른 와라."],
     DISTRACTION: ["야, 딴짓하지 마. 보고 있다.", "어? 지금 뭐 하는 거야?", "그거 내려놔. 집중해.", "야야, 딴짓 걸렸어."],
     RETURN: ["이제 왔어? 기다렸잖아."],
@@ -138,7 +138,6 @@ export const TimerScreen: React.FC<TimerScreenProps> = ({
   const [isDarkMode, setIsDarkMode] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   
-  // API 키 팝업 관련 상태
   const [isApiKeyPopupVisible, setIsApiKeyPopupVisible] = useState(false);
   const [popupType, setPopupType] = useState<'EXPIRED' | 'MANUAL'>('MANUAL');
   const [pendingExpiryAlert, setPendingExpiryAlert] = useState(false);
@@ -185,7 +184,6 @@ export const TimerScreen: React.FC<TimerScreenProps> = ({
     }
   }, [message, isApiKeyPopupVisible]);
 
-  // 쉬는 시간 전환 시 API 만료 체크
   useEffect(() => {
     if (isBreak && pendingExpiryAlert) {
       setPopupType('EXPIRED');
@@ -216,7 +214,6 @@ export const TimerScreen: React.FC<TimerScreenProps> = ({
         onUpdateProfile({ dialogueCache: { ...currentProfile.dialogueCache, [category]: [...currentProfile.dialogueCache[category], ...newLines] } });
       }
     } catch (e: any) {
-        // API 키 오류 감지
         if (e.message?.includes('API_KEY_INVALID') || e.status === 401 || e.status === 403) {
             setPendingExpiryAlert(true);
         }
@@ -718,7 +715,7 @@ export const TimerScreen: React.FC<TimerScreenProps> = ({
 
             <div className={`relative mt-9 md:mt-11 min-h-[180px] md:min-h-[220px] flex items-center justify-center w-full transition-all ${isApiKeyPopupVisible ? 'z-50' : 'z-20'}`}>
                 <div className="relative">
-                  {isBreak && timeLeft > 60 ? (
+                  {isBreak ? (
                     <div className="flex flex-col items-center gap-4 animate-pulse text-primary-light/40 mb-4">
                       <Bed size={60} className="md:size-20" />
                       <p className="text-[10px] font-bold uppercase tracking-widest">Sleeping...</p>
