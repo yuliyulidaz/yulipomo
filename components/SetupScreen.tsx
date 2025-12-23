@@ -1,6 +1,6 @@
 
 import React, { useState, useRef, useEffect } from 'react';
-import { ArrowRight, AlertCircle, Loader2, Sparkles, RefreshCw, ArrowLeft, RotateCcw, MessageSquareHeart, Key, User, Camera, Heart, ExternalLink, FileJson } from 'lucide-react';
+import { ArrowRight, AlertCircle, Loader2, Sparkles, RefreshCw, ArrowLeft, RotateCcw, MessageSquareHeart, Key, User, Camera, Heart, ExternalLink, FileJson, ClipboardList } from 'lucide-react';
 import { CharacterProfile, DialogueStyles } from '../types';
 import { FileUpload } from './FileUpload';
 // Import HarmCategory and HarmBlockThreshold to fix type errors
@@ -38,6 +38,7 @@ export const SetupScreen: React.FC<SetupScreenProps> = ({ onComplete }) => {
   const [imageSrc, setImageSrc] = useState<string | null>(null);
   const [gender, setGender] = useState<'MALE' | 'FEMALE' | 'NEUTRAL'>('FEMALE');
   const [tmi, setTmi] = useState('');
+  const [todayTask, setTodayTask] = useState('');
   
   const [selectedTone, setSelectedTone] = useState<string>("존댓말");
   const [selectedPersonalities, setSelectedPersonalities] = useState<string[]>([]);
@@ -68,6 +69,7 @@ export const SetupScreen: React.FC<SetupScreenProps> = ({ onComplete }) => {
       setHonorific('');
       setImageSrc(null);
       setTmi('');
+      setTodayTask('');
       setSelectedPersonalities([]);
       setSelectedTone("존댓말");
       setError(null);
@@ -87,7 +89,6 @@ export const SetupScreen: React.FC<SetupScreenProps> = ({ onComplete }) => {
     reader.onload = (event) => {
       try {
         const loadedProfile = JSON.parse(event.target?.result as string) as CharacterProfile;
-        // 최소한의 유효성 검사 (필수 필드 확인)
         if (loadedProfile.name && loadedProfile.level !== undefined && loadedProfile.dialogueCache) {
           onComplete(loadedProfile);
         } else {
@@ -98,7 +99,6 @@ export const SetupScreen: React.FC<SetupScreenProps> = ({ onComplete }) => {
       }
     };
     reader.readAsText(file);
-    // 선택 후 리셋 (같은 파일 다시 선택 가능하도록)
     e.target.value = '';
   };
 
@@ -241,7 +241,8 @@ export const SetupScreen: React.FC<SetupScreenProps> = ({ onComplete }) => {
         speciesTrait: tmi, personality: [selectedTone, ...selectedPersonalities],
         selectedDialogueStyles: finalStyles,
         dialogueCache: { scolding: [], praising: [], idle: [], click: [], pause: [], start: [] },
-        xp: 0, level: 1, maxXpForNextLevel: 10, streak: 0, totalFocusMinutes: 0, receivedNotes: [], initialGreeting
+        xp: 0, level: 1, maxXpForNextLevel: 10, streak: 0, totalFocusMinutes: 0, receivedNotes: [], initialGreeting,
+        todayTask: todayTask.trim() || undefined
       });
     }
   };
@@ -317,7 +318,6 @@ export const SetupScreen: React.FC<SetupScreenProps> = ({ onComplete }) => {
                   />
                 </div>
                 
-                {/* 로드(불러오기) 버튼 */}
                 <div className="mt-4 md:mt-8">
                   <input 
                     type="file" 
@@ -397,7 +397,7 @@ export const SetupScreen: React.FC<SetupScreenProps> = ({ onComplete }) => {
           )}
 
           {step === 'STEP3' && (
-            <div className="space-y-12 animate-in fade-in slide-in-from-right-4 duration-500">
+            <div className="space-y-8 animate-in fade-in slide-in-from-right-4 duration-500">
               <div className="text-center space-y-3">
                 <h1 className="text-2xl font-bold text-text-primary tracking-tight">우리의 연결</h1>
                 <p className="text-text-secondary text-sm font-medium">마지막 관문입니다. 당신을 알려주세요.</p>
@@ -429,7 +429,22 @@ export const SetupScreen: React.FC<SetupScreenProps> = ({ onComplete }) => {
                 </div>
               </div>
 
-              <div className="pt-4 px-2 space-y-5">
+              {/* 추가된: 오늘 할 일 입력칸 */}
+              <div className="space-y-4 px-2 pt-2">
+                <label className="flex items-center gap-2 text-[10px] font-bold text-text-secondary uppercase tracking-widest">
+                  <ClipboardList size={12} className="text-primary" />
+                  최애와의 뽀모도로에서 당신이 해야 할 일은?
+                </label>
+                <input 
+                  type="text" 
+                  value={todayTask} 
+                  onChange={e => setTodayTask(e.target.value)} 
+                  placeholder="예: 제작 마감, 수학 숙제, 100 문제 풀기 등" 
+                  className="w-full px-4 py-3 bg-background border-2 border-border rounded-xl outline-none focus:border-primary transition-all text-sm font-bold text-text-primary placeholder:text-text-secondary/40"
+                />
+              </div>
+
+              <div className="pt-2 px-2 space-y-5">
                 <div className="flex justify-between items-end border-b-2 border-border pb-2 focus-within:border-primary transition-colors">
                   <div className="space-y-1 flex-1">
                     <label className="flex items-center gap-2 text-[10px] font-bold text-text-secondary uppercase tracking-widest">
