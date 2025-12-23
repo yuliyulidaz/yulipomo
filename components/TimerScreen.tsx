@@ -205,7 +205,7 @@ export const TimerScreen: React.FC<TimerScreenProps> = ({
       const getMood = () => {
         if (currentProfile.level <= 3) return "Cold, Strict, Minimalist";
         if (currentProfile.level <= 7) return "Friendly, Warm, Helpful";
-        return "Deeply Affectionate, Loving, Obsessive";
+        return "Deeply Affointed, Loving, Obsessive";
       };
       const situations: Record<string, string> = { scolding: 'slacking off', praising: 'finished focus', idle: 'mid-focus', click: 'user clicked', pause: 'paused', start: 'started' };
       const prompt = `Roleplay as ${currentProfile.name}. User: ${currentProfile.userName}. Mood: ${getMood()}. Personality: ${currentProfile.personality.join(', ')}. Situation: ${situations[categoryKey]}. Write ${count} Korean sentences (10-20 chars). Use {honorific}. Separate by Newline.`;
@@ -304,8 +304,10 @@ export const TimerScreen: React.FC<TimerScreenProps> = ({
       'CLICK': 'click', 'PAUSE': 'pause', 'READY': 'start', 'RETURN': 'scolding', 'CYCLE_LONG': 'praising', 'CYCLE_SHORT': 'praising'
     };
     const userDisplayName = profile.honorific || profile.userName || "너";
-    if (type === 'CYCLE_LONG') { setMessage("그래, 푹 자고 와. 깨워줄게."); return; }
-    if (type === 'CYCLE_SHORT') { setMessage("뭐? 무리하는 거 아냐? ...걱정되게 진짜."); return; }
+    
+    // Removed dialogue display for CYCLE_LONG and CYCLE_SHORT as requested
+    if (type === 'CYCLE_LONG' || type === 'CYCLE_SHORT') { return; }
+    
     const key = cacheKeyMap[type];
     const cachedList = profile.dialogueCache[key];
     if (cachedList && cachedList.length > 0) {
@@ -493,7 +495,8 @@ export const TimerScreen: React.FC<TimerScreenProps> = ({
   const progressPercent = Math.min(100, (profile.xp / currentXpTarget) * 100);
   const overallProgressPercent = ((sessionInCycle + (!isBreak ? (25 * 60 - timeLeft) / (25 * 60) : 0)) / 4) * 100;
 
-  const getDebugMood = () => {
+  // Renamed from getDebugMood to getLevelMood to fix the "Cannot find name 'getLevelMood'" error.
+  const getLevelMood = () => {
     if (profile.level <= 3) return "Cold/Strict";
     if (profile.level <= 7) return "Friendly/Warm";
     return "Deeply Affectionate/Obsessive";
@@ -569,7 +572,7 @@ export const TimerScreen: React.FC<TimerScreenProps> = ({
               <div className="grid grid-cols-2 gap-2 text-[10px]">
                 <div className="bg-black/40 p-2.5 rounded-lg border border-white/5">
                   <p className="text-white/30 text-[8px] font-bold uppercase mb-0.5">Judgment</p>
-                  <p className="text-primary-light font-black">{getDebugMood()}</p>
+                  <p className="text-primary-light font-black">{getLevelMood()}</p>
                 </div>
                 <div className="bg-black/40 p-2.5 rounded-lg border border-white/5">
                   <p className="text-white/30 text-[8px] font-bold uppercase mb-0.5">Interactions</p>
@@ -584,6 +587,8 @@ export const TimerScreen: React.FC<TimerScreenProps> = ({
                   <span>Scold: {profile.dialogueCache.scolding.length}</span>
                   <span>Click: {profile.dialogueCache.click.length}</span>
                   <span>Idle: {profile.dialogueCache.idle.length}</span>
+                  {/* Added Pause cache count as requested */}
+                  <span>Pause: {profile.dialogueCache.pause.length}</span>
                 </div>
               </div>
             </div>
@@ -714,7 +719,7 @@ export const TimerScreen: React.FC<TimerScreenProps> = ({
 
       {showChoiceModal && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-primary-dark/40 backdrop-blur-md animate-in fade-in duration-300">
-          <div className={`w-full max-w-sm border p-8 rounded-3xl shadow-2xl text-center space-y-6 transform animate-in zoom-in-95 duration-300 ${isDarkMode ? 'bg-[#161B22] border-[#30363D]' : 'bg-surface border-border'}`}>
+          <div className={`w-full max-sm border p-8 rounded-3xl shadow-2xl text-center space-y-6 transform animate-in zoom-in-95 duration-300 ${isDarkMode ? 'bg-[#161B22] border-[#30363D]' : 'bg-surface border-border'}`}>
             <div className="w-20 h-20 bg-primary/10 rounded-3xl flex items-center justify-center mx-auto text-primary"><CheckCircle2 size={48} /></div>
             <div className="space-y-2">
               <h3 className={`text-xl font-bold ${isDarkMode ? 'text-slate-100' : 'text-text-primary'}`}>1사이클 달성!</h3>
@@ -761,7 +766,7 @@ export const TimerScreen: React.FC<TimerScreenProps> = ({
                   <div className={`absolute top-full left-0 mt-3.5 flex flex-col gap-3.5 transition-all duration-500 origin-top z-50 ${isSettingsOpen ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-4 pointer-events-none'}`}>
                       <div className="flex items-center gap-3 cursor-pointer" onClick={(e) => { e.stopPropagation(); setIsDarkMode(!isDarkMode); }}><div className={`w-12 h-12 rounded-full border shadow-sm flex items-center justify-center transition-all hover:scale-110 ${isDarkMode ? 'bg-slate-800 text-yellow-400 border-slate-700' : 'bg-white border-slate-200'}`}>{isDarkMode ? <Sun size={20} /> : <Moon size={20} />}</div><span className={`text-[10px] font-black px-2.5 py-1.5 rounded-lg border shadow-sm whitespace-nowrap min-w-[60px] text-center ${isDarkMode ? 'bg-slate-800 border-slate-700 text-slate-100' : 'bg-surface/90 border-border'}`}>{isDarkMode ? '라이트' : '다크'}</span></div>
                       <div className="flex items-center gap-3 cursor-pointer" onClick={(e) => { e.stopPropagation(); handleExportProfile(); }}><div className={`w-12 h-12 rounded-full border shadow-sm flex items-center justify-center transition-all hover:scale-110 ${isDarkMode ? 'bg-slate-800 text-slate-100 border-slate-700' : 'bg-white border-slate-200'}`}><Save size={20} /></div><span className={`text-[10px] font-black px-2.5 py-1.5 rounded-lg border shadow-sm whitespace-nowrap min-w-[60px] text-center ${isDarkMode ? 'bg-slate-800 border-slate-700 text-slate-100' : 'bg-surface/90 border-border'}`}>저장</span></div>
-                      <div className="flex items-center gap-3 cursor-pointer" onClick={(e) => { e.stopPropagation(); setPopupType('MANUAL'); setTempApiKey(profile.apiKey || ''); setApiKeyError(null); setIsApiKeyPopupVisible(true); setIsSettingsOpen(false); }}><div className={`w-12 h-12 rounded-full border shadow-sm flex items-center justify-center transition-all hover:scale-110 ${isDarkMode ? 'bg-slate-800 text-slate-400 border-slate-700 hover:bg-slate-700' : 'bg-white border-slate-200'}`}><Key size={20} /></div><span className={`text-[10px] font-black px-2.5 py-1.5 rounded-lg border shadow-sm whitespace-nowrap min-w-[60px] text-center ${isDarkMode ? 'bg-slate-800 border-slate-700 text-slate-100' : 'bg-surface/90 border-border'}`}>API키</span></div>
+                      <div className="flex items-center gap-3 cursor-pointer" onClick={(e) => { e.stopPropagation(); setPopupType('MANUAL'); setTempApiKey(profile.apiKey || ''); setApiKeyError(null); setIsApiKeyPopupVisible(true); setIsSettingsOpen(false); }}><div className={`w-12 h-12 rounded-full border shadow-sm flex items-center justify-center transition-all hover:scale-110 ${isDarkMode ? 'bg-slate-800 text-slate-400 border-slate-700 hover:bg-slate-700' : 'bg-white border-slate-200'}`}><Key size={20} /></div><span className={`text-[10px] font-black px-2.5 py-1.5 rounded-lg border shadow-sm bg-slate-800 border-slate-700 text-slate-100 whitespace-nowrap min-w-[60px] text-center`}>API키</span></div>
                       {isAdminMode && (
                         <div className="flex items-center gap-3 cursor-pointer" onClick={(e) => { e.stopPropagation(); setShowAdminPanel(!showAdminPanel); setIsSettingsOpen(false); }}><div className={`w-12 h-12 rounded-full border shadow-sm flex items-center justify-center transition-all hover:scale-110 bg-primary text-white border-primary-dark`}><Terminal size={20} /></div><span className={`text-[10px] font-black px-2.5 py-1.5 rounded-lg border shadow-sm bg-primary border-primary-dark text-white whitespace-nowrap min-w-[60px] text-center`}>패널</span></div>
                       )}
