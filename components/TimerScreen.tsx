@@ -1,7 +1,6 @@
 
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-// Added ArrowRight to the imports from lucide-react to fix the "Cannot find name 'ArrowRight'" error.
-import { Play, Pause, RotateCcw, X, Heart, Timer as TimerIcon, Coffee, Bed, CheckCircle2, Moon, Sun, Settings, Save, Key, ExternalLink, ClipboardPaste, ClipboardCheck, Zap, MousePointer2, Ghost, Download, Loader2, FileSearch, Terminal, FastForward, SlidersHorizontal, User as UserIcon, Calendar, BookOpen, ArrowRight } from 'lucide-react';
+import { Play, Pause, RotateCcw, X, Heart, Timer as TimerIcon, Coffee, Bed, CheckCircle2, Moon, Sun, Settings, Save, Key, ExternalLink, ClipboardPaste, ClipboardCheck, Zap, MousePointer2, Ghost, Download, Loader2, FileSearch, Terminal, FastForward, SlidersHorizontal, User as UserIcon, Calendar, BookOpen, ArrowRight, SkipForward } from 'lucide-react';
 import { CharacterProfile } from '../types';
 import { GoogleGenAI, HarmCategory, HarmBlockThreshold, Type } from "@google/genai";
 
@@ -89,6 +88,7 @@ const FALLBACK_TEMPLATES: Record<string, Record<string, string[]>> = {
 };
 
 const COOLDOWN_MS = 16000; 
+const RESET_HOLD_MS = 2000; // 2초간 누르면 초기화
 
 interface ReportData {
   grade: string;
@@ -118,6 +118,12 @@ export const TimerScreen: React.FC<TimerScreenProps> = ({
   const [adminPassword, setAdminPassword] = useState('');
   const [isAdminMode, setIsAdminMode] = useState(false);
   const [showAdminPanel, setShowAdminPanel] = useState(false);
+
+  // 롱 프레스 초기화 관련 상태
+  const [isResetHolding, setIsResetHolding] = useState(false);
+  const [resetHoldProgress, setResetHoldProgress] = useState(0);
+  const resetHoldTimerRef = useRef<any>(null);
+  const resetStartTimeRef = useRef<number | null>(null);
 
   const cleanDialogue = (text: string, honorific: string) => {
     return text.replace(/{honorific}|{이름}|{user}/g, honorific).replace(/{([^}]+)}/g, '$1');
@@ -495,11 +501,86 @@ export const TimerScreen: React.FC<TimerScreenProps> = ({
   const progressPercent = Math.min(100, (profile.xp / currentXpTarget) * 100);
   const overallProgressPercent = ((sessionInCycle + (!isBreak ? (25 * 60 - timeLeft) / (25 * 60) : 0)) / 4) * 100;
 
-  // Renamed from getDebugMood to getLevelMood to fix the "Cannot find name 'getLevelMood'" error.
   const getLevelMood = () => {
     if (profile.level <= 3) return "Cold/Strict";
     if (profile.level <= 7) return "Friendly/Warm";
     return "Deeply Affectionate/Obsessive";
+  };
+
+  // 롱 프레스 핸들러들
+  const handleResetStart = (e: React.MouseEvent | React.TouchEvent) => {
+    e.preventDefault();
+    setIsResetHolding(true);
+    setResetHoldProgress(0);
+    resetStartTimeRef.current = Date.now();
+    
+    // 1초 뒤에 토스트 메시지 표시
+    resetHoldTimerRef.current = setTimeout(() => {
+        setMessage("처음부터 재시작됩니다.");
+    }, 1000);
+  };
+
+  const handleResetEnd = () => {
+    if (!isResetHolding) return;
+    
+    const duration = Date.now() - (resetStartTimeRef.current || 0);
+    
+    if (duration >= RESET_HOLD_MS) {
+      // 사이클 전체 초기화 (오래 누름)
+      setSessionInCycle(0);
+      setIsBreak(false);
+      setTimeLeft(25 * 60);
+      setIsActive(false);
+      setDistractions(0);
+      setClicks(0);
+      setMessage("마음을 새로 먹었나 보네? 처음부터 다시 시작하자.");
+    } else {
+      // 현재 세션 초기화 (짧게 누름)
+      setIsActive(false);
+      setTimeLeft(isBreak ? (sessionInCycle === 0 ? 30 * 60 : 5 * 60) : 25 * 60);
+      setMessage("응? 다시 하고 싶어? 좋아, 다시 집중해보자.");
+    }
+    
+    handleResetCancel();
+  };
+
+  const handleResetCancel = () => {
+    setIsResetHolding(false);
+    setResetHoldProgress(0);
+    resetStartTimeRef.current = null;
+    if (resetHoldTimerRef.current) {
+        clearTimeout(resetHoldTimerRef.current);
+        resetHoldTimerRef.current = null;
+    }
+  };
+
+  // 애니메이션 효과를 위한 tick
+  useEffect(() => {
+    let frame: any;
+    if (isResetHolding) {
+      const update = () => {
+        const duration = Date.now() - (resetStartTimeRef.current || 0);
+        const progress = Math.min(100, (duration / RESET_HOLD_MS) * 100);
+        setResetHoldProgress(progress);
+        if (progress < 100) {
+          frame = requestAnimationFrame(update);
+        } else {
+          // 100% 도달 시 즉시 초기화 실행
+          handleResetEnd();
+        }
+      };
+      frame = requestAnimationFrame(update);
+    }
+    return () => cancelAnimationFrame(frame);
+  }, [isResetHolding]);
+
+  // 휴식 넘기기 핸들러
+  const handleSkipBreak = () => {
+    setIsBreak(false);
+    setTimeLeft(25 * 60);
+    setIsActive(true);
+    triggerAIResponse('START');
+    setMessage("벌써 쉬는 시간 끝내게? 열정이 대단하네... 계속하자!");
   };
 
   return (
@@ -587,7 +668,6 @@ export const TimerScreen: React.FC<TimerScreenProps> = ({
                   <span>Scold: {profile.dialogueCache.scolding.length}</span>
                   <span>Click: {profile.dialogueCache.click.length}</span>
                   <span>Idle: {profile.dialogueCache.idle.length}</span>
-                  {/* Added Pause cache count as requested */}
                   <span>Pause: {profile.dialogueCache.pause.length}</span>
                 </div>
               </div>
@@ -719,7 +799,7 @@ export const TimerScreen: React.FC<TimerScreenProps> = ({
 
       {showChoiceModal && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-primary-dark/40 backdrop-blur-md animate-in fade-in duration-300">
-          <div className={`w-full max-sm border p-8 rounded-3xl shadow-2xl text-center space-y-6 transform animate-in zoom-in-95 duration-300 ${isDarkMode ? 'bg-[#161B22] border-[#30363D]' : 'bg-surface border-border'}`}>
+          <div className={`w-full max-w-sm border p-8 rounded-3xl shadow-2xl text-center space-y-6 transform animate-in zoom-in-95 duration-300 ${isDarkMode ? 'bg-[#161B22] border-[#30363D]' : 'bg-surface border-border'}`}>
             <div className="w-20 h-20 bg-primary/10 rounded-3xl flex items-center justify-center mx-auto text-primary"><CheckCircle2 size={48} /></div>
             <div className="space-y-2">
               <h3 className={`text-xl font-bold ${isDarkMode ? 'text-slate-100' : 'text-text-primary'}`}>1사이클 달성!</h3>
@@ -733,6 +813,10 @@ export const TimerScreen: React.FC<TimerScreenProps> = ({
               <button onClick={() => handleCycleChoice('SHORT')} className="w-full py-4 px-6 bg-primary hover:bg-primary-light border border-primary-dark/10 rounded-2xl text-sm font-bold transition-all active:scale-95 flex flex-col items-center gap-1 group shadow-lg shadow-primary/20">
                 <span className="text-white">5분만 쉴래 (열공 모드)</span>
                 <span className="text-[10px] text-accent-soft font-black uppercase tracking-widest">XP +30 🔥</span>
+              </button>
+              <button onClick={handleExportProfile} className={`w-full py-4 px-6 border rounded-2xl text-sm font-bold transition-all active:scale-95 flex flex-col items-center gap-1 group ${isDarkMode ? 'bg-[#0B0E14] border-[#30363D] hover:bg-slate-800' : 'bg-background border-border hover:bg-border'}`}>
+                <span className={isDarkMode ? 'text-slate-100' : 'text-text-primary'}>저장하고 다음에 만나기</span>
+                <span className="text-[10px] text-primary-light font-black uppercase tracking-widest opacity-60">백업 파일 다운로드</span>
               </button>
             </div>
           </div>
@@ -871,10 +955,54 @@ export const TimerScreen: React.FC<TimerScreenProps> = ({
                 <div className={`w-16 h-16 md:w-20 md:h-20 rounded-2xl flex flex-col items-center justify-center gap-1 border transition-all duration-500 ${isBreak ? (isDarkMode ? 'bg-emerald-900/20 border-emerald-800 text-emerald-400' : 'bg-success/10 border-success/20 text-success') : (isDarkMode ? 'bg-slate-800/50 border-slate-700 text-primary-light' : 'bg-primary/5 border-primary/10 text-primary')}`}>{isBreak ? <Coffee size={18} /> : <TimerIcon size={18} />}<div className="flex flex-col items-center leading-tight"><span className="text-[8px] md:text-[9px] font-black uppercase tracking-tighter">{isBreak ? "Break" : "Focus"}</span><span className="text-[8px] md:text-[9px] font-black uppercase tracking-tighter">Mode</span></div></div>
                 <div className={`text-6xl md:text-7xl font-bold tracking-tighter tabular-nums ${isDarkMode ? 'text-slate-100' : 'text-text-primary'}`}>{formatTime(timeLeft)}</div>
               </div>
-              <div className="w-full max-w-[320px] flex items-center gap-4 mt-2 px-2"><span className={`text-[10px] font-black uppercase tracking-widest ${isDarkMode ? 'text-slate-500' : 'text-text-secondary/60'}`}>진행률</span><div className={`relative h-2 flex-1 rounded-full ${isDarkMode ? 'bg-slate-800' : 'bg-border/40'}`}><div className={`absolute top-0 left-0 h-full rounded-full transition-all duration-1000 ${isBreak ? 'bg-gradient-to-r from-success to-emerald-400 animate-pulse-slow' : 'bg-gradient-to-r from-primary to-primary-light'}`} style={{ width: `${overallProgressPercent}%` }} />{[1, 2, 3, 4].map((i) => { const pos = i * 25; const isReached = overallProgressPercent >= pos; return (<div key={i} className="absolute top-1/2 -translate-y-1/2 -translate-x-1/2 flex flex-col items-center gap-1.5" style={{ left: `${pos}%` }}><div className={`transform rotate-45 transition-all border-2 ${isReached ? (isBreak && sessionInCycle === i ? 'bg-success border-success scale-125' : 'bg-primary border-primary scale-110') : (isDarkMode ? 'bg-slate-900 border-slate-700' : 'bg-surface border-border')} ${i === 4 ? 'w-3 h-3' : 'w-2 h-2'}`} /><span className={`text-[9px] font-black ${isReached ? 'text-primary' : (isDarkMode ? 'text-slate-600' : 'text-text-secondary/40')}`}>{i}</span></div>); })}</div></div>
+              
+              <div className="w-full max-w-[320px] flex items-center gap-4 mt-2 px-2 relative">
+                <span className={`text-[10px] font-black uppercase tracking-widest ${isDarkMode ? 'text-slate-500' : 'text-text-secondary/60'}`}>진행률</span>
+                <div className={`relative h-2 flex-1 rounded-full ${isDarkMode ? 'bg-slate-800' : 'bg-border/40'} overflow-hidden`}>
+                  <div className={`absolute top-0 left-0 h-full rounded-full transition-all duration-1000 ${isBreak ? 'bg-gradient-to-r from-success to-emerald-400 animate-pulse-slow' : 'bg-gradient-to-r from-primary to-primary-light'}`} style={{ width: `${overallProgressPercent}%` }} />
+                  
+                  {/* 롱 프레스 리셋 애니메이션 레이어: 우측(4번 지점)에서 좌측(0번)으로 */}
+                  {isResetHolding && (
+                    <div 
+                        className="absolute top-0 right-0 h-full bg-rose-500 z-10 transition-all duration-75 ease-linear"
+                        style={{ width: `${resetHoldProgress}%` }}
+                    />
+                  )}
+                </div>
+                {[1, 2, 3, 4].map((i) => { 
+                    const pos = i * 25; 
+                    const isReached = overallProgressPercent >= pos; 
+                    return (
+                        <div key={i} className="absolute top-1/2 -translate-y-1/2 -translate-x-1/2 flex flex-col items-center gap-1.5 z-20 pointer-events-none" style={{ left: `calc(52px + ${i * 18.2}%)` }}>
+                            <div className={`transform rotate-45 transition-all border-2 ${isReached ? (isBreak && sessionInCycle === i ? 'bg-success border-success scale-125' : 'bg-primary border-primary scale-110') : (isDarkMode ? 'bg-slate-900 border-slate-700' : 'bg-surface border-border')} ${i === 4 ? 'w-3 h-3' : 'w-2 h-2'}`} />
+                            <span className={`text-[9px] font-black absolute -bottom-4 ${isReached ? 'text-primary' : (isDarkMode ? 'text-slate-600' : 'text-text-secondary/40')}`}>{i}</span>
+                        </div>
+                    ); 
+                })}
+              </div>
+
               <div className="flex items-center gap-6 md:gap-8 mt-4">
-                  {!isBreak && (<button onClick={() => { if(!isActive) triggerAIResponse('START'); else triggerAIResponse('PAUSE'); setIsActive(!isActive); }} className={`w-16 h-16 md:w-20 md:h-20 rounded-2xl flex items-center justify-center shadow-lg transition-all active:scale-90 ${isActive ? 'bg-warning text-white' : 'bg-primary text-white hover:bg-primary-light'}`}>{isActive ? <Pause className="w-7 h-7 md:w-8 md:h-8" fill="currentColor" /> : <Play className="w-7 h-7 md:w-8 md:h-8 ml-1" fill="currentColor" />}</button>)}
-                  <button onClick={() => { setIsActive(false); setTimeLeft(isBreak ? (sessionInCycle === 0 ? 30 * 60 : 5 * 60) : 25 * 60); }} className={`w-12 h-12 md:w-14 md:h-14 rounded-xl flex items-center justify-center transition-all border active:scale-95 shadow-sm ${isDarkMode ? 'bg-slate-800 border-slate-700 text-slate-400 hover:text-slate-200' : 'bg-background border-border text-text-secondary hover:text-text-primary'}`}><RotateCcw className="w-5 h-5 md:w-6 md:h-6" /></button>
+                  {!isBreak ? (
+                    <button onClick={() => { if(!isActive) triggerAIResponse('START'); else triggerAIResponse('PAUSE'); setIsActive(!isActive); }} className={`w-16 h-16 md:w-20 md:h-20 rounded-2xl flex items-center justify-center shadow-lg transition-all active:scale-90 ${isActive ? 'bg-warning text-white' : 'bg-primary text-white hover:bg-primary-light'}`}>
+                      {isActive ? <Pause className="w-7 h-7 md:w-8 md:h-8" fill="currentColor" /> : <Play className="w-7 h-7 md:w-8 md:h-8 ml-1" fill="currentColor" />}
+                    </button>
+                  ) : (
+                    /* 휴식 중에도 버튼 표시 - 스킵 기능 */
+                    <button onClick={handleSkipBreak} title="휴식 건너뛰기" className="w-16 h-16 md:w-20 md:h-20 rounded-2xl flex items-center justify-center shadow-lg transition-all active:scale-90 bg-emerald-500 text-white hover:bg-emerald-600">
+                      <SkipForward className="w-7 h-7 md:w-8 md:h-8" fill="currentColor" />
+                    </button>
+                  )}
+                  
+                  <button 
+                    onMouseDown={handleResetStart}
+                    onMouseUp={handleResetEnd}
+                    onMouseLeave={handleResetCancel}
+                    onTouchStart={handleResetStart}
+                    onTouchEnd={handleResetEnd}
+                    className={`w-12 h-12 md:w-14 md:h-14 rounded-xl flex items-center justify-center transition-all border active:scale-95 shadow-sm overflow-hidden relative ${isDarkMode ? 'bg-slate-800 border-slate-700 text-slate-400 hover:text-slate-200' : 'bg-background border-border text-text-secondary hover:text-text-primary'}`}
+                  >
+                    <RotateCcw className={`w-5 h-5 md:w-6 md:h-6 relative z-10 transition-transform ${isResetHolding ? 'rotate-[-120deg]' : ''}`} />
+                  </button>
               </div>
             </div>
           </div>
