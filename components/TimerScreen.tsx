@@ -509,7 +509,7 @@ export const TimerScreen: React.FC<TimerScreenProps> = ({
 
   // 롱 프레스 핸들러들
   const handleResetStart = (e: React.MouseEvent | React.TouchEvent) => {
-    e.preventDefault();
+    // Prevent dragging or other unintended behaviors
     setIsResetHolding(true);
     setResetHoldProgress(0);
     resetStartTimeRef.current = Date.now();
@@ -584,7 +584,7 @@ export const TimerScreen: React.FC<TimerScreenProps> = ({
   };
 
   return (
-    <div className={`relative w-full h-screen flex transition-colors duration-700 overflow-hidden font-sans ${isDarkMode ? 'bg-[#0B0E14] text-slate-100' : 'bg-background text-text-primary'}`}>
+    <div className={`relative w-full h-screen flex transition-colors duration-700 overflow-hidden font-sans select-none ${isDarkMode ? 'bg-[#0B0E14] text-slate-100' : 'bg-background text-text-primary'}`}>
       {profile.imageSrc && (
         <div className={`absolute inset-0 z-0 transition-opacity duration-700 ${isDarkMode ? 'opacity-5' : 'opacity-10'}`}>
           <img src={profile.imageSrc} alt="Background" className="w-full h-full object-cover blur-md scale-110" />
@@ -956,15 +956,15 @@ export const TimerScreen: React.FC<TimerScreenProps> = ({
                 <div className={`text-6xl md:text-7xl font-bold tracking-tighter tabular-nums ${isDarkMode ? 'text-slate-100' : 'text-text-primary'}`}>{formatTime(timeLeft)}</div>
               </div>
               
-              <div className="w-full max-w-[320px] flex items-center gap-4 mt-2 px-2 relative">
+              <div className="w-full max-w-[320px] flex items-center gap-4 mt-2 px-2 relative select-none">
                 <span className={`text-[10px] font-black uppercase tracking-widest ${isDarkMode ? 'text-slate-500' : 'text-text-secondary/60'}`}>진행률</span>
                 <div className={`relative h-2 flex-1 rounded-full ${isDarkMode ? 'bg-slate-800' : 'bg-border/40'} overflow-hidden`}>
                   <div className={`absolute top-0 left-0 h-full rounded-full transition-all duration-1000 ${isBreak ? 'bg-gradient-to-r from-success to-emerald-400 animate-pulse-slow' : 'bg-gradient-to-r from-primary to-primary-light'}`} style={{ width: `${overallProgressPercent}%` }} />
                   
-                  {/* 롱 프레스 리셋 애니메이션 레이어: 우측(4번 지점)에서 좌측(0번)으로 */}
+                  {/* 롱 프레스 리셋 애니메이션 레이어: 우측(4번 지점)에서 좌측(0번)으로 부드럽게 차오름 */}
                   {isResetHolding && (
                     <div 
-                        className="absolute top-0 right-0 h-full bg-rose-500 z-10 transition-all duration-75 ease-linear"
+                        className="absolute top-0 right-0 h-full bg-rose-500 z-10"
                         style={{ width: `${resetHoldProgress}%` }}
                     />
                   )}
@@ -973,9 +973,9 @@ export const TimerScreen: React.FC<TimerScreenProps> = ({
                     const pos = i * 25; 
                     const isReached = overallProgressPercent >= pos; 
                     return (
-                        <div key={i} className="absolute top-1/2 -translate-y-1/2 -translate-x-1/2 flex flex-col items-center gap-1.5 z-20 pointer-events-none" style={{ left: `calc(52px + ${i * 18.2}%)` }}>
+                        <div key={i} className="absolute top-1/2 -translate-y-1/2 -translate-x-1/2 flex flex-col items-center gap-1.5 z-20 pointer-events-none select-none" style={{ left: `calc(52px + ${i * 18.2}%)` }}>
                             <div className={`transform rotate-45 transition-all border-2 ${isReached ? (isBreak && sessionInCycle === i ? 'bg-success border-success scale-125' : 'bg-primary border-primary scale-110') : (isDarkMode ? 'bg-slate-900 border-slate-700' : 'bg-surface border-border')} ${i === 4 ? 'w-3 h-3' : 'w-2 h-2'}`} />
-                            <span className={`text-[9px] font-black absolute -bottom-4 ${isReached ? 'text-primary' : (isDarkMode ? 'text-slate-600' : 'text-text-secondary/40')}`}>{i}</span>
+                            <span className={`text-[9px] font-black absolute -bottom-4 select-none ${isReached ? 'text-primary' : (isDarkMode ? 'text-slate-600' : 'text-text-secondary/40')}`}>{i}</span>
                         </div>
                     ); 
                 })}
@@ -987,7 +987,6 @@ export const TimerScreen: React.FC<TimerScreenProps> = ({
                       {isActive ? <Pause className="w-7 h-7 md:w-8 md:h-8" fill="currentColor" /> : <Play className="w-7 h-7 md:w-8 md:h-8 ml-1" fill="currentColor" />}
                     </button>
                   ) : (
-                    /* 휴식 중에도 버튼 표시 - 스킵 기능 */
                     <button onClick={handleSkipBreak} title="휴식 건너뛰기" className="w-16 h-16 md:w-20 md:h-20 rounded-2xl flex items-center justify-center shadow-lg transition-all active:scale-90 bg-emerald-500 text-white hover:bg-emerald-600">
                       <SkipForward className="w-7 h-7 md:w-8 md:h-8" fill="currentColor" />
                     </button>
@@ -999,7 +998,7 @@ export const TimerScreen: React.FC<TimerScreenProps> = ({
                     onMouseLeave={handleResetCancel}
                     onTouchStart={handleResetStart}
                     onTouchEnd={handleResetEnd}
-                    className={`w-12 h-12 md:w-14 md:h-14 rounded-xl flex items-center justify-center transition-all border active:scale-95 shadow-sm overflow-hidden relative ${isDarkMode ? 'bg-slate-800 border-slate-700 text-slate-400 hover:text-slate-200' : 'bg-background border-border text-text-secondary hover:text-text-primary'}`}
+                    className={`w-12 h-12 md:w-14 md:h-14 rounded-xl flex items-center justify-center transition-all active:scale-95 shadow-sm overflow-hidden relative select-none ${isDarkMode ? 'bg-slate-800 border-slate-700 text-slate-400 hover:text-slate-200' : 'bg-background border-border text-text-secondary hover:text-text-primary'}`}
                   >
                     <RotateCcw className={`w-5 h-5 md:w-6 md:h-6 relative z-10 transition-transform ${isResetHolding ? 'rotate-[-120deg]' : ''}`} />
                   </button>
