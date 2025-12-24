@@ -4,6 +4,7 @@ import { CharacterProfile } from '../types';
 import { ObservationDiary } from './ObservationDiary';
 import { OnboardingGuide } from './OnboardingGuide';
 import { ApiKeyExpiryModal } from './ApiKeyExpiryModal';
+import { ExitConfirmModal } from './ExitConfirmModal';
 
 // 설정 및 유틸리티
 import { LEVEL_TITLES } from './TimerConfig';
@@ -63,6 +64,7 @@ export const TimerScreen: React.FC<TimerScreenProps> = ({
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [isApiKeyModalOpen, setIsApiKeyModalOpen] = useState(false);
   const [apiKeyPopupType, setApiKeyPopupType] = useState<'EXPIRED' | 'MANUAL'>('MANUAL');
+  const [showExitModal, setShowExitModal] = useState(false);
 
   // --- 5. Refs ---
   const resetHoldTimerRef = useRef<any>(null);
@@ -76,6 +78,23 @@ export const TimerScreen: React.FC<TimerScreenProps> = ({
   useEffect(() => {
     const isFirstTime = localStorage.getItem('pomodoro_onboarding_done') !== 'true';
     if (isFirstTime) setTimeout(() => setShowOnboarding(true), 1000);
+  }, []);
+
+  // --- 6-2. Back Button / History Handling ---
+  useEffect(() => {
+    // 히스토리에 가짜 상태 추가 (뒤로가기를 눌러도 URL이 유지되도록)
+    window.history.pushState(null, "", window.location.href);
+
+    const handlePopState = (e: PopStateEvent) => {
+      // 뒤로가기를 누르면 이 함수가 호출됨
+      e.preventDefault();
+      setShowExitModal(true);
+      // 다시 상태를 밀어 넣어 한 번 더 방어막 생성
+      window.history.pushState(null, "", window.location.href);
+    };
+
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
   }, []);
 
   useEffect(() => {
@@ -162,7 +181,9 @@ export const TimerScreen: React.FC<TimerScreenProps> = ({
 
       <ApiKeyExpiryModal isOpen={isApiKeyModalOpen} onClose={() => setIsApiKeyModalOpen(false)} type={apiKeyPopupType} currentApiKey={profile.apiKey || ''} isDarkMode={isDarkMode} onUpdateKey={(key) => onUpdateProfile({ apiKey: key })} />
 
-      {(isSettingsOpen || isApiKeyModalOpen) && <div className="fixed inset-0 z-30" onClick={() => { setIsSettingsOpen(false); setIsApiKeyModalOpen(false); }} />}
+      <ExitConfirmModal isOpen={showExitModal} onClose={() => setShowExitModal(false)} onConfirmExit={onReset} characterName={profile.name} isDarkMode={isDarkMode} />
+
+      {(isSettingsOpen || isApiKeyModalOpen || showExitModal) && <div className="fixed inset-0 z-30" onClick={() => { setIsSettingsOpen(false); setIsApiKeyModalOpen(false); setShowExitModal(false); }} />}
 
       <main className="w-full h-full flex flex-col items-center justify-center relative p-4 md:p-8">
           <TopBadge level={profile.level} title={levelTitle} isAdminMode={isAdminMode} isDarkMode={isDarkMode} onBadgeClick={() => { const nc = badgeClicks+1; setBadgeClicks(nc); if(nc>=5){ setBadgeClicks(0); setShowAdminAuth(true); } setTimeout(()=>setBadgeClicks(0),2000); }} badgeClicks={badgeClicks} />
@@ -172,7 +193,7 @@ export const TimerScreen: React.FC<TimerScreenProps> = ({
 
             <div className="w-full flex justify-between items-start mt-2 px-2 relative z-50">
                 <SettingsMenu isOpen={isSettingsOpen} setIsOpen={setIsSettingsOpen} isDarkMode={isDarkMode} onToggleDarkMode={() => setIsDarkMode(!isDarkMode)} onExport={handleExportProfile} onApiKeyOpen={() => { setApiKeyPopupType('MANUAL'); setIsApiKeyModalOpen(true); setIsSettingsOpen(false); }} isAdminMode={isAdminMode} onShowAdminPanel={() => setShowAdminPanel(!showAdminPanel)} btnRef={settingsBtnRef} />
-                <button onClick={onReset} className={`p-2.5 rounded-full transition-all border border-transparent ${isDarkMode ? 'text-slate-400 hover:bg-rose-900/30' : 'text-text-secondary hover:bg-rose-50 hover:text-rose-500'}`}><X size={20} /></button>
+                <button onClick={() => setShowExitModal(true)} className={`p-2.5 rounded-full transition-all border border-transparent ${isDarkMode ? 'text-slate-400 hover:bg-rose-900/30' : 'text-text-secondary hover:bg-rose-50 hover:text-rose-500'}`}><X size={20} /></button>
             </div>
 
             <CharacterSection profile={profile} isBreak={isBreak} cooldownRemaining={cooldownRemaining} cooldownMs={COOLDOWN_MS} message={message} isApiKeyModalOpen={isApiKeyModalOpen} isDarkMode={isDarkMode} onCharacterClick={handleCharacterClick} characterBoxRef={characterBoxRef} />
