@@ -1,5 +1,6 @@
+
 import React, { useState, useEffect } from 'react';
-import { Heart, Settings, Sun, Moon, Save, Key, Terminal, X, Coffee, Timer as TimerIcon, Pause, Play, SkipForward, RotateCcw, Bed, HelpCircle } from 'lucide-react';
+import { Heart, Settings, Sun, Moon, Save, Key, Terminal, X, Coffee, Timer as TimerIcon, Pause, Play, SkipForward, RotateCcw, Bed, HelpCircle, Zap } from 'lucide-react';
 import { CharacterProfile } from '../types';
 
 interface TopBadgeProps {
@@ -31,6 +32,8 @@ interface SettingsMenuProps {
   setIsOpen: (val: boolean) => void;
   isDarkMode: boolean;
   onToggleDarkMode: () => void;
+  isBatterySaving: boolean;
+  onToggleBatterySaving: () => void;
   onExport: () => void;
   onApiKeyOpen: () => void;
   onShowGuide: () => void;
@@ -41,7 +44,7 @@ interface SettingsMenuProps {
   isBreak: boolean;
 }
 
-export const SettingsMenu: React.FC<SettingsMenuProps> = ({ isOpen, setIsOpen, isDarkMode, onToggleDarkMode, onExport, onApiKeyOpen, onShowGuide, isAdminMode, onShowAdminPanel, btnRef, isApiKeyAlert, isBreak }) => {
+export const SettingsMenu: React.FC<SettingsMenuProps> = ({ isOpen, setIsOpen, isDarkMode, onToggleDarkMode, isBatterySaving, onToggleBatterySaving, onExport, onApiKeyOpen, onShowGuide, isAdminMode, onShowAdminPanel, btnRef, isApiKeyAlert, isBreak }) => {
   // API 만료 알림용 일시적 광채 상태 (10초 후 자동 종료)
   const [showTempGlow, setShowTempGlow] = useState(false);
 
@@ -67,6 +70,7 @@ export const SettingsMenu: React.FC<SettingsMenuProps> = ({ isOpen, setIsOpen, i
       
       <div className={`absolute top-full left-0 mt-3.5 flex flex-col gap-3.5 transition-all duration-500 origin-top z-50 ${isOpen ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-4 pointer-events-none'}`}>
           <div className="flex items-center gap-3 cursor-pointer" onClick={(e) => { e.stopPropagation(); onToggleDarkMode(); }}><div className={`w-12 h-12 rounded-full border shadow-sm flex items-center justify-center transition-all hover:scale-110 ${isDarkMode ? 'bg-slate-800 text-yellow-400 border-slate-700' : 'bg-white border-slate-200 text-text-primary'}`}>{isDarkMode ? <Sun size={20} /> : <Moon size={20} />}</div><span className={`text-[10px] font-black px-2.5 py-1.5 rounded-lg border shadow-sm whitespace-nowrap min-w-[60px] text-center ${isDarkMode ? 'bg-slate-800 border-slate-700 text-slate-100' : 'bg-surface/90 border-border text-text-primary'}`}>{isDarkMode ? '라이트' : '다크'}</span></div>
+          <div className="flex items-center gap-3 cursor-pointer" onClick={(e) => { e.stopPropagation(); onToggleBatterySaving(); }}><div className={`w-12 h-12 rounded-full border shadow-sm flex items-center justify-center transition-all hover:scale-110 ${isBatterySaving ? 'bg-primary text-white border-primary-dark shadow-lg shadow-primary/20' : (isDarkMode ? 'bg-slate-800 text-slate-400 border-slate-700' : 'bg-white border-slate-200 text-text-secondary')}`}><Zap size={20} className={isBatterySaving ? "fill-white" : ""} /></div><span className={`text-[10px] font-black px-2.5 py-1.5 rounded-lg border shadow-sm whitespace-nowrap min-w-[60px] text-center ${isBatterySaving ? 'bg-primary border-primary-dark text-white' : (isDarkMode ? 'bg-slate-800 border-slate-700 text-slate-100' : 'bg-surface/90 border-border text-text-primary')}`}>{isBatterySaving ? '절전 끔' : '절전 켬'}</span></div>
           <div className="flex items-center gap-3 cursor-pointer" onClick={(e) => { e.stopPropagation(); onExport(); }}><div className={`w-12 h-12 rounded-full border shadow-sm flex items-center justify-center transition-all hover:scale-110 ${isDarkMode ? 'bg-slate-800 text-slate-100 border-slate-700' : 'bg-white border-slate-200 text-text-primary'}`}><Save size={20} /></div><span className={`text-[10px] font-black px-2.5 py-1.5 rounded-lg border shadow-sm whitespace-nowrap min-w-[60px] text-center ${isDarkMode ? 'bg-slate-800 border-slate-700 text-slate-100' : 'bg-surface/90 border-border text-text-primary'}`}>저장</span></div>
           <div className="flex items-center gap-3 cursor-pointer" onClick={(e) => { e.stopPropagation(); onApiKeyOpen(); }}><div className={`w-12 h-12 rounded-full border shadow-sm flex items-center justify-center transition-all hover:scale-110 ${isApiKeyAlert ? 'bg-rose-500/20 text-rose-500 border-rose-500/40 animate-pulse' : (isDarkMode ? 'bg-slate-800 text-slate-400 border-slate-700' : 'bg-white border-slate-200 text-text-primary')}`}><Key size={20} /></div><span className={`text-[10px] font-black px-2.5 py-1.5 rounded-lg border shadow-sm whitespace-nowrap min-w-[60px] text-center ${isApiKeyAlert ? 'bg-rose-500/10 border-rose-500/20 text-rose-500' : (isDarkMode ? 'bg-slate-800 border-slate-700 text-slate-100' : 'bg-surface/90 border-border text-text-primary')}`}>API키</span></div>
           {!isBreak && (
