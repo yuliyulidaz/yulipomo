@@ -22,6 +22,16 @@ export const useAIManager = (
 
   useEffect(() => { profileRef.current = profile; }, [profile]);
 
+  // 대사 자동 숨김 로직: 어떤 대사든 7초가 지나면 사라지도록 설정
+  useEffect(() => {
+    if (message && message !== "가만히 바라보는 중...") {
+      const timer = setTimeout(() => {
+        setMessage("");
+      }, 7000);
+      return () => clearTimeout(timer);
+    }
+  }, [message]);
+
   const refillCategory = useCallback(async (category: keyof typeof profile.dialogueCache, count: number = 5) => {
     const categoryKey = String(category);
     if (isRefillingRef.current[categoryKey]) return;
