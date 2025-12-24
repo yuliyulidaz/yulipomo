@@ -70,19 +70,24 @@ export const OnboardingGuide: React.FC<OnboardingGuideProps> = ({ isDarkMode, ch
         top: (window.innerHeight - 300) / 2,
         left: (window.innerWidth - 288) / 2,
         arrowAtTop: false,
-        noArrow: true
+        noArrow: true,
+        arrowLeft: 0
       };
     }
 
     const isBottomHalf = spotlight.cy > window.innerHeight / 2;
-    // 리셋 버튼(Step 4) 설명창이 버튼을 가리지 않도록 오프셋을 더 위로 조정
-    const aboveOffset = step === 4 ? 240 : 180;
+    // Step 5를 기존보다 더 위로 올리기 위해 220으로 상향 (기존 180)
+    const aboveOffset = step === 4 ? 240 : (step === 5 ? 220 : 180);
+    
+    const leftPos = Math.max(20, Math.min(window.innerWidth - 300, spotlight.cx - 140));
     
     return {
       top: isBottomHalf ? spotlight.cy - spotlight.r - aboveOffset : spotlight.cy + spotlight.r + 20,
-      left: Math.max(20, Math.min(window.innerWidth - 300, spotlight.cx - 140)),
+      left: leftPos,
       arrowAtTop: !isBottomHalf,
-      noArrow: false
+      noArrow: false,
+      // 마름모가 버튼 중앙을 정확히 가리키도록 동적 계산 (마름모 너비 16px의 절반인 8px 차감)
+      arrowLeft: spotlight.cx - leftPos - 8
     };
   };
 
@@ -114,18 +119,17 @@ export const OnboardingGuide: React.FC<OnboardingGuideProps> = ({ isDarkMode, ch
         className="absolute z-[310] flex flex-col items-center pointer-events-none transition-all duration-500 ease-in-out"
         style={{ top: pos.top, left: pos.left }}
       >
-        {/* Arrow decoration - 디자인 통일을 위해 투명도와 색상을 본체와 완전히 일치시킴 */}
+        {/* Arrow decoration - 투명도를 완전히 제거하고(opacity-100) 색상을 통일 */}
         {!pos.noArrow && (
           <div 
-            className={`w-4 h-4 transform rotate-45 absolute transition-all duration-500 -z-10 ${isDarkMode ? 'bg-slate-900 border-white/10' : 'bg-white border-border'} ${pos.arrowAtTop ? '-top-2 border-t border-l' : '-bottom-2 border-b border-r'}`}
+            className={`w-4 h-4 transform rotate-45 absolute transition-all duration-500 -z-10 opacity-100 ${isDarkMode ? 'bg-slate-900 border-white/20' : 'bg-white border-border'} ${pos.arrowAtTop ? '-top-2 border-t border-l' : '-bottom-2 border-b border-r'}`}
             style={{ 
-              left: step === 1 ? '24px' : '140px',
-              opacity: 1
+              left: `${pos.arrowLeft}px`
             }}
           ></div>
         )}
 
-        <div className={`w-72 bg-surface p-6 rounded-[2rem] shadow-2xl pointer-events-auto border border-border animate-in zoom-in-95 duration-300 relative z-10 ${isDarkMode ? 'bg-slate-900 border-white/10' : 'bg-white'}`}>
+        <div className={`w-72 p-6 rounded-[2rem] shadow-2xl pointer-events-auto border border-border animate-in zoom-in-95 duration-300 relative z-10 opacity-100 ${isDarkMode ? 'bg-slate-900 border-white/20' : 'bg-white'}`}>
            <div className="flex items-center gap-2 mb-3">
               <div className="bg-primary text-white text-[10px] font-black px-2 py-0.5 rounded-full uppercase tracking-widest">Guide {step}/5</div>
            </div>
