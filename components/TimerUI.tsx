@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Heart, Settings, Sun, Moon, Save, Key, Terminal, X, Coffee, Timer as TimerIcon, Pause, Play, SkipForward, RotateCcw, Bed } from 'lucide-react';
+import { Heart, Settings, Sun, Moon, Save, Key, Terminal, X, Coffee, Timer as TimerIcon, Pause, Play, SkipForward, RotateCcw, Bed, HelpCircle } from 'lucide-react';
 import { CharacterProfile } from '../types';
 
 interface TopBadgeProps {
@@ -33,13 +33,14 @@ interface SettingsMenuProps {
   onToggleDarkMode: () => void;
   onExport: () => void;
   onApiKeyOpen: () => void;
+  onShowGuide: () => void;
   isAdminMode: boolean;
   onShowAdminPanel: () => void;
   btnRef: React.RefObject<HTMLDivElement | null>;
   isApiKeyAlert?: boolean;
 }
 
-export const SettingsMenu: React.FC<SettingsMenuProps> = ({ isOpen, setIsOpen, isDarkMode, onToggleDarkMode, onExport, onApiKeyOpen, isAdminMode, onShowAdminPanel, btnRef, isApiKeyAlert }) => {
+export const SettingsMenu: React.FC<SettingsMenuProps> = ({ isOpen, setIsOpen, isDarkMode, onToggleDarkMode, onExport, onApiKeyOpen, onShowGuide, isAdminMode, onShowAdminPanel, btnRef, isApiKeyAlert }) => {
   // API 만료 알림용 일시적 광채 상태 (10초 후 자동 종료)
   const [showTempGlow, setShowTempGlow] = useState(false);
 
@@ -54,12 +55,20 @@ export const SettingsMenu: React.FC<SettingsMenuProps> = ({ isOpen, setIsOpen, i
   }, [isApiKeyAlert]);
 
   return (
-    <div className="relative" ref={btnRef}>
-      <button onClick={() => setIsOpen(!isOpen)} className={`p-2.5 rounded-full transition-all border shadow-sm ${isOpen ? 'bg-primary text-white border-primary-dark rotate-45 scale-110' : (isDarkMode ? 'bg-slate-800 text-slate-400 border-slate-700 hover:bg-slate-700' : 'bg-slate-50 text-slate-500 border-slate-200 hover:bg-slate-100')} ${showTempGlow && !isOpen ? 'ring-2 ring-rose-500/50 shadow-[0_0_15px_rgba(244,63,94,0.4)] animate-pulse' : ''}`} title="설정"><Settings size={20} /></button>
+    <div className={`relative ${isOpen ? 'z-50' : 'z-30'}`} ref={btnRef}>
+      <button 
+        onClick={() => setIsOpen(!isOpen)} 
+        className={`relative z-50 p-2.5 rounded-full transition-all border shadow-sm ${isOpen ? 'bg-primary text-white border-primary-dark rotate-45 scale-110' : (isDarkMode ? 'bg-slate-800 text-slate-400 border-slate-700 hover:bg-slate-700' : 'bg-slate-50 text-slate-500 border-slate-200 hover:bg-slate-100')} ${showTempGlow && !isOpen ? 'ring-2 ring-rose-500/50 shadow-[0_0_15px_rgba(244,63,94,0.4)] animate-pulse' : ''}`} 
+        title="설정"
+      >
+        <Settings size={20} />
+      </button>
+      
       <div className={`absolute top-full left-0 mt-3.5 flex flex-col gap-3.5 transition-all duration-500 origin-top z-50 ${isOpen ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-4 pointer-events-none'}`}>
           <div className="flex items-center gap-3 cursor-pointer" onClick={(e) => { e.stopPropagation(); onToggleDarkMode(); }}><div className={`w-12 h-12 rounded-full border shadow-sm flex items-center justify-center transition-all hover:scale-110 ${isDarkMode ? 'bg-slate-800 text-yellow-400 border-slate-700' : 'bg-white border-slate-200 text-text-primary'}`}>{isDarkMode ? <Sun size={20} /> : <Moon size={20} />}</div><span className={`text-[10px] font-black px-2.5 py-1.5 rounded-lg border shadow-sm whitespace-nowrap min-w-[60px] text-center ${isDarkMode ? 'bg-slate-800 border-slate-700 text-slate-100' : 'bg-surface/90 border-border text-text-primary'}`}>{isDarkMode ? '라이트' : '다크'}</span></div>
           <div className="flex items-center gap-3 cursor-pointer" onClick={(e) => { e.stopPropagation(); onExport(); }}><div className={`w-12 h-12 rounded-full border shadow-sm flex items-center justify-center transition-all hover:scale-110 ${isDarkMode ? 'bg-slate-800 text-slate-100 border-slate-700' : 'bg-white border-slate-200 text-text-primary'}`}><Save size={20} /></div><span className={`text-[10px] font-black px-2.5 py-1.5 rounded-lg border shadow-sm whitespace-nowrap min-w-[60px] text-center ${isDarkMode ? 'bg-slate-800 border-slate-700 text-slate-100' : 'bg-surface/90 border-border text-text-primary'}`}>저장</span></div>
           <div className="flex items-center gap-3 cursor-pointer" onClick={(e) => { e.stopPropagation(); onApiKeyOpen(); }}><div className={`w-12 h-12 rounded-full border shadow-sm flex items-center justify-center transition-all hover:scale-110 ${isApiKeyAlert ? 'bg-rose-500/20 text-rose-500 border-rose-500/40 animate-pulse' : (isDarkMode ? 'bg-slate-800 text-slate-400 border-slate-700' : 'bg-white border-slate-200 text-text-primary')}`}><Key size={20} /></div><span className={`text-[10px] font-black px-2.5 py-1.5 rounded-lg border shadow-sm whitespace-nowrap min-w-[60px] text-center ${isApiKeyAlert ? 'bg-rose-500/10 border-rose-500/20 text-rose-500' : (isDarkMode ? 'bg-slate-800 border-slate-700 text-slate-100' : 'bg-surface/90 border-border text-text-primary')}`}>API키</span></div>
+          <div className="flex items-center gap-3 cursor-pointer" onClick={(e) => { e.stopPropagation(); onShowGuide(); setIsOpen(false); }}><div className={`w-12 h-12 rounded-full border shadow-sm flex items-center justify-center transition-all hover:scale-110 ${isDarkMode ? 'bg-slate-800 text-primary-light border-slate-700' : 'bg-white border-slate-200 text-primary'}`}><HelpCircle size={20} /></div><span className={`text-[10px] font-black px-2.5 py-1.5 rounded-lg border shadow-sm whitespace-nowrap min-w-[60px] text-center ${isDarkMode ? 'bg-slate-800 border-slate-700 text-slate-100' : 'bg-surface/90 border-border text-text-primary'}`}>사용법</span></div>
           {isAdminMode && (
             <div className="flex items-center gap-3 cursor-pointer" onClick={(e) => { e.stopPropagation(); onShowAdminPanel(); setIsOpen(false); }}><div className={`w-12 h-12 rounded-full border shadow-sm flex items-center justify-center transition-all hover:scale-110 bg-primary text-white border-primary-dark`}><Terminal size={20} /></div><span className={`text-[10px] font-black px-2.5 py-1.5 rounded-lg border shadow-sm bg-primary border-primary-dark text-white whitespace-nowrap min-w-[60px] text-center`}>패널</span></div>
           )}
@@ -96,7 +105,7 @@ export const CharacterSection: React.FC<CharacterSectionProps> = ({ profile, isB
               <div className={`px-4 py-1.5 rounded-full border backdrop-blur-md shadow-sm animate-pulse-slow flex items-center justify-center whitespace-nowrap
                 ${isDarkMode ? 'bg-emerald-500/10 border-emerald-500/20 shadow-emerald-500/5' : 'bg-primary/10 border-primary/20 shadow-primary/5'}`}>
                 <span className={`text-[10px] font-black uppercase tracking-widest ${isDarkMode ? 'text-emerald-400' : 'text-primary'}`}>
-                  당신만을 가만히 바라보는 중...
+                  가만히 바라보는 중...
                 </span>
               </div>
             </div>
