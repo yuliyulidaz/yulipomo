@@ -8,7 +8,8 @@ export const useTimerCore = (
   triggerAIResponse: (type: string) => void
 ) => {
   const [timeLeft, setTimeLeft] = useState(profile.savedTimeLeft ?? 25 * 60);
-  const [isActive, setIsActive] = useState(profile.savedIsActive ?? false);
+  // 새로고침 시 유저의 여유를 위해 항상 정지(false) 상태로 시작
+  const [isActive, setIsActive] = useState(false);
   const [isBreak, setIsBreak] = useState(profile.savedIsBreak ?? false);
   const [sessionInCycle, setSessionInCycle] = useState(profile.savedSessionInCycle ?? 0);
   const [showReport, setShowReport] = useState(false);
