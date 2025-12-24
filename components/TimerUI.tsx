@@ -36,15 +36,16 @@ interface SettingsMenuProps {
   isAdminMode: boolean;
   onShowAdminPanel: () => void;
   btnRef: React.RefObject<HTMLDivElement | null>;
+  isApiKeyAlert?: boolean;
 }
 
-export const SettingsMenu: React.FC<SettingsMenuProps> = ({ isOpen, setIsOpen, isDarkMode, onToggleDarkMode, onExport, onApiKeyOpen, isAdminMode, onShowAdminPanel, btnRef }) => (
+export const SettingsMenu: React.FC<SettingsMenuProps> = ({ isOpen, setIsOpen, isDarkMode, onToggleDarkMode, onExport, onApiKeyOpen, isAdminMode, onShowAdminPanel, btnRef, isApiKeyAlert }) => (
   <div className="relative" ref={btnRef}>
-    <button onClick={() => setIsOpen(!isOpen)} className={`p-2.5 rounded-full transition-all border shadow-sm ${isOpen ? 'bg-primary text-white border-primary-dark rotate-45 scale-110' : (isDarkMode ? 'bg-slate-800 text-slate-400 border-slate-700 hover:bg-slate-700' : 'bg-slate-50 text-slate-500 border-slate-200 hover:bg-slate-100')}`} title="설정"><Settings size={20} /></button>
+    <button onClick={() => setIsOpen(!isOpen)} className={`p-2.5 rounded-full transition-all border shadow-sm ${isOpen ? 'bg-primary text-white border-primary-dark rotate-45 scale-110' : (isDarkMode ? 'bg-slate-800 text-slate-400 border-slate-700 hover:bg-slate-700' : 'bg-slate-50 text-slate-500 border-slate-200 hover:bg-slate-100')} ${isApiKeyAlert && !isOpen ? 'ring-2 ring-rose-500/50 shadow-[0_0_15px_rgba(244,63,94,0.4)] animate-pulse' : ''}`} title="설정"><Settings size={20} /></button>
     <div className={`absolute top-full left-0 mt-3.5 flex flex-col gap-3.5 transition-all duration-500 origin-top z-50 ${isOpen ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-4 pointer-events-none'}`}>
         <div className="flex items-center gap-3 cursor-pointer" onClick={(e) => { e.stopPropagation(); onToggleDarkMode(); }}><div className={`w-12 h-12 rounded-full border shadow-sm flex items-center justify-center transition-all hover:scale-110 ${isDarkMode ? 'bg-slate-800 text-yellow-400 border-slate-700' : 'bg-white border-slate-200 text-text-primary'}`}>{isDarkMode ? <Sun size={20} /> : <Moon size={20} />}</div><span className={`text-[10px] font-black px-2.5 py-1.5 rounded-lg border shadow-sm whitespace-nowrap min-w-[60px] text-center ${isDarkMode ? 'bg-slate-800 border-slate-700 text-slate-100' : 'bg-surface/90 border-border text-text-primary'}`}>{isDarkMode ? '라이트' : '다크'}</span></div>
         <div className="flex items-center gap-3 cursor-pointer" onClick={(e) => { e.stopPropagation(); onExport(); }}><div className={`w-12 h-12 rounded-full border shadow-sm flex items-center justify-center transition-all hover:scale-110 ${isDarkMode ? 'bg-slate-800 text-slate-100 border-slate-700' : 'bg-white border-slate-200 text-text-primary'}`}><Save size={20} /></div><span className={`text-[10px] font-black px-2.5 py-1.5 rounded-lg border shadow-sm whitespace-nowrap min-w-[60px] text-center ${isDarkMode ? 'bg-slate-800 border-slate-700 text-slate-100' : 'bg-surface/90 border-border text-text-primary'}`}>저장</span></div>
-        <div className="flex items-center gap-3 cursor-pointer" onClick={(e) => { e.stopPropagation(); onApiKeyOpen(); }}><div className={`w-12 h-12 rounded-full border shadow-sm flex items-center justify-center transition-all hover:scale-110 ${isDarkMode ? 'bg-slate-800 text-slate-400 border-slate-700 hover:bg-slate-700' : 'bg-white border-slate-200 text-text-primary'}`}><Key size={20} /></div><span className={`text-[10px] font-black px-2.5 py-1.5 rounded-lg border shadow-sm whitespace-nowrap min-w-[60px] text-center ${isDarkMode ? 'bg-slate-800 border-slate-700 text-slate-100' : 'bg-surface/90 border-border text-text-primary'}`}>API키</span></div>
+        <div className="flex items-center gap-3 cursor-pointer" onClick={(e) => { e.stopPropagation(); onApiKeyOpen(); }}><div className={`w-12 h-12 rounded-full border shadow-sm flex items-center justify-center transition-all hover:scale-110 ${isApiKeyAlert ? 'bg-rose-500/20 text-rose-500 border-rose-500/40 animate-pulse' : (isDarkMode ? 'bg-slate-800 text-slate-400 border-slate-700' : 'bg-white border-slate-200 text-text-primary')}`}><Key size={20} /></div><span className={`text-[10px] font-black px-2.5 py-1.5 rounded-lg border shadow-sm whitespace-nowrap min-w-[60px] text-center ${isApiKeyAlert ? 'bg-rose-500/10 border-rose-500/20 text-rose-500' : (isDarkMode ? 'bg-slate-800 border-slate-700 text-slate-100' : 'bg-surface/90 border-border text-text-primary')}`}>API키</span></div>
         {isAdminMode && (
           <div className="flex items-center gap-3 cursor-pointer" onClick={(e) => { e.stopPropagation(); onShowAdminPanel(); setIsOpen(false); }}><div className={`w-12 h-12 rounded-full border shadow-sm flex items-center justify-center transition-all hover:scale-110 bg-primary text-white border-primary-dark`}><Terminal size={20} /></div><span className={`text-[10px] font-black px-2.5 py-1.5 rounded-lg border shadow-sm bg-primary border-primary-dark text-white whitespace-nowrap min-w-[60px] text-center`}>패널</span></div>
         )}
@@ -89,7 +90,15 @@ export const CharacterSection: React.FC<CharacterSectionProps> = ({ profile, isB
           <div onClick={onCharacterClick} ref={characterBoxRef} className={`w-32 h-32 md:w-44 md:h-44 rounded-2xl border-4 overflow-hidden shadow-xl mx-auto transition-all duration-500 group-hover:scale-105 group-hover:border-primary cursor-pointer active:scale-95 ${isDarkMode ? 'border-slate-800' : 'border-border'}`}>
             <img src={profile.imageSrc || ''} alt={profile.name} className="w-full h-full object-cover" />
           </div>
-          {cooldownRemaining > 0 && (<div className="absolute -bottom-2 left-1/2 -translate-x-1/2 bg-primary/90 text-white text-[9px] font-black px-3 py-1 rounded-full shadow-lg animate-pulse whitespace-nowrap z-20">가만히 바라보는 중...</div>)}
+          
+          {/* 가만히 바라보는 중 안내 UI 복구 */}
+          {cooldownRemaining > 0 && (
+            <div className="absolute -bottom-8 left-1/2 -translate-x-1/2 w-full text-center animate-in fade-in duration-300 pointer-events-none">
+              <span className={`text-[10px] font-black uppercase tracking-widest ${isDarkMode ? 'text-emerald-400/50' : 'text-primary/50'}`}>
+                가만히 바라보는 중...
+              </span>
+            </div>
+          )}
         </>
       )}
 
