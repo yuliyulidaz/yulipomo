@@ -90,13 +90,13 @@ export const CharacterSection: React.FC<CharacterSectionProps> = ({ profile, isB
         </div>
       ) : (
         <>
-          {/* 가만히 바라보는 중 UI - 대사 노출 시간(7초)을 고려하여 쿨타임이 8초 이하일 때만 노출 */}
+          {/* 가만히 바라보는 중 UI - 대사 노출 시간(7초)을 고려하여 쿨타임이 8초(8000ms) 이하일 때만 노출 */}
           {cooldownRemaining > 0 && cooldownRemaining <= 8000 && (
             <div className="absolute -top-10 left-1/2 -translate-x-1/2 z-30 animate-in fade-in zoom-in duration-500 pointer-events-none">
               <div className={`px-4 py-1.5 rounded-full border backdrop-blur-md shadow-sm animate-pulse-slow flex items-center justify-center whitespace-nowrap
                 ${isDarkMode ? 'bg-emerald-500/10 border-emerald-500/20 shadow-emerald-500/5' : 'bg-primary/10 border-primary/20 shadow-primary/5'}`}>
                 <span className={`text-[10px] font-black uppercase tracking-widest ${isDarkMode ? 'text-emerald-400' : 'text-primary'}`}>
-                  당신을 가만히 바라보는 중...
+                  가만히 바라보는 중...
                 </span>
               </div>
             </div>
@@ -188,8 +188,8 @@ interface ControlButtonsProps {
   onSkipBreak: () => void;
   resetBtnRef: React.RefObject<HTMLButtonElement | null>;
   startBtnRef: React.RefObject<HTMLButtonElement | null>;
-  onResetStart: (e: any) => void;
-  onResetEnd: () => void;
+  onResetStart: (e: React.MouseEvent | React.TouchEvent) => void;
+  onResetEnd: (e: React.MouseEvent | React.TouchEvent) => void;
   onResetCancel: () => void;
   isResetHolding: boolean;
   isDarkMode: boolean;
@@ -208,12 +208,12 @@ export const ControlButtons: React.FC<ControlButtonsProps> = ({ isBreak, isActiv
     )}
     <button 
       ref={resetBtnRef}
-      onMouseDown={onResetStart}
-      onMouseUp={onResetEnd}
+      onMouseDown={(e) => { e.preventDefault(); onResetStart(e); }}
+      onMouseUp={(e) => { e.preventDefault(); onResetEnd(e); }}
       onMouseLeave={onResetCancel}
       onFocus={(e) => e.target.blur()}
-      onTouchStart={onResetStart}
-      onTouchEnd={onResetEnd}
+      onTouchStart={(e) => { if (e.cancelable) e.preventDefault(); onResetStart(e); }}
+      onTouchEnd={(e) => { if (e.cancelable) e.preventDefault(); onResetEnd(e); }}
       className={`w-12 h-12 md:w-14 md:h-14 rounded-xl flex items-center justify-center transition-all active:scale-95 shadow-sm overflow-hidden relative select-none ${isDarkMode ? 'bg-slate-800 border-slate-700 text-slate-400 hover:text-slate-200' : 'bg-background border-border text-text-secondary hover:text-text-primary'}`}
     >
       <RotateCcw className={`w-5 h-5 md:w-6 md:h-6 relative z-10 transition-transform ${isResetHolding ? 'rotate-[-120deg]' : ''}`} />
