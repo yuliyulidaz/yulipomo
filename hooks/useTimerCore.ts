@@ -1,3 +1,4 @@
+
 import { useState, useEffect, useCallback } from 'react';
 import { CharacterProfile } from '../types';
 
@@ -57,10 +58,13 @@ export const useTimerCore = (
   }, [isActive, timeLeft, isBreak, onTickXP, handleTimerFinish]);
 
   const toggleActive = useCallback(() => {
-    if (!isActive) triggerAIResponse('START');
-    else triggerAIResponse('PAUSE');
+    // 휴식 시간 중에는 수동으로 시작/정지를 눌러도 대사가 발생하지 않음
+    if (!isBreak) {
+      if (!isActive) triggerAIResponse('START');
+      else triggerAIResponse('PAUSE');
+    }
     setIsActive(!isActive);
-  }, [isActive, triggerAIResponse]);
+  }, [isActive, isBreak, triggerAIResponse]);
 
   const skipBreak = useCallback(() => {
     setIsBreak(false);
