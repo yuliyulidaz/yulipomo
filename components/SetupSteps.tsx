@@ -1,5 +1,5 @@
 import React from 'react';
-import { Camera, FileJson, Heart, ClipboardList, ExternalLink } from 'lucide-react';
+import { Camera, FileJson, Heart, ClipboardList, ExternalLink, ClipboardPaste, X } from 'lucide-react';
 import { FileUpload } from './FileUpload';
 import { TONE_KEYWORDS, PERSONALITY_KEYWORDS } from './SetupConfig';
 
@@ -103,34 +103,68 @@ interface Step3Props {
   name: string;
 }
 
-export const Step3: React.FC<Step3Props> = ({ userName, setUserName, honorific, setHonorific, gender, setGender, todayTask, setTodayTask, apiKey, setApiKey, name }) => (
-  <div className="space-y-8 animate-in fade-in slide-in-from-right-4 duration-500">
-    <div className="text-center space-y-3"><h1 className="text-2xl font-bold text-text-primary tracking-tight">우리의 연결</h1><p className="text-text-secondary text-sm font-medium">마지막 관문입니다. 당신을 알려주세요.</p></div>
-    <div className="grid grid-cols-2 gap-8 px-2">
-      <div className="relative group"><label className="absolute -top-6 left-0 text-[10px] font-bold text-text-secondary uppercase tracking-widest">My Name</label><input type="text" value={userName} onChange={e => setUserName(e.target.value)} placeholder="당신의 이름" className="w-full py-2 bg-transparent border-b-2 border-border outline-none focus:border-primary transition-all font-bold text-sm text-text-primary" /></div>
-      <div className="relative group"><label className="absolute -top-6 left-0 text-[10px] font-bold text-text-secondary uppercase tracking-widest">Call Me</label><input type="text" value={honorific} onChange={e => setHonorific(e.target.value)} placeholder="부를 호칭" className="w-full py-2 bg-transparent border-b-2 border-border outline-none focus:border-primary transition-all font-bold text-sm text-text-primary" /></div>
-    </div>
-    <div className="space-y-4 px-2">
-      <label className="text-[10px] font-bold text-text-secondary uppercase tracking-widest block">Gender</label>
-      <div className="flex border border-border rounded-xl overflow-hidden p-1 gap-1">
-        {(['MALE', 'FEMALE', 'NEUTRAL'] as const).map(g => (
-          <button key={g} onClick={() => setGender(g)} className={`flex-1 py-2.5 text-xs font-black rounded-lg transition-all ${gender === g ? 'bg-primary text-white shadow-md' : 'text-text-secondary hover:bg-background'}`}>{g === 'MALE' ? '남성' : g === 'FEMALE' ? '여성' : '중성'}</button>
-        ))}
+export const Step3: React.FC<Step3Props> = ({ userName, setUserName, honorific, setHonorific, gender, setGender, todayTask, setTodayTask, apiKey, setApiKey, name }) => {
+  const handlePaste = async () => {
+    try {
+      const text = await navigator.clipboard.readText();
+      setApiKey(text.trim());
+    } catch (err) {
+      console.error('Failed to read clipboard');
+    }
+  };
+
+  return (
+    <div className="space-y-8 animate-in fade-in slide-in-from-right-4 duration-500">
+      <div className="text-center space-y-3"><h1 className="text-2xl font-bold text-text-primary tracking-tight">우리의 연결</h1><p className="text-text-secondary text-sm font-medium">마지막 관문입니다. 당신을 알려주세요.</p></div>
+      <div className="grid grid-cols-2 gap-8 px-2">
+        <div className="relative group"><label className="absolute -top-6 left-0 text-[10px] font-bold text-text-secondary uppercase tracking-widest">My Name</label><input type="text" value={userName} onChange={e => setUserName(e.target.value)} placeholder="당신의 이름" className="w-full py-2 bg-transparent border-b-2 border-border outline-none focus:border-primary transition-all font-bold text-sm text-text-primary" /></div>
+        <div className="relative group"><label className="absolute -top-6 left-0 text-[10px] font-bold text-text-secondary uppercase tracking-widest">Call Me</label><input type="text" value={honorific} onChange={e => setHonorific(e.target.value)} placeholder="부를 호칭" className="w-full py-2 bg-transparent border-b-2 border-border outline-none focus:border-primary transition-all font-bold text-sm text-text-primary" /></div>
       </div>
-    </div>
-    <div className="space-y-4 px-2 pt-2">
-      <label className="flex items-center gap-2 text-[10px] font-bold text-text-secondary uppercase tracking-widest"><ClipboardList size={12} className="text-primary" />최애와의 뽀모도로에서 당신이 해야 할 일은?</label>
-      <input type="text" value={todayTask} onChange={e => setTodayTask(e.target.value)} placeholder="예: 제작 마감, 수학 숙제 등" className="w-full px-4 py-3 bg-background border-2 border-border rounded-xl outline-none focus:border-primary transition-all text-sm font-bold text-text-primary placeholder:text-text-secondary/40" />
-    </div>
-    <div className="pt-2 px-2 space-y-5">
-      <div className="flex justify-between items-end border-b-2 border-border pb-2 focus-within:border-primary transition-colors">
-        <div className="space-y-1 flex-1">
-          <label className="flex items-center gap-2 text-[10px] font-bold text-text-secondary uppercase tracking-widest">Gemini API Key</label>
-          <input type="password" value={apiKey} onChange={e => setApiKey(e.target.value)} placeholder="API 키를 입력하세요" className="w-full bg-transparent outline-none font-mono text-base placeholder:text-border text-text-primary" />
+      <div className="space-y-4 px-2">
+        <label className="text-[10px] font-bold text-text-secondary uppercase tracking-widest block">Gender</label>
+        <div className="flex border border-border rounded-xl overflow-hidden p-1 gap-1">
+          {(['MALE', 'FEMALE', 'NEUTRAL'] as const).map(g => (
+            // Fix: simplified ternary to avoid type overlap error between 'NEUTRAL' and 'FEMALE'
+            <button key={g} onClick={() => setGender(g)} className={`flex-1 py-2.5 text-xs font-black rounded-lg transition-all ${gender === g ? 'bg-primary text-white shadow-md' : 'text-text-secondary hover:bg-background'}`}>{g === 'MALE' ? '남성' : g === 'FEMALE' ? '여성' : '중성'}</button>
+          ))}
         </div>
-        <a href="https://aistudio.google.com/app/apikey" target="_blank" rel="noopener noreferrer" className="flex items-center gap-1 text-[10px] font-black text-primary hover:text-primary-dark transition-colors">키 발급받기 <ExternalLink size={12} /></a>
       </div>
-      <p className="text-[10px] text-text-secondary leading-relaxed font-bold">키를 입력하고 '소환하기'를 누르면 {name}이(가) 당신 앞에 나타납니다.</p>
+      <div className="space-y-4 px-2 pt-2">
+        <label className="flex items-center gap-2 text-[10px] font-bold text-text-secondary uppercase tracking-widest"><ClipboardList size={12} className="text-primary" />최애와의 뽀모도로에서 당신이 해야 할 일은?</label>
+        <input type="text" value={todayTask} onChange={e => setTodayTask(e.target.value)} placeholder="예: 제작 마감, 수학 숙제 등" className="w-full px-4 py-3 bg-background border-2 border-border rounded-xl outline-none focus:border-primary transition-all text-sm font-bold text-text-primary placeholder:text-text-secondary/40" />
+      </div>
+      <div className="pt-2 px-2 space-y-4">
+        <div className="flex gap-2">
+          <a href="https://aistudio.google.com/app/apikey" target="_blank" rel="noopener noreferrer" className="flex-1 h-10 flex items-center justify-center gap-1.5 rounded-xl border border-border bg-background text-[10px] font-black text-text-secondary hover:bg-slate-50 transition-all">
+            API 키 발급받기 <ExternalLink size={12} />
+          </a>
+          <button onClick={handlePaste} className="flex-1 h-10 bg-primary/10 text-primary hover:bg-primary/20 text-[10px] font-black rounded-xl flex items-center justify-center gap-1.5 transition-all">
+            복사해 온 키 붙여넣기 <ClipboardPaste size={12} />
+          </button>
+        </div>
+        <div className="relative group">
+          <label className="flex items-center gap-2 text-[10px] font-bold text-text-secondary uppercase tracking-widest mb-1.5">Gemini API Key</label>
+          <div className="relative">
+            <input 
+              type="password" 
+              value={apiKey} 
+              onChange={e => setApiKey(e.target.value)} 
+              placeholder="API 키를 입력하세요" 
+              className="w-full bg-background border-b-2 border-border outline-none focus:border-primary font-mono text-base py-2 pr-10 placeholder:text-border text-text-primary transition-colors" 
+            />
+            {apiKey && (
+              <button 
+                onClick={() => setApiKey('')}
+                className="absolute right-0 top-1/2 -translate-y-1/2 p-1.5 text-text-secondary hover:text-rose-500 transition-colors"
+                title="지우기"
+              >
+                <X size={16} />
+              </button>
+            )}
+          </div>
+        </div>
+        <p className="text-[10px] text-text-secondary leading-relaxed font-bold">키를 입력하고 '소환하기'를 누르면 {name}이(가) 당신 앞에 나타납니다.</p>
+      </div>
     </div>
-  </div>
-);
+  );
+};
