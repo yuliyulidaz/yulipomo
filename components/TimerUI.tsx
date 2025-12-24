@@ -90,8 +90,8 @@ export const CharacterSection: React.FC<CharacterSectionProps> = ({ profile, isB
         </div>
       ) : (
         <>
-          {/* 가만히 바라보는 중 안내 UI - 이미지 상단 알약 형태로 이동 및 스타일 강화 */}
-          {cooldownRemaining > 0 && (
+          {/* 가만히 바라보는 중 UI - 대사 노출 시간(7초)을 고려하여 쿨타임이 8초 이하일 때만 노출 */}
+          {cooldownRemaining > 0 && cooldownRemaining <= 8000 && (
             <div className="absolute -top-10 left-1/2 -translate-x-1/2 z-30 animate-in fade-in zoom-in duration-500 pointer-events-none">
               <div className={`px-4 py-1.5 rounded-full border backdrop-blur-md shadow-sm animate-pulse-slow flex items-center justify-center whitespace-nowrap
                 ${isDarkMode ? 'bg-emerald-500/10 border-emerald-500/20 shadow-emerald-500/5' : 'bg-primary/10 border-primary/20 shadow-primary/5'}`}>
