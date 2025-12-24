@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useRef } from 'react';
 import { X } from 'lucide-react';
 import { CharacterProfile } from '../types';
@@ -35,7 +36,7 @@ export const TimerScreen: React.FC<TimerScreenProps> = ({
   // --- 1. AI & Dialogue Logic ---
   const {
     message, setMessage, cooldownRemaining, setCooldownRemaining,
-    triggerAIResponse, handleInteraction, pendingExpiryAlert, COOLDOWN_MS
+    triggerAIResponse, handleInteraction, pendingExpiryAlert, setPendingExpiryAlert, COOLDOWN_MS
   } = useAIManager(profile, onUpdateProfile);
 
   // --- 2. Core Timer Logic ---
@@ -80,19 +81,22 @@ export const TimerScreen: React.FC<TimerScreenProps> = ({
     if (isFirstTime) setTimeout(() => setShowOnboarding(true), 1000);
   }, []);
 
-  // --- 6-2. Back Button / History Handling ---
+  // --- 6-2. API Expiry Alert logic (Auto-popup only on break) ---
   useEffect(() => {
-    // 히스토리에 가짜 상태 추가 (뒤로가기를 눌러도 URL이 유지되도록)
-    window.history.pushState(null, "", window.location.href);
+    if (isBreak && pendingExpiryAlert && !isApiKeyModalOpen) {
+      setApiKeyPopupType('EXPIRED');
+      setIsApiKeyModalOpen(true);
+    }
+  }, [isBreak, pendingExpiryAlert, isApiKeyModalOpen]);
 
+  // --- 6-3. Back Button / History Handling ---
+  useEffect(() => {
+    window.history.pushState(null, "", window.location.href);
     const handlePopState = (e: PopStateEvent) => {
-      // 뒤로가기를 누르면 이 함수가 호출됨
       e.preventDefault();
       setShowExitModal(true);
-      // 다시 상태를 밀어 넣어 한 번 더 방어막 생성
       window.history.pushState(null, "", window.location.href);
     };
-
     window.addEventListener('popstate', handlePopState);
     return () => window.removeEventListener('popstate', handlePopState);
   }, []);
@@ -161,7 +165,6 @@ export const TimerScreen: React.FC<TimerScreenProps> = ({
     return () => cancelAnimationFrame(frame);
   }, [isResetHolding]);
 
-  // --- 8. Computed Values ---
   const overallProgressPercent = calculateOverallProgress(sessionInCycle, isBreak, timeLeft);
 
   return (
@@ -173,8 +176,18 @@ export const TimerScreen: React.FC<TimerScreenProps> = ({
 
       <AdminAuthModal isOpen={showAdminAuth} onClose={() => setShowAdminAuth(false)} password={adminPassword} setPassword={setAdminPassword} onVerify={(e) => { e.preventDefault(); if(adminPassword==='PTSD'){ setIsAdminMode(true); setShowAdminPanel(true); setShowAdminAuth(false); setAdminPassword(''); setMessage("관리자 모드 활성화!"); } else { setAdminPassword(''); setShowAdminAuth(false); setMessage("비밀번호 틀림."); } }} />
       
-      <AdminPanel isOpen={isAdminMode && showAdminPanel} onClose={() => setShowAdminPanel(false)} profile={profile} onTimeLeap={() => setTimeLeft(10)} onLevelChange={(lv) => onUpdateProfile({ level: lv, xp: 0 })} clicks={clicks} />
+      <AdminPanel 
+        isOpen={isAdminMode && showAdminPanel} 
+        onClose={() => setShowAdminPanel(false)} 
+        profile={profile} 
+        onTimeLeap={() => setTimeLeft(10)} 
+        onLevelChange={(lv) => onUpdateProfile({ level: lv, xp: 0 })} 
+        clicks={clicks} 
+        isApiKeyAlert={pendingExpiryAlert}
+        onToggleApiKeyAlert={() => setPendingExpiryAlert(!pendingExpiryAlert)}
+      />
 
+      {/* @google/genai senior engineer fix: Removed non-existent property 'distractionIntervals' from stats object to match ObservationDiaryProps definition. */}
       {showReport && <ObservationDiary profile={profile} stats={{ distractions, clicks }} onClose={() => { setShowReport(false); setDistractions(0); setClicks(0); setShowChoiceModal(true); }} />}
 
       <CycleChoiceModal isOpen={showChoiceModal} isDarkMode={isDarkMode} onChoice={(opt) => { setShowChoiceModal(false); setSessionInCycle(0); setIsBreak(true); setIsActive(true); if(opt==='LONG'){ setTimeLeft(30*60); onTickXP(5); } else { setTimeLeft(5*60); onTickXP(25); } }} onExport={handleExportProfile} />
@@ -183,7 +196,7 @@ export const TimerScreen: React.FC<TimerScreenProps> = ({
 
       <ExitConfirmModal isOpen={showExitModal} onClose={() => setShowExitModal(false)} onConfirmExit={onReset} characterName={profile.name} isDarkMode={isDarkMode} />
 
-      {(isSettingsOpen || isApiKeyModalOpen || showExitModal) && <div className="fixed inset-0 z-[45]" onClick={() => { setIsSettingsOpen(false); setIsApiKeyModalOpen(false); setShowExitModal(false); }} />}
+      {(isSettingsOpen || isApiKeyModalOpen || showExitModal) && <div className="fixed inset-0 z-[45] bg-transparent" onClick={() => { setIsSettingsOpen(false); setIsApiKeyModalOpen(false); setShowExitModal(false); }} />}
 
       <main className="w-full h-full flex flex-col items-center justify-center relative p-4 md:p-8">
           <TopBadge level={profile.level} title={levelTitle} isAdminMode={isAdminMode} isDarkMode={isDarkMode} onBadgeClick={() => { const nc = badgeClicks+1; setBadgeClicks(nc); if(nc>=5){ setBadgeClicks(0); setShowAdminAuth(true); } setTimeout(()=>setBadgeClicks(0),2000); }} badgeClicks={badgeClicks} />
@@ -192,7 +205,18 @@ export const TimerScreen: React.FC<TimerScreenProps> = ({
             <div className={`absolute top-2.5 inset-x-8 h-1.5 z-10 ${isDarkMode ? 'bg-slate-700/20' : 'bg-border/20'} rounded-full overflow-hidden`}><div className="h-full bg-gradient-to-r from-primary to-accent transition-all duration-1000 ease-out rounded-full" style={{ width: `${progressPercent}%` }} /></div>
 
             <div className="w-full flex justify-between items-start mt-2 px-2 relative z-50">
-                <SettingsMenu isOpen={isSettingsOpen} setIsOpen={setIsSettingsOpen} isDarkMode={isDarkMode} onToggleDarkMode={() => setIsDarkMode(!isDarkMode)} onExport={handleExportProfile} onApiKeyOpen={() => { setApiKeyPopupType('MANUAL'); setIsApiKeyModalOpen(true); setIsSettingsOpen(false); }} isAdminMode={isAdminMode} onShowAdminPanel={() => setShowAdminPanel(!showAdminPanel)} btnRef={settingsBtnRef} />
+                <SettingsMenu 
+                  isOpen={isSettingsOpen} 
+                  setIsOpen={setIsSettingsOpen} 
+                  isDarkMode={isDarkMode} 
+                  onToggleDarkMode={() => setIsDarkMode(!isDarkMode)} 
+                  onExport={handleExportProfile} 
+                  onApiKeyOpen={() => { setApiKeyPopupType('MANUAL'); setIsApiKeyModalOpen(true); setIsSettingsOpen(false); }} 
+                  isAdminMode={isAdminMode} 
+                  onShowAdminPanel={() => setShowAdminPanel(!showAdminPanel)} 
+                  btnRef={settingsBtnRef} 
+                  isApiKeyAlert={pendingExpiryAlert}
+                />
                 <button onClick={() => setShowExitModal(true)} className={`p-2.5 rounded-full transition-all border border-transparent ${isDarkMode ? 'text-slate-400 hover:bg-rose-900/30' : 'text-text-secondary hover:bg-rose-50 hover:text-rose-500'}`}><X size={20} /></button>
             </div>
 
