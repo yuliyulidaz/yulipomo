@@ -210,16 +210,8 @@ interface ControlButtonsProps {
 }
 
 export const ControlButtons: React.FC<ControlButtonsProps> = ({ isBreak, isActive, onToggle, onSkipBreak, resetBtnRef, startBtnRef, onResetStart, onResetEnd, onResetCancel, isResetHolding, isDarkMode }) => (
-  <div className="flex items-center gap-6 md:gap-8 mt-4">
-    {!isBreak ? (
-      <button ref={startBtnRef} onClick={onToggle} className={`w-16 h-16 md:w-20 md:h-20 rounded-2xl flex items-center justify-center shadow-lg transition-all active:scale-90 ${isActive ? 'bg-warning text-white' : 'bg-primary text-white hover:bg-primary-light'}`}>
-        {isActive ? <Pause className="w-7 h-7 md:w-8 md:h-8" fill="currentColor" /> : <Play className="w-7 h-7 md:w-8 md:h-8 ml-1" fill="currentColor" />}
-      </button>
-    ) : (
-      <button ref={startBtnRef} onClick={onSkipBreak} title="휴식 건너뛰기" className="w-16 h-16 md:w-20 md:h-20 rounded-2xl flex items-center justify-center shadow-lg transition-all active:scale-90 bg-emerald-500 text-white hover:bg-emerald-600">
-        <SkipForward className="w-7 h-7 md:w-8 md:h-8" fill="currentColor" />
-      </button>
-    )}
+  <div className="flex items-center justify-center gap-6 md:gap-8 mt-4 w-full">
+    {/* 리셋 버튼 (왼쪽) */}
     <button 
       ref={resetBtnRef}
       onMouseDown={(e) => { e.preventDefault(); onResetStart(e); }}
@@ -229,8 +221,33 @@ export const ControlButtons: React.FC<ControlButtonsProps> = ({ isBreak, isActiv
       onTouchStart={(e) => { if (e.cancelable) e.preventDefault(); onResetStart(e); }}
       onTouchEnd={(e) => { if (e.cancelable) e.preventDefault(); onResetEnd(e); }}
       className={`w-12 h-12 md:w-14 md:h-14 rounded-xl flex items-center justify-center transition-all active:scale-95 shadow-sm overflow-hidden relative select-none ${isDarkMode ? 'bg-slate-800 border-slate-700 text-slate-400 hover:text-slate-200' : 'bg-background border-border text-text-secondary hover:text-text-primary'}`}
+      title="되돌아가기"
     >
       <RotateCcw className={`w-5 h-5 md:w-6 md:h-6 relative z-10 transition-transform ${isResetHolding ? 'rotate-[-120deg]' : ''}`} />
     </button>
+
+    {/* 메인 재생/정지 버튼 (중앙) */}
+    <button 
+      ref={startBtnRef} 
+      onClick={onToggle} 
+      className={`w-16 h-16 md:w-20 md:h-20 rounded-2xl flex items-center justify-center shadow-lg transition-all active:scale-90 ${isBreak ? (isActive ? 'bg-emerald-600 text-white' : 'bg-emerald-500 text-white') : (isActive ? 'bg-warning text-white' : 'bg-primary text-white hover:bg-primary-light')}`}
+      title={isActive ? "일시정지" : "시작"}
+    >
+      {isActive ? <Pause className="w-7 h-7 md:w-8 md:h-8" fill="currentColor" /> : <Play className="w-7 h-7 md:w-8 md:h-8 ml-1" fill="currentColor" />}
+    </button>
+
+    {/* 건너뛰기 버튼 (오른쪽 - 쉬는 시간 전용) */}
+    {isBreak ? (
+      <button 
+        onClick={onSkipBreak} 
+        title="휴식 건너뛰기" 
+        className={`w-12 h-12 md:w-14 md:h-14 rounded-xl flex items-center justify-center transition-all active:scale-95 shadow-sm animate-in fade-in zoom-in duration-300 ${isDarkMode ? 'bg-slate-800 border-slate-700 text-emerald-400 hover:text-emerald-300' : 'bg-emerald-50 border-emerald-100 text-emerald-600 hover:bg-emerald-100'}`}
+      >
+        <SkipForward className="w-5 h-5 md:w-6 md:h-6" fill="currentColor" />
+      </button>
+    ) : (
+      /* 레이아웃 대칭 유지를 위한 더미 공간 (선택 사항, 필요 시 빈 div 배치 가능) */
+      <div className="w-12 h-12 md:w-14 md:h-14 opacity-0 pointer-events-none" aria-hidden="true" />
+    )}
   </div>
 );
