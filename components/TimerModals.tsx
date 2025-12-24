@@ -1,5 +1,5 @@
 import React from 'react';
-import { X, Terminal, FastForward, FileSearch, CheckCircle2, Save } from 'lucide-react';
+import { X, Terminal, FastForward, FileSearch, CheckCircle2, Save, Key, AlertCircle } from 'lucide-react';
 import { CharacterProfile } from '../types';
 
 interface AdminAuthModalProps {
@@ -40,9 +40,11 @@ interface AdminPanelProps {
   onTimeLeap: () => void;
   onLevelChange: (level: number) => void;
   clicks: number;
+  isApiKeyAlert: boolean;
+  onToggleApiKeyAlert: () => void;
 }
 
-export const AdminPanel: React.FC<AdminPanelProps> = ({ isOpen, onClose, profile, onTimeLeap, onLevelChange, clicks }) => {
+export const AdminPanel: React.FC<AdminPanelProps> = ({ isOpen, onClose, profile, onTimeLeap, onLevelChange, clicks, isApiKeyAlert, onToggleApiKeyAlert }) => {
   if (!isOpen) return null;
   return (
     <div className="fixed bottom-6 left-6 z-[150] w-72 bg-slate-900/95 border border-white/10 rounded-3xl shadow-2xl overflow-hidden backdrop-blur-xl animate-in slide-in-from-left-4 duration-500">
@@ -73,6 +75,22 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ isOpen, onClose, profile
             className="w-full h-1.5 bg-white/10 rounded-lg appearance-none cursor-pointer accent-primary-light" 
           />
         </div>
+        
+        {/* Test Simulation Section */}
+        <div className="space-y-2">
+          <p className="text-[9px] font-black text-white/40 uppercase tracking-widest">Test Simulation</p>
+          <button 
+            onClick={onToggleApiKeyAlert} 
+            className={`w-full flex items-center justify-between px-4 py-3 border rounded-xl transition-all group ${isApiKeyAlert ? 'bg-rose-500/20 border-rose-500/40' : 'bg-white/5 border-white/10'}`}
+          >
+            <div className="flex flex-col items-start gap-0.5">
+              <span className={`text-xs font-bold ${isApiKeyAlert ? 'text-rose-400' : 'text-white'}`}>API 만료 테스트</span>
+              <span className="text-[8px] text-white/30 font-black uppercase">{isApiKeyAlert ? 'ON (BREAK 시 팝업)' : 'OFF'}</span>
+            </div>
+            {isApiKeyAlert ? <AlertCircle size={16} className="text-rose-400 animate-pulse" /> : <Key size={16} className="text-white/20" />}
+          </button>
+        </div>
+
         <div className="space-y-2 pt-2 border-t border-white/5">
           <p className="text-[9px] font-black text-white/40 uppercase tracking-widest flex items-center gap-1.5">
             <FileSearch size={10} /> Internal Diagnostics
