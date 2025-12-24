@@ -52,7 +52,7 @@ export const TimerScreen: React.FC<TimerScreenProps> = ({
   const { progressPercent, levelTitle } = useXPManager(profile);
 
   // --- 4. Mobile Care Logic ---
-  const { isBatterySaving, setIsBatterySaving } = useMobileCare(isActive, triggerAIResponse);
+  const { isBatterySaving, setIsBatterySaving } = useMobileCare(isActive);
 
   // --- 5. Local UI State ---
   const [distractions, setDistractions] = useState(profile.cycleStats?.distractions ?? 0);
