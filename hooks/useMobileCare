@@ -1,0 +1,72 @@
+
+import { useState, useEffect, useCallback, useRef } from 'react';
+
+export const useMobileCare = (isActive: boolean, triggerAIResponse?: (type: string) => void) => {
+  const [isBatterySaving, setIsBatterySaving] = useState(false);
+  const wakeLockRef = useRef<any>(null);
+  const batteryWarningSentRef = useRef(false);
+
+  // 화면 켜짐 유지 (Wake Lock API)
+  const requestWakeLock = useCallback(async () => {
+    if ('wakeLock' in navigator) {
+      try {
+        wakeLockRef.current = await (navigator as any).wakeLock.request('screen');
+      } catch (err) {
+        console.warn('Wake Lock request failed:', err);
+      }
+    }
+  }, []);
+
+  const releaseWakeLock = useCallback(async () => {
+    if (wakeLockRef.current) {
+      await wakeLockRef.current.release();
+      wakeLockRef.current = null;
+    }
+  }, []);
+
+  useEffect(() => {
+    if (isActive) {
+      requestWakeLock();
+    } else {
+      releaseWakeLock();
+    }
+    
+    const handleVisibilityChange = () => {
+      if (isActive && document.visibilityState === 'visible') {
+        requestWakeLock();
+      }
+    };
+    
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      releaseWakeLock();
+    };
+  }, [isActive, requestWakeLock, releaseWakeLock]);
+
+  // 배터리 상태 감시 (Battery Status API)
+  useEffect(() => {
+    if (!('getBattery' in navigator)) return;
+
+    const checkBattery = (battery: any) => {
+      // 배터리가 20% 이하이고 충전 중이 아닐 때 알림 트리거
+      if (battery.level <= 0.2 && !battery.charging && !batteryWarningSentRef.current) {
+        if (triggerAIResponse) triggerAIResponse('BATTERY_LOW');
+        batteryWarningSentRef.current = true;
+      } else if (battery.charging || battery.level > 0.2) {
+        batteryWarningSentRef.current = false;
+      }
+    };
+
+    (navigator as any).getBattery().then((battery: any) => {
+      checkBattery(battery);
+      battery.addEventListener('levelchange', () => checkBattery(battery));
+      battery.addEventListener('chargingchange', () => checkBattery(battery));
+    });
+  }, [triggerAIResponse]);
+
+  return {
+    isBatterySaving,
+    setIsBatterySaving
+  };
+};
