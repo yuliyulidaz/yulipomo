@@ -137,17 +137,25 @@ export const TimerScreen: React.FC<TimerScreenProps> = ({
   const handleResetEnd = () => {
     if (!isResetHolding) return;
     const duration = Date.now() - (resetStartTimeRef.current || 0);
+    
     if (duration >= RESET_HOLD_MS) {
+      // 2초 이상 홀드: 전체 초기화
       resetTimer(true);
       setDistractions(0);
       setClicks(0);
       setMessage("마음을 새로 먹었나 보네? 처음부터 다시 시작하자.");
-    } else {
+    } else if (duration < 300) {
+      // 아주 짧은 클릭: 현재 세션 초기화
       resetTimer(false);
       setMessage("응? 다시 하고 싶어? 좋아, 다시 집중해보자.");
+    } else {
+      // 중간에 떼어냄 (300ms ~ 2000ms): 아무것도 하지 않고 현재 상태 유지
+      setMessage(""); 
     }
+    
     setIsResetHolding(false);
     setResetHoldProgress(0);
+    if (resetHoldTimerRef.current) clearTimeout(resetHoldTimerRef.current);
   };
 
   useEffect(() => {
