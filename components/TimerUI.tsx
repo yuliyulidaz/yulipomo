@@ -45,7 +45,6 @@ interface SettingsMenuProps {
 }
 
 export const SettingsMenu: React.FC<SettingsMenuProps> = ({ isOpen, setIsOpen, isDarkMode, onToggleDarkMode, isBatterySaving, onToggleBatterySaving, onExport, onApiKeyOpen, onShowGuide, isAdminMode, onShowAdminPanel, btnRef, isApiKeyAlert, isBreak }) => {
-  // API 만료 알림용 일시적 광채 상태 (10초 후 자동 종료)
   const [showTempGlow, setShowTempGlow] = useState(false);
 
   useEffect(() => {
@@ -106,7 +105,6 @@ export const CharacterSection: React.FC<CharacterSectionProps> = ({ profile, isB
         </div>
       ) : (
         <>
-          {/* 가만히 바라보는 중 UI - 대사 노출 시간(7초)을 고려하여 쿨타임이 8초(8000ms) 이하일 때만 노출 */}
           {cooldownRemaining > 0 && cooldownRemaining <= 8000 && (
             <div className="absolute -top-10 left-1/2 -translate-x-1/2 z-30 animate-in fade-in zoom-in duration-500 pointer-events-none">
               <div className={`px-4 py-1.5 rounded-full border backdrop-blur-md shadow-sm animate-pulse-slow flex items-center justify-center whitespace-nowrap
