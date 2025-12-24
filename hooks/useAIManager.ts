@@ -7,6 +7,7 @@ import { cleanDialogue } from '../components/TimerUtils';
 
 const COOLDOWN_MS = 16000;
 
+// 카테고리별 캐시 설정
 const REFILL_CONFIG: Record<string, { max: number; threshold: number }> = {
   click: { max: 20, threshold: 10 },
   pause: { max: 20, threshold: 10 },
@@ -32,28 +33,13 @@ export const useAIManager = (
 
   useEffect(() => { profileRef.current = profile; }, [profile]);
 
+  // 대사 자동 사라짐
   useEffect(() => {
     if (message) {
       const timer = setTimeout(() => setMessage(""), 7000);
       return () => clearTimeout(timer);
     }
   }, [message]);
-
-  const addToRefillQueue = useCallback((category: keyof typeof profile.dialogueCache) => {
-    const currentCache = profileRef.current.dialogueCache[category];
-    const config = REFILL_CONFIG[category];
-    if (currentCache.length > config.threshold || isRefillingRef.current[category]) return;
-    if (!refillQueueRef.current.includes(category)) {
-      refillQueueRef.current.push(category);
-    }
-    refillQueueRef.current.sort((a, b) => {
-      const lenA = profileRef.current.dialogueCache[a].length;
-      const lenB = profileRef.current.dialogueCache[b].length;
-      if (lenA === 0 && lenB !== 0) return -1;
-      if (lenB === 0 && lenA !== 0) return 1;
-      return lenA - lenB;
-    });
-  }, []);
 
   const getRelationshipContext = (level: number) => {
     if (level <= 3) return "관심 없는 척하지만 사실은 유저에게 매우 높은 기준을 요구하며 지켜보는 단계 (Lv 1~3)";
@@ -70,12 +56,12 @@ export const useAIManager = (
       const ai = new GoogleGenAI({ apiKey: currentProfile.apiKey || process.env.API_KEY });
       
       const situations: Record<string, string> = { 
-        scolding: '집중하지 않고 딴짓(이탈)을 했을 때 꾸짖는 상황', 
-        praising: '집중 세션을 성공적으로 마쳤을 때 진심으로 칭찬하는 상황', 
+        scolding: '집중하지 않고 탭을 나갔거나 딴짓을 할 때 엄격하게 꾸짖는 상황', 
+        praising: '집중 세션을 성공적으로 마쳤을 때 진심으로 기뻐하고 칭찬하는 상황', 
         idle: '집중 중간에 유저의 자세나 시선을 바로잡아주며 격려하는 상황', 
-        click: '유저가 당신을 클릭해서 말을 걸었을 때의 반응', 
-        pause: '유저가 집중을 멈추고 자리를 비우려 할 때 아쉬워하거나 경고하는 상황', 
-        start: '이제 막 집중을 시작하려는 유저에게 동기부여를 주는 상황' 
+        click: '유저가 당신을 클릭해서 말을 걸었을 때의 다정한 반응', 
+        pause: '유저가 집중을 멈추고 자리를 비우려 할 때 아쉬워하거나 주의를 주는 상황', 
+        start: '이제 막 집중을 시작하려는 유저에게 확실한 동기부여를 주는 상황' 
       };
 
       const tone = currentProfile.personality[0] || "존댓말";
@@ -112,25 +98,34 @@ export const useAIManager = (
 # [작성 규칙]
 - '${tone}' 말투를 베이스로 하되, 상황에 맞춰 변주하세요.
 - 유저의 '자세', '시선', '성실함' 등 구체적인 단어를 사용해 마치 옆에 있는 것처럼 말하세요.
-- 한국어로, 번호 없이 줄바꿈(\\n)으로만 정확히 ${count}개 출력하세요.
+- 불필요한 서론/결론 없이 오직 대사만 출력하세요.
+- 한국어로, 번호 없이 줄바꿈(\\n)으로만 ${count}개 출력하세요.
 `.trim();
       
-      const result = await ai.models.generateContent({ 
+      const response = await ai.models.generateContent({ 
         model: 'gemini-3-flash-preview', 
         contents: prompt, 
         config: { safetySettings: SAFETY_SETTINGS } 
       });
 
-      if (result.text) {
-        const newLines = result.text.split('\n').map(l => l.trim()).filter(l => l.length >= 2);
-        onUpdateProfile({ 
-          dialogueCache: { 
-            ...currentProfile.dialogueCache, 
-            [category]: [...currentProfile.dialogueCache[category], ...newLines] 
-          } 
-        });
+      const text = response.text;
+      if (text) {
+        // 번호, 따옴표, 불필요한 마크다운 기호 제거 로직 강화
+        const newLines = text.split('\n')
+          .map(l => l.replace(/^\d+\.\s*|^[-*]\s*|^[">]\s*/, '').replace(/^["']|["']$/g, '').trim())
+          .filter(l => l.length >= 2 && !l.includes("여기") && !l.includes("생성"));
+
+        if (newLines.length > 0) {
+          onUpdateProfile({ 
+            dialogueCache: { 
+              ...currentProfile.dialogueCache, 
+              [category]: [...currentProfile.dialogueCache[category], ...newLines] 
+            } 
+          });
+        }
       }
     } catch (e: any) {
+      console.error("Dialogue refill failed:", e);
       if (e.message?.includes('API_KEY_INVALID') || e.status === 401 || e.status === 403) {
         setPendingExpiryAlert(true);
       }
@@ -139,30 +134,35 @@ export const useAIManager = (
     }
   }, [onUpdateProfile]);
 
+  const addToRefillQueue = useCallback((category: keyof typeof profile.dialogueCache) => {
+    const currentCache = profileRef.current.dialogueCache[category];
+    const config = REFILL_CONFIG[category];
+    if (currentCache.length > config.threshold || isRefillingRef.current[category]) return;
+    
+    if (!refillQueueRef.current.includes(category)) {
+      refillQueueRef.current.push(category);
+    }
+  }, []);
+
   const processRefillQueue = useCallback(async () => {
     if (isGlobalApiLockedRef.current || refillQueueRef.current.length === 0) return;
     const category = refillQueueRef.current.shift()!;
+    
     isGlobalApiLockedRef.current = true;
     await refillCategory(category, 5);
-    setTimeout(() => { isGlobalApiLockedRef.current = false; }, 15000);
+    
+    // API 부하 방지를 위해 12초간 대기 (Gemini Flash 무료 티어 고려)
+    setTimeout(() => { isGlobalApiLockedRef.current = false; }, 12000);
   }, [refillCategory]);
 
+  // 캐시 모니터링 및 자동 리필
   useEffect(() => {
     const categories = Object.keys(REFILL_CONFIG) as Array<keyof typeof profile.dialogueCache>;
-    const isBrandNew = categories.every(cat => profileRef.current.dialogueCache[cat].length === 0);
-    if (isBrandNew) {
-      isGlobalApiLockedRef.current = true;
-      refillCategory('click', 5).finally(() => {
-        setTimeout(() => { isGlobalApiLockedRef.current = false; }, 15000);
-      });
-      const others: Array<keyof typeof profile.dialogueCache> = ['pause', 'start', 'scolding', 'idle', 'praising'];
-      others.forEach(cat => addToRefillQueue(cat));
-    } else {
-      categories.forEach(cat => addToRefillQueue(cat));
-    }
-    const queueTimer = setInterval(processRefillQueue, 5000);
+    categories.forEach(cat => addToRefillQueue(cat));
+
+    const queueTimer = setInterval(processRefillQueue, 4000);
     return () => clearInterval(queueTimer);
-  }, [processRefillQueue, refillCategory, addToRefillQueue]);
+  }, [processRefillQueue, addToRefillQueue]);
 
   const triggerAIResponse = useCallback((type: string) => {
     const cacheKeyMap: Record<string, keyof typeof profile.dialogueCache> = { 
@@ -170,25 +170,39 @@ export const useAIManager = (
       'IDLE': 'idle', 'CLICK': 'click', 'PAUSE': 'pause', 
       'READY': 'start', 'RETURN': 'scolding' 
     };
-    const userDisplayName = profile.honorific || profile.userName || "너";
+    
     const key = cacheKeyMap[type];
     if (!key) return;
+
+    const userDisplayName = profile.honorific || profile.userName || "너";
     const cachedList = profile.dialogueCache[key];
-    if (cachedList?.length > 0) {
+
+    if (cachedList && cachedList.length > 0) {
       const randomIndex = Math.floor(Math.random() * cachedList.length);
       const randomMsg = cachedList[randomIndex];
+      
       setMessage(cleanDialogue(randomMsg, userDisplayName));
+      
       const newCacheList = [...cachedList];
       newCacheList.splice(randomIndex, 1);
-      onUpdateProfile({ dialogueCache: { ...profile.dialogueCache, [key]: newCacheList } });
+      
+      onUpdateProfile({ 
+        dialogueCache: { 
+          ...profile.dialogueCache, 
+          [key]: newCacheList 
+        } 
+      });
+
       if (newCacheList.length <= REFILL_CONFIG[key].threshold) {
         addToRefillQueue(key);
       }
     } else {
+      // 캐시가 비어있을 때만 폴백 실행 및 즉시 리필 큐 추가
       const toneKey = profile.personality.find(p => FALLBACK_TEMPLATES[p]) || "존댓말";
       const template = FALLBACK_TEMPLATES[toneKey];
       const rawMsgs = template[type] || ["..."];
       setMessage(cleanDialogue(rawMsgs[Math.floor(Math.random() * rawMsgs.length)], userDisplayName));
+      
       addToRefillQueue(key);
     }
   }, [profile, onUpdateProfile, addToRefillQueue]);
@@ -196,8 +210,10 @@ export const useAIManager = (
   const handleInteraction = useCallback((isActive: boolean, isBreak: boolean) => {
     if (isBreak) return;
     if (cooldownRemaining > 0) return true;
+    
     triggerAIResponse('CLICK');
     setCooldownRemaining(COOLDOWN_MS);
+    
     const start = Date.now();
     if (cooldownIntervalRef.current) clearInterval(cooldownIntervalRef.current);
     cooldownIntervalRef.current = setInterval(() => {
@@ -205,18 +221,15 @@ export const useAIManager = (
       setCooldownRemaining(left);
       if (left <= 0) clearInterval(cooldownIntervalRef.current);
     }, 100);
+    
     return false;
   }, [cooldownRemaining, triggerAIResponse]);
 
   return {
-    message,
-    setMessage,
-    cooldownRemaining,
-    setCooldownRemaining,
-    triggerAIResponse,
-    handleInteraction,
-    pendingExpiryAlert,
-    setPendingExpiryAlert,
+    message, setMessage,
+    cooldownRemaining, setCooldownRemaining,
+    triggerAIResponse, handleInteraction,
+    pendingExpiryAlert, setPendingExpiryAlert,
     COOLDOWN_MS
   };
 };
