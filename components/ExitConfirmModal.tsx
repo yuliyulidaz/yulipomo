@@ -62,7 +62,7 @@ export const ExitConfirmModal: React.FC<ExitConfirmModalProps> = ({
 
           <div className="space-y-3">
             <h3 className={`text-xl font-black tracking-tight ${isDarkMode ? 'text-slate-100' : 'text-text-primary'}`}>
-              {characterName}(은/는) 당신이 떠나지 않기를 바랍니다.
+              {characterName}은(는) 당신이 떠나지 않기를 바랍니다.
             </h3>
             <p className={`text-sm font-medium leading-relaxed px-4 ${isDarkMode ? 'text-slate-400' : 'text-text-secondary'}`}>
               지금 나가시면 집중 흐름이 깨질 수 있어요.<br/>정말 우리 시간을 마무리할까요?

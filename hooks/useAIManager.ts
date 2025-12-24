@@ -6,8 +6,8 @@ import { SAFETY_SETTINGS, FALLBACK_TEMPLATES } from '../components/TimerConfig';
 import { cleanDialogue } from '../components/TimerUtils';
 
 const COOLDOWN_MS = 16000;
-const GLOBAL_API_COOLDOWN = 6000; // API 호출 간격 6초 (무료 티어 15 RPM 대비 매우 안전한 10 RPM 설정)
 
+// 카테고리별 임계점 설정
 const REFILL_CONFIG: Record<string, { max: number; threshold: number }> = {
   click: { max: 20, threshold: 10 },
   pause: { max: 20, threshold: 10 },
@@ -27,8 +27,7 @@ export const useAIManager = (
   
   const cooldownIntervalRef = useRef<any>(null);
   const isRefillingRef = useRef<Record<string, boolean>>({});
-  const lastApiCallTimeRef = useRef<number>(0);
-  const isProcessingQueueRef = useRef<boolean>(false);
+  const isGlobalApiLockedRef = useRef<boolean>(false);
   const refillQueueRef = useRef<Array<keyof typeof profile.dialogueCache>>([]);
   const profileRef = useRef(profile);
 
@@ -41,11 +40,27 @@ export const useAIManager = (
     }
   }, [message]);
 
-  const getRelationshipContext = (level: number) => {
-    if (level <= 3) return "관심 없는 척하지만 사실은 유저에게 매우 높은 기준을 요구하며 지켜보는 단계 (Lv 1~3)";
-    if (level <= 7) return "유대감이 쌓여 유저의 성실함을 인정하고 본격적으로 응원하기 시작하는 단계 (Lv 4~7)";
-    return "깊은 애정과 신뢰, 혹은 강한 소유욕과 집착이 섞인 특별하고 친밀한 단계 (Lv 8~10)";
-  };
+  // 대기열에 추가하고 우선순위 재정렬
+  const addToRefillQueue = useCallback((category: keyof typeof profile.dialogueCache) => {
+    const currentCache = profileRef.current.dialogueCache[category];
+    const config = REFILL_CONFIG[category];
+    
+    // 이미 임계점을 넘었거나 채우는 중이면 무시
+    if (currentCache.length > config.threshold || isRefillingRef.current[category]) return;
+    
+    if (!refillQueueRef.current.includes(category)) {
+      refillQueueRef.current.push(category);
+    }
+
+    // 우선순위 정렬: 1. 개수가 0개인 것 우선, 2. 남은 개수가 적은 순
+    refillQueueRef.current.sort((a, b) => {
+      const lenA = profileRef.current.dialogueCache[a].length;
+      const lenB = profileRef.current.dialogueCache[b].length;
+      if (lenA === 0 && lenB !== 0) return -1;
+      if (lenB === 0 && lenA !== 0) return 1;
+      return lenA - lenB;
+    });
+  }, []);
 
   const refillCategory = useCallback(async (category: keyof typeof profile.dialogueCache, count: number = 5) => {
     if (isRefillingRef.current[category]) return;
@@ -53,140 +68,78 @@ export const useAIManager = (
     
     try {
       const currentProfile = profileRef.current;
-      const key = currentProfile.apiKey && currentProfile.apiKey.length > 10 ? currentProfile.apiKey : process.env.API_KEY;
-      const ai = new GoogleGenAI({ apiKey: key });
-      
-      const situations: Record<string, string> = { 
-        scolding: '집중하지 않고 딴짓(이탈)을 했을 때 엄격하게 꾸짖는 상황', 
-        praising: '집중 세션을 성공적으로 마쳤을 때 진심으로 칭찬하는 상황', 
-        idle: '집중 중간에 유저의 자세나 시선을 바로잡아주며 격려하는 상황', 
-        click: '유저가 당신을 클릭해서 말을 걸었을 때의 반응', 
-        pause: '유저가 집중을 멈추고 자리를 비우려 할 때 아쉬워하거나 경고하는 상황', 
-        start: '이제 막 집중을 시작하려는 유저에게 동기부여를 주는 상황' 
+      const ai = new GoogleGenAI({ apiKey: currentProfile.apiKey || process.env.API_KEY });
+      const getMood = () => {
+        if (currentProfile.level <= 3) return "Cold, Strict, Minimalist";
+        if (currentProfile.level <= 7) return "Friendly, Warm, Helpful";
+        return "Deeply Affointed, Loving, Obsessive";
       };
-
-      const tone = currentProfile.personality[0] || "존댓말";
-      const personalities = currentProfile.personality.slice(1).join(', ') || "매력적인";
-      const tmi = currentProfile.speciesTrait || "알려진 바 없음";
-      const relation = getRelationshipContext(currentProfile.level);
-      const task = currentProfile.todayTask || "할 일";
-
-      const prompt = `
-# Roleplay Task
-당신은 '${currentProfile.name}'이 되어 유저와 대화합니다. 
-아래 설정에 맞춰 '사람을 끌어당기는 매력'을 보여주세요.
-
-# [캐릭터 설정]
-- 이름: ${currentProfile.name} / 성격: ${personalities} / 말투: ${tone}
-- 배경: ${tmi}
-
-# [현재 관계: 레벨 ${currentProfile.level}/10]
-- 단계: ${relation}
-- 상대방: ${currentProfile.userName} (호칭: ${currentProfile.honorific || '너'}) / 목표: ${task}
-
-# [구간별 대사 가이드]
-1. Lv 1~3: 무작정 화내지 마세요. "난 성실하지 않은 사람은 곁에 안 둬" 처럼 기준이 높은 모습을 보여주세요.
-2. Lv 4~7: 유저의 성실함을 구체적인 단어로 칭찬하세요.
-3. Lv 8~10: 유저의 모든 것에 집착하거나 깊은 애정을 표현하세요.
-
-# [현재 상황]
-- ${situations[category]}
-
-# [출력 규칙]
-- '${tone}' 말투를 반드시 유지하세요.
-- 불필요한 서론(예: "네, 생성하겠습니다")이나 설명 없이 **오직 대사만** 출력하세요.
-- 각 대사는 한 줄에 하나씩, 번호 없이 작성하세요.
-- 한국어로 총 ${count}개의 대사를 생성하세요.
-`.trim();
+      const situations: Record<string, string> = { 
+        scolding: 'slacking off', praising: 'finished focus session', 
+        idle: 'mid-focus encouragement', click: 'interaction with user', 
+        pause: 'user paused focus', start: 'user started focus' 
+      };
       
-      const response = await ai.models.generateContent({ 
+      const prompt = `Roleplay as ${currentProfile.name}. User: ${currentProfile.userName}. Mood: ${getMood()}. Personality: ${currentProfile.personality.join(', ')}. Situation: ${situations[category]}. Write ${count} short Korean sentences (10-20 chars). Use {honorific}. Separate by Newline.`;
+      
+      const result = await ai.models.generateContent({ 
         model: 'gemini-3-flash-preview', 
         contents: prompt, 
         config: { safetySettings: SAFETY_SETTINGS } 
       });
 
-      const rawText = response.text;
-      if (rawText) {
-        const newLines = rawText.split('\n')
-          .map(line => line.trim())
-          .map(line => line.replace(/^(\d+[\.\)\:]?\s*)+/, '')) // 번호(1. 2: 3)) 제거
-          .map(line => line.replace(/^[-*+•]\s*/, '')) // 불렛 제거
-          .map(line => line.replace(/^["'「“](.*)["'」”]$/, '$1')) // 따옴표 제거
-          .filter(line => {
-            if (line.length < 2 || line.startsWith('#') || line.includes('```')) return false;
-            // AI의 불필요한 노이즈 문장 필터링
-            const noise = ['알겠습니다', '생성하겠', '대사입니', '상황에 맞춰', '출력합니다', '다음은'];
-            return !noise.some(word => line.includes(word));
-          });
-
-        if (newLines.length > 0) {
-          onUpdateProfile({ 
-            dialogueCache: { 
-              ...profileRef.current.dialogueCache, 
-              [category]: [...profileRef.current.dialogueCache[category], ...newLines].slice(-20) 
-            } 
-          });
-        }
+      if (result.text) {
+        const newLines = result.text.split('\n').map(l => l.trim()).filter(l => l.length >= 5);
+        onUpdateProfile({ 
+          dialogueCache: { 
+            ...currentProfile.dialogueCache, 
+            [category]: [...currentProfile.dialogueCache[category], ...newLines] 
+          } 
+        });
       }
     } catch (e: any) {
-      console.error(`[AI REFILL FAIL - ${category}]:`, e);
-      if (e.message?.includes('429')) {
-        lastApiCallTimeRef.current = Date.now() + 10000; // 429 에러 시 10초 추가 대기
-      }
       if (e.message?.includes('API_KEY_INVALID') || e.status === 401 || e.status === 403) {
         setPendingExpiryAlert(true);
       }
     } finally {
       isRefillingRef.current[category] = false;
-      lastApiCallTimeRef.current = Date.now();
     }
   }, [onUpdateProfile]);
 
-  const addToRefillQueue = useCallback((category: keyof typeof profile.dialogueCache) => {
-    const currentCache = profileRef.current.dialogueCache[category];
-    const config = REFILL_CONFIG[category];
-    if (currentCache.length > config.threshold || isRefillingRef.current[category]) return;
-    
-    if (!refillQueueRef.current.includes(category)) {
-      if (['scolding', 'click', 'start'].includes(category)) {
-        refillQueueRef.current.unshift(category); // 중요한 상황 우선 순위
-      } else {
-        refillQueueRef.current.push(category);
-      }
-    }
-  }, []);
-
   const processRefillQueue = useCallback(async () => {
-    if (isProcessingQueueRef.current || refillQueueRef.current.length === 0) return;
+    if (isGlobalApiLockedRef.current || refillQueueRef.current.length === 0) return;
     
-    const now = Date.now();
-    if (now - lastApiCallTimeRef.current < GLOBAL_API_COOLDOWN) return;
-
     const category = refillQueueRef.current.shift()!;
-    isProcessingQueueRef.current = true;
+    isGlobalApiLockedRef.current = true;
     
-    try {
-      await refillCategory(category, 5);
-    } finally {
-      // 어떤 오류가 발생해도 반드시 락을 해제하여 큐가 멈추지 않게 함
-      isProcessingQueueRef.current = false;
-    }
+    await refillCategory(category, 5);
+    
+    // 15초(4 RPM) 안전 잠금
+    setTimeout(() => { isGlobalApiLockedRef.current = false; }, 15000);
   }, [refillCategory]);
 
+  // 초기 로드 및 15초 주기 루프
   useEffect(() => {
-    const monitor = setInterval(() => {
-      (Object.keys(REFILL_CONFIG) as Array<keyof typeof profile.dialogueCache>).forEach(cat => {
-        addToRefillQueue(cat);
-      });
-    }, 8000);
+    const categories = Object.keys(REFILL_CONFIG) as Array<keyof typeof profile.dialogueCache>;
+    const isBrandNew = categories.every(cat => profileRef.current.dialogueCache[cat].length === 0);
 
-    const processor = setInterval(processRefillQueue, 2000);
-    
-    return () => {
-      clearInterval(monitor);
-      clearInterval(processor);
-    };
-  }, [processRefillQueue, addToRefillQueue]);
+    if (isBrandNew) {
+      // 전략 A: 캐릭터 생성 직후 즉시 click 대사 1회 호출 (UX 만족도)
+      isGlobalApiLockedRef.current = true;
+      refillCategory('click', 5).finally(() => {
+        setTimeout(() => { isGlobalApiLockedRef.current = false; }, 15000);
+      });
+      // 나머지 카테고리 큐에 등록
+      const others: Array<keyof typeof profile.dialogueCache> = ['pause', 'start', 'scolding', 'idle', 'praising'];
+      others.forEach(cat => addToRefillQueue(cat));
+    } else {
+      // 전략 B: 새로고침 시 부족한 것들 큐에 등록
+      categories.forEach(cat => addToRefillQueue(cat));
+    }
+
+    const queueTimer = setInterval(processRefillQueue, 5000); // 큐 확인은 자주 하되, 실행은 15초 락에 걸림
+    return () => clearInterval(queueTimer);
+  }, [processRefillQueue, refillCategory, addToRefillQueue]);
 
   const triggerAIResponse = useCallback((type: string) => {
     const cacheKeyMap: Record<string, keyof typeof profile.dialogueCache> = { 
@@ -195,13 +148,12 @@ export const useAIManager = (
       'READY': 'start', 'RETURN': 'scolding' 
     };
     
+    const userDisplayName = profile.honorific || profile.userName || "너";
     const key = cacheKeyMap[type];
     if (!key) return;
 
-    const userDisplayName = profile.honorific || profile.userName || "너";
     const cachedList = profile.dialogueCache[key];
-
-    if (cachedList && cachedList.length > 0) {
+    if (cachedList?.length > 0) {
       const randomIndex = Math.floor(Math.random() * cachedList.length);
       const randomMsg = cachedList[randomIndex];
       setMessage(cleanDialogue(randomMsg, userDisplayName));
@@ -210,6 +162,7 @@ export const useAIManager = (
       newCacheList.splice(randomIndex, 1);
       onUpdateProfile({ dialogueCache: { ...profile.dialogueCache, [key]: newCacheList } });
       
+      // 대사 사용 후 즉시 큐 체크 및 우선순위 재정렬
       if (newCacheList.length <= REFILL_CONFIG[key].threshold) {
         addToRefillQueue(key);
       }
@@ -218,6 +171,8 @@ export const useAIManager = (
       const template = FALLBACK_TEMPLATES[toneKey];
       const rawMsgs = template[type] || ["..."];
       setMessage(cleanDialogue(rawMsgs[Math.floor(Math.random() * rawMsgs.length)], userDisplayName));
+      
+      // 개수 0개이므로 최우선순위로 큐 등록
       addToRefillQueue(key);
     }
   }, [profile, onUpdateProfile, addToRefillQueue]);
@@ -228,7 +183,6 @@ export const useAIManager = (
     
     triggerAIResponse('CLICK');
     setCooldownRemaining(COOLDOWN_MS);
-    
     const start = Date.now();
     if (cooldownIntervalRef.current) clearInterval(cooldownIntervalRef.current);
     cooldownIntervalRef.current = setInterval(() => {
@@ -236,15 +190,18 @@ export const useAIManager = (
       setCooldownRemaining(left);
       if (left <= 0) clearInterval(cooldownIntervalRef.current);
     }, 100);
-    
     return false;
   }, [cooldownRemaining, triggerAIResponse]);
 
   return {
-    message, setMessage,
-    cooldownRemaining, setCooldownRemaining,
-    triggerAIResponse, handleInteraction,
-    pendingExpiryAlert, setPendingExpiryAlert,
+    message,
+    setMessage,
+    cooldownRemaining,
+    setCooldownRemaining,
+    triggerAIResponse,
+    handleInteraction,
+    pendingExpiryAlert,
+    setPendingExpiryAlert,
     COOLDOWN_MS
   };
 };
