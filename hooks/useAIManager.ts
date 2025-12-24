@@ -6,6 +6,7 @@ import { SAFETY_SETTINGS, FALLBACK_TEMPLATES } from '../components/TimerConfig';
 import { cleanDialogue } from '../components/TimerUtils';
 
 const COOLDOWN_MS = 16000;
+const GLOBAL_API_COOLDOWN = 6000; // API 호출 간격 6초 (무료 티어 15 RPM 대비 매우 안전한 10 RPM 설정)
 
 const REFILL_CONFIG: Record<string, { max: number; threshold: number }> = {
   click: { max: 20, threshold: 10 },
@@ -26,7 +27,8 @@ export const useAIManager = (
   
   const cooldownIntervalRef = useRef<any>(null);
   const isRefillingRef = useRef<Record<string, boolean>>({});
-  const isGlobalApiLockedRef = useRef<boolean>(false);
+  const lastApiCallTimeRef = useRef<number>(0);
+  const isProcessingQueueRef = useRef<boolean>(false);
   const refillQueueRef = useRef<Array<keyof typeof profile.dialogueCache>>([]);
   const profileRef = useRef(profile);
 
@@ -51,7 +53,8 @@ export const useAIManager = (
     
     try {
       const currentProfile = profileRef.current;
-      const ai = new GoogleGenAI({ apiKey: currentProfile.apiKey || process.env.API_KEY });
+      const key = currentProfile.apiKey && currentProfile.apiKey.length > 10 ? currentProfile.apiKey : process.env.API_KEY;
+      const ai = new GoogleGenAI({ apiKey: key });
       
       const situations: Record<string, string> = { 
         scolding: '집중하지 않고 딴짓(이탈)을 했을 때 엄격하게 꾸짖는 상황', 
@@ -63,7 +66,7 @@ export const useAIManager = (
       };
 
       const tone = currentProfile.personality[0] || "존댓말";
-      const personalities = currentProfile.personality.slice(1).join(', ');
+      const personalities = currentProfile.personality.slice(1).join(', ') || "매력적인";
       const tmi = currentProfile.speciesTrait || "알려진 바 없음";
       const relation = getRelationshipContext(currentProfile.level);
       const task = currentProfile.todayTask || "할 일";
@@ -71,33 +74,29 @@ export const useAIManager = (
       const prompt = `
 # Roleplay Task
 당신은 '${currentProfile.name}'이 되어 유저와 대화합니다. 
-단순한 봇이 아니라, 아래의 [캐릭터 설정]과 [현재 단계]에 맞춰 '사람을 끌어당기는 매력'을 보여주세요.
+아래 설정에 맞춰 '사람을 끌어당기는 매력'을 보여주세요.
 
 # [캐릭터 설정]
 - 이름: ${currentProfile.name} / 성격: ${personalities} / 말투: ${tone}
-- 배경(TMI): ${tmi}
+- 배경: ${tmi}
 
 # [현재 관계: 레벨 ${currentProfile.level}/10]
 - 단계: ${relation}
-- 상대방: ${currentProfile.userName} (호칭: ${currentProfile.honorific || '너'}) / 할 일: ${task}
+- 상대방: ${currentProfile.userName} (호칭: ${currentProfile.honorific || '너'}) / 목표: ${task}
 
-# [구간별 대사 가이드 - 초반 이탈 방지]
-1. Lv 1~3 (빌드업): 
-   - 무작정 화내지 마세요. 대신 "난 성실하지 않은 사람은 곁에 안 둬", "자세가 흐트러졌는데, ${task} 제대로 끝낼 생각 있어?" 처럼 '기준이 높은 사람'의 모습을 보여주세요.
-   - 가끔 본인의 이야기("난 집중할 때 이런 걸 중요하게 생각해")를 던져 유저가 당신이라는 캐릭터를 궁금하게 만드세요.
-2. Lv 4~7 (유대감): 
-   - "좀 하네?", "나쁘지 않은 태도야" 등 유저의 성실함을 구체적으로 칭찬하세요.
-3. Lv 8~10 (애정/집착): 
-   - 이제 유저의 모든 것이 본인의 관심사입니다. '${task}'를 하는 유저를 보며 느끼는 강렬한 감정을 표현하세요.
+# [구간별 대사 가이드]
+1. Lv 1~3: 무작정 화내지 마세요. "난 성실하지 않은 사람은 곁에 안 둬" 처럼 기준이 높은 모습을 보여주세요.
+2. Lv 4~7: 유저의 성실함을 구체적인 단어로 칭찬하세요.
+3. Lv 8~10: 유저의 모든 것에 집착하거나 깊은 애정을 표현하세요.
 
 # [현재 상황]
 - ${situations[category]}
 
-# [작성 규칙]
-- '${tone}' 말투를 베이스로 하되, 상황에 맞춰 변주하세요.
-- 유저의 '자세', '시선', '성실함' 등 구체적인 단어를 사용해 마치 옆에 있는 것처럼 말하세요.
-- 불필요한 설명이나 서론 없이 오직 대사만 출력하세요.
-- 한국어로, 번호 없이 줄바꿈(\\n)으로만 ${count}개 출력하세요.
+# [출력 규칙]
+- '${tone}' 말투를 반드시 유지하세요.
+- 불필요한 서론(예: "네, 생성하겠습니다")이나 설명 없이 **오직 대사만** 출력하세요.
+- 각 대사는 한 줄에 하나씩, 번호 없이 작성하세요.
+- 한국어로 총 ${count}개의 대사를 생성하세요.
 `.trim();
       
       const response = await ai.models.generateContent({ 
@@ -106,28 +105,40 @@ export const useAIManager = (
         config: { safetySettings: SAFETY_SETTINGS } 
       });
 
-      if (response.text) {
-        // 번호, 따옴표, 불필요한 설명 제거 로직 강화
-        const newLines = response.text.split('\n')
-          .map(l => l.replace(/^\d+\.\s*|^[-*]\s*|^[">]\s*/, '').replace(/^["']|["']$/g, '').trim())
-          .filter(l => l.length >= 2 && !l.includes("여기") && !l.includes("생성") && !l.includes("대사"));
+      const rawText = response.text;
+      if (rawText) {
+        const newLines = rawText.split('\n')
+          .map(line => line.trim())
+          .map(line => line.replace(/^(\d+[\.\)\:]?\s*)+/, '')) // 번호(1. 2: 3)) 제거
+          .map(line => line.replace(/^[-*+•]\s*/, '')) // 불렛 제거
+          .map(line => line.replace(/^["'「“](.*)["'」”]$/, '$1')) // 따옴표 제거
+          .filter(line => {
+            if (line.length < 2 || line.startsWith('#') || line.includes('```')) return false;
+            // AI의 불필요한 노이즈 문장 필터링
+            const noise = ['알겠습니다', '생성하겠', '대사입니', '상황에 맞춰', '출력합니다', '다음은'];
+            return !noise.some(word => line.includes(word));
+          });
 
         if (newLines.length > 0) {
           onUpdateProfile({ 
             dialogueCache: { 
-              ...currentProfile.dialogueCache, 
-              [category]: [...currentProfile.dialogueCache[category], ...newLines] 
+              ...profileRef.current.dialogueCache, 
+              [category]: [...profileRef.current.dialogueCache[category], ...newLines].slice(-20) 
             } 
           });
         }
       }
     } catch (e: any) {
-      console.error("AI 리필 실패:", e);
+      console.error(`[AI REFILL FAIL - ${category}]:`, e);
+      if (e.message?.includes('429')) {
+        lastApiCallTimeRef.current = Date.now() + 10000; // 429 에러 시 10초 추가 대기
+      }
       if (e.message?.includes('API_KEY_INVALID') || e.status === 401 || e.status === 403) {
         setPendingExpiryAlert(true);
       }
     } finally {
       isRefillingRef.current[category] = false;
+      lastApiCallTimeRef.current = Date.now();
     }
   }, [onUpdateProfile]);
 
@@ -135,24 +146,46 @@ export const useAIManager = (
     const currentCache = profileRef.current.dialogueCache[category];
     const config = REFILL_CONFIG[category];
     if (currentCache.length > config.threshold || isRefillingRef.current[category]) return;
+    
     if (!refillQueueRef.current.includes(category)) {
-      refillQueueRef.current.push(category);
+      if (['scolding', 'click', 'start'].includes(category)) {
+        refillQueueRef.current.unshift(category); // 중요한 상황 우선 순위
+      } else {
+        refillQueueRef.current.push(category);
+      }
     }
   }, []);
 
   const processRefillQueue = useCallback(async () => {
-    if (isGlobalApiLockedRef.current || refillQueueRef.current.length === 0) return;
+    if (isProcessingQueueRef.current || refillQueueRef.current.length === 0) return;
+    
+    const now = Date.now();
+    if (now - lastApiCallTimeRef.current < GLOBAL_API_COOLDOWN) return;
+
     const category = refillQueueRef.current.shift()!;
-    isGlobalApiLockedRef.current = true;
-    await refillCategory(category, 5);
-    setTimeout(() => { isGlobalApiLockedRef.current = false; }, 12000);
+    isProcessingQueueRef.current = true;
+    
+    try {
+      await refillCategory(category, 5);
+    } finally {
+      // 어떤 오류가 발생해도 반드시 락을 해제하여 큐가 멈추지 않게 함
+      isProcessingQueueRef.current = false;
+    }
   }, [refillCategory]);
 
   useEffect(() => {
-    const categories = Object.keys(REFILL_CONFIG) as Array<keyof typeof profile.dialogueCache>;
-    categories.forEach(cat => addToRefillQueue(cat));
-    const queueTimer = setInterval(processRefillQueue, 5000);
-    return () => clearInterval(queueTimer);
+    const monitor = setInterval(() => {
+      (Object.keys(REFILL_CONFIG) as Array<keyof typeof profile.dialogueCache>).forEach(cat => {
+        addToRefillQueue(cat);
+      });
+    }, 8000);
+
+    const processor = setInterval(processRefillQueue, 2000);
+    
+    return () => {
+      clearInterval(monitor);
+      clearInterval(processor);
+    };
   }, [processRefillQueue, addToRefillQueue]);
 
   const triggerAIResponse = useCallback((type: string) => {
@@ -161,19 +194,25 @@ export const useAIManager = (
       'IDLE': 'idle', 'CLICK': 'click', 'PAUSE': 'pause', 
       'READY': 'start', 'RETURN': 'scolding' 
     };
-    const userDisplayName = profile.honorific || profile.userName || "너";
+    
     const key = cacheKeyMap[type];
     if (!key) return;
 
+    const userDisplayName = profile.honorific || profile.userName || "너";
     const cachedList = profile.dialogueCache[key];
+
     if (cachedList && cachedList.length > 0) {
       const randomIndex = Math.floor(Math.random() * cachedList.length);
       const randomMsg = cachedList[randomIndex];
       setMessage(cleanDialogue(randomMsg, userDisplayName));
+      
       const newCacheList = [...cachedList];
       newCacheList.splice(randomIndex, 1);
       onUpdateProfile({ dialogueCache: { ...profile.dialogueCache, [key]: newCacheList } });
-      if (newCacheList.length <= REFILL_CONFIG[key].threshold) addToRefillQueue(key);
+      
+      if (newCacheList.length <= REFILL_CONFIG[key].threshold) {
+        addToRefillQueue(key);
+      }
     } else {
       const toneKey = profile.personality.find(p => FALLBACK_TEMPLATES[p]) || "존댓말";
       const template = FALLBACK_TEMPLATES[toneKey];
@@ -186,8 +225,10 @@ export const useAIManager = (
   const handleInteraction = useCallback((isActive: boolean, isBreak: boolean) => {
     if (isBreak) return;
     if (cooldownRemaining > 0) return true;
+    
     triggerAIResponse('CLICK');
     setCooldownRemaining(COOLDOWN_MS);
+    
     const start = Date.now();
     if (cooldownIntervalRef.current) clearInterval(cooldownIntervalRef.current);
     cooldownIntervalRef.current = setInterval(() => {
@@ -195,6 +236,7 @@ export const useAIManager = (
       setCooldownRemaining(left);
       if (left <= 0) clearInterval(cooldownIntervalRef.current);
     }, 100);
+    
     return false;
   }, [cooldownRemaining, triggerAIResponse]);
 
