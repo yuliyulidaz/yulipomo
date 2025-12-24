@@ -22,9 +22,9 @@ export const useAIManager = (
 
   useEffect(() => { profileRef.current = profile; }, [profile]);
 
-  // 대사 자동 숨김 로직: 어떤 대사든 7초가 지나면 사라지도록 설정
+  // 대사 자동 숨김 로직: 7초 후 투명하게 사라짐
   useEffect(() => {
-    if (message && message !== "가만히 바라보는 중...") {
+    if (message) {
       const timer = setTimeout(() => {
         setMessage("");
       }, 7000);
@@ -128,8 +128,8 @@ export const useAIManager = (
   const handleInteraction = useCallback((isActive: boolean, isBreak: boolean) => {
     if (isBreak) return;
     if (cooldownRemaining > 0) {
-      setMessage("가만히 바라보는 중...");
-      return true; // Was interaction blocked by cooldown?
+      // "가만히 바라보는 중..." 대사 노출 로직 삭제 (이미지 테두리 애니메이션으로만 인지)
+      return true;
     }
     triggerAIResponse('CLICK');
     setCooldownRemaining(COOLDOWN_MS);
