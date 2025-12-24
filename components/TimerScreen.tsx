@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useRef } from 'react';
 import { X } from 'lucide-react';
 import { CharacterProfile } from '../types';
@@ -187,7 +186,6 @@ export const TimerScreen: React.FC<TimerScreenProps> = ({
         onToggleApiKeyAlert={() => setPendingExpiryAlert(!pendingExpiryAlert)}
       />
 
-      {/* @google/genai senior engineer fix: Removed non-existent property 'distractionIntervals' from stats object to match ObservationDiaryProps definition. */}
       {showReport && <ObservationDiary profile={profile} stats={{ distractions, clicks }} onClose={() => { setShowReport(false); setDistractions(0); setClicks(0); setShowChoiceModal(true); }} />}
 
       <CycleChoiceModal isOpen={showChoiceModal} isDarkMode={isDarkMode} onChoice={(opt) => { setShowChoiceModal(false); setSessionInCycle(0); setIsBreak(true); setIsActive(true); if(opt==='LONG'){ setTimeLeft(30*60); onTickXP(5); } else { setTimeLeft(5*60); onTickXP(25); } }} onExport={handleExportProfile} />
@@ -201,7 +199,8 @@ export const TimerScreen: React.FC<TimerScreenProps> = ({
       <main className="w-full h-full flex flex-col items-center justify-center relative p-4 md:p-8">
           <TopBadge level={profile.level} title={levelTitle} isAdminMode={isAdminMode} isDarkMode={isDarkMode} onBadgeClick={() => { const nc = badgeClicks+1; setBadgeClicks(nc); if(nc>=5){ setBadgeClicks(0); setShowAdminAuth(true); } setTimeout(()=>setBadgeClicks(0),2000); }} badgeClicks={badgeClicks} />
 
-          <div className={`w-full max-w-[450px] backdrop-blur-xl border p-6 md:p-8 rounded-[40px] shadow-[0_20px_50px_rgba(74,95,122,0.1)] flex flex-col items-center gap-6 md:gap-8 animate-in fade-in zoom-in duration-500 relative transition-colors duration-700 ${isDarkMode ? 'bg-[#161B22]/90 border-[#30363D]' : 'bg-surface/90 border-border'} ${isApiKeyModalOpen || isSettingsOpen ? 'overflow-visible z-40' : 'overflow-hidden'}`}>
+          {/* z-index를 z-40에서 z-50으로 상향하여 backdrop(z-45) 위로 메뉴가 올라오게 함 */}
+          <div className={`w-full max-w-[450px] backdrop-blur-xl border p-6 md:p-8 rounded-[40px] shadow-[0_20px_50px_rgba(74,95,122,0.1)] flex flex-col items-center gap-6 md:gap-8 animate-in fade-in zoom-in duration-500 relative transition-colors duration-700 ${isDarkMode ? 'bg-[#161B22]/90 border-[#30363D]' : 'bg-surface/90 border-border'} ${isApiKeyModalOpen || isSettingsOpen ? 'overflow-visible z-50' : 'overflow-hidden'}`}>
             <div className={`absolute top-2.5 inset-x-8 h-1.5 z-10 ${isDarkMode ? 'bg-slate-700/20' : 'bg-border/20'} rounded-full overflow-hidden`}><div className="h-full bg-gradient-to-r from-primary to-accent transition-all duration-1000 ease-out rounded-full" style={{ width: `${progressPercent}%` }} /></div>
 
             <div className="w-full flex justify-between items-start mt-2 px-2 relative z-50">
