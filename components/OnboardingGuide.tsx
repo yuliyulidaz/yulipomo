@@ -1,8 +1,10 @@
+
 import React, { useState, useEffect, useMemo } from 'react';
 import { ChevronRight } from 'lucide-react';
 
 interface OnboardingGuideProps {
   isDarkMode: boolean;
+  characterName: string;
   targets: {
     settings: React.RefObject<HTMLElement | null>;
     character: React.RefObject<HTMLElement | null>;
@@ -12,7 +14,7 @@ interface OnboardingGuideProps {
   onClose: (neverShowAgain: boolean) => void;
 }
 
-export const OnboardingGuide: React.FC<OnboardingGuideProps> = ({ isDarkMode, targets, onClose }) => {
+export const OnboardingGuide: React.FC<OnboardingGuideProps> = ({ isDarkMode, characterName, targets, onClose }) => {
   const [step, setStep] = useState(1);
   const [spotlight, setSpotlight] = useState({ cx: 0, cy: 0, r: 0, visible: false });
 
@@ -23,8 +25,18 @@ export const OnboardingGuide: React.FC<OnboardingGuideProps> = ({ isDarkMode, ta
 
     if (step === 1) target = targets.settings.current;
     if (step === 2) { target = targets.character.current; radius = 100; }
-    if (step === 3) { target = targets.reset.current; radius = 40; }
-    if (step === 4) { target = targets.start.current; radius = 50; }
+    if (step === 3) { 
+      // 중앙 팁: 스포트라이트 없이 화면 전체를 어둡게 (r: 0)
+      setSpotlight({ 
+        cx: window.innerWidth / 2, 
+        cy: window.innerHeight / 2, 
+        r: 0, 
+        visible: true 
+      });
+      return;
+    }
+    if (step === 4) { target = targets.reset.current; radius = 40; }
+    if (step === 5) { target = targets.start.current; radius = 50; }
 
     if (!target) {
       setSpotlight({ cx: 0, cy: 0, r: 0, visible: false });
@@ -47,19 +59,30 @@ export const OnboardingGuide: React.FC<OnboardingGuideProps> = ({ isDarkMode, ta
   }, [updateSpotlight]);
 
   const handleNext = () => {
-    if (step < 4) setStep(step + 1);
+    if (step < 5) setStep(step + 1);
     else onClose(false);
   };
 
   const getGuidePosition = () => {
+    if (step === 3) {
+      // 화면 정중앙 배치
+      return {
+        top: (window.innerHeight - 300) / 2,
+        left: (window.innerWidth - 288) / 2,
+        arrowAtTop: false,
+        noArrow: true
+      };
+    }
+
     const isBottomHalf = spotlight.cy > window.innerHeight / 2;
-    // 리셋 버튼(Step 3) 설명창이 버튼을 가리지 않도록 오프셋을 더 위로 조정 (기존 210 -> 240)
-    const aboveOffset = step === 3 ? 240 : 180;
+    // 리셋 버튼(Step 4) 설명창이 버튼을 가리지 않도록 오프셋을 더 위로 조정
+    const aboveOffset = step === 4 ? 240 : 180;
     
     return {
       top: isBottomHalf ? spotlight.cy - spotlight.r - aboveOffset : spotlight.cy + spotlight.r + 20,
       left: Math.max(20, Math.min(window.innerWidth - 300, spotlight.cx - 140)),
-      arrowAtTop: !isBottomHalf
+      arrowAtTop: !isBottomHalf,
+      noArrow: false
     };
   };
 
@@ -91,29 +114,32 @@ export const OnboardingGuide: React.FC<OnboardingGuideProps> = ({ isDarkMode, ta
         className="absolute z-[310] flex flex-col items-center pointer-events-none transition-all duration-500 ease-in-out"
         style={{ top: pos.top, left: pos.left }}
       >
-        {/* Arrow decoration - Rendered before bubble and positioned behind it */}
-        <div 
-          className={`w-4 h-4 transform rotate-45 absolute transition-all duration-500 z-0 ${isDarkMode ? 'bg-slate-900 border-white/10' : 'bg-surface border-border'} ${pos.arrowAtTop ? '-top-2 border-t border-l' : '-bottom-2 border-b border-r'}`}
-          style={{ 
-            left: step === 1 ? '24px' : '140px', 
-            opacity: 1
-          }}
-        ></div>
+        {/* Arrow decoration - 디자인 통일을 위해 투명도와 색상을 본체와 완전히 일치시킴 */}
+        {!pos.noArrow && (
+          <div 
+            className={`w-4 h-4 transform rotate-45 absolute transition-all duration-500 -z-10 ${isDarkMode ? 'bg-slate-900 border-white/10' : 'bg-white border-border'} ${pos.arrowAtTop ? '-top-2 border-t border-l' : '-bottom-2 border-b border-r'}`}
+            style={{ 
+              left: step === 1 ? '24px' : '140px',
+              opacity: 1
+            }}
+          ></div>
+        )}
 
-        <div className={`w-72 bg-surface p-6 rounded-[2rem] shadow-2xl pointer-events-auto border border-border animate-in zoom-in-95 duration-300 relative z-10 ${isDarkMode ? 'bg-slate-900 border-white/10' : ''}`}>
+        <div className={`w-72 bg-surface p-6 rounded-[2rem] shadow-2xl pointer-events-auto border border-border animate-in zoom-in-95 duration-300 relative z-10 ${isDarkMode ? 'bg-slate-900 border-white/10' : 'bg-white'}`}>
            <div className="flex items-center gap-2 mb-3">
-              <div className="bg-primary text-white text-[10px] font-black px-2 py-0.5 rounded-full uppercase tracking-widest">Guide {step}/4</div>
+              <div className="bg-primary text-white text-[10px] font-black px-2 py-0.5 rounded-full uppercase tracking-widest">Guide {step}/5</div>
            </div>
            
            <p className={`text-sm font-bold leading-relaxed mb-6 whitespace-pre-line ${isDarkMode ? 'text-slate-200' : 'text-text-primary'}`}>
               {step === 1 && "설정: 다크모드, API키 등 설정을 변경할 수 있습니다."}
               {step === 2 && "캐릭터: 최애를 톡톡 눌러서 응원을 받으세요."}
-              {step === 3 && "되돌아가기:\n한 번 누르면 현재 세션 초기화,\n길게 누르면 사이클이 통째로 초기화 됩니다."}
-              {step === 4 && "시작: 이제 시작 버튼을 누르고 집중을 시작해 보세요."}
+              {step === 3 && `TIP : ${characterName} 와 100분동안 집중하기 전에\n\n1. 최애와 타이머를 계속 볼 수 있도록, 디스플레이 설정에서 '화면 자동 잠금/꺼짐'을 '안 함'으로 설정해주세요.\n2. 미리 충전기를 연결해 주세요.`}
+              {step === 4 && "되돌아가기:\n한 번 누르면 현재 세션 초기화,\n길게 누르면 사이클이 통째로 초기화 됩니다."}
+              {step === 5 && "시작: 이제 시작 버튼을 누르고 집중을 시작해 보세요."}
            </p>
            
            <div className="flex items-center justify-between gap-3">
-              {step < 4 ? (
+              {step < 5 ? (
                 <button 
                   onClick={handleNext}
                   className="flex-1 py-3 bg-primary text-white rounded-xl font-black text-xs shadow-lg shadow-primary/20 flex items-center justify-center gap-1.5 active:scale-95 transition-all"
