@@ -28,10 +28,13 @@ export const Step1: React.FC<Step1Props> = ({ name, setName, imageSrc, setImageS
         {imageSrc ? <img src={imageSrc} alt="Preview" className="w-full h-full object-cover" /> : <div className="w-full h-full flex flex-col items-center justify-center text-text-secondary opacity-40"><Camera size={40} strokeWidth={1} /></div>}
       </div>
       <div className="absolute -bottom-3 -right-3"><FileUpload onImageSelected={setImageSrc} currentImage={imageSrc} onClear={() => setImageSrc(null)} /></div>
+      {!imageSrc && <div className="absolute -top-2 -right-2 bg-rose-500 text-white w-5 h-5 rounded-full flex items-center justify-center text-xs font-bold shadow-sm animate-bounce">*</div>}
     </div>
     <div className="max-w-xs mx-auto pt-4 md:pt-6 flex flex-col items-center">
       <div className="relative w-full">
-        <label className="absolute -top-6 left-0 text-[10px] font-bold text-text-secondary uppercase tracking-widest">Bias Name</label>
+        <label className="absolute -top-6 left-0 text-[10px] font-bold text-text-secondary uppercase tracking-widest">
+          Bias Name <span className="text-rose-500">*</span>
+        </label>
         <input type="text" value={name} onChange={e => setName(e.target.value)} placeholder="'최애'의 이름을 적어주세요" className="w-full px-0 py-3 bg-transparent border-b-2 border-border outline-none focus:border-primary transition-all text-center font-bold text-xl placeholder:text-border placeholder:font-normal text-text-primary" />
       </div>
       <div className="mt-4 md:mt-8">
@@ -60,7 +63,9 @@ export const Step2: React.FC<Step2Props> = ({ selectedTone, setSelectedTone, sel
     <div className="text-center space-y-3"><h1 className="text-2xl font-bold text-text-primary tracking-tight">최애의 성격</h1><p className="text-text-secondary text-sm font-medium">상대는 당신에게 어떤 목소리로 말을 건네나요?</p></div>
     <div className="space-y-8">
       <div className="space-y-4">
-        <label className="text-[10px] font-bold text-text-secondary uppercase tracking-widest block text-center">Speech Style</label>
+        <label className="text-[10px] font-bold text-text-secondary uppercase tracking-widest block text-center">
+          Speech Style <span className="text-rose-500">*</span>
+        </label>
         <div className="grid grid-cols-3 gap-3">
           {TONE_KEYWORDS.map(k => (
             <button key={k} onClick={() => setSelectedTone(k)} className={`py-3 text-xs rounded-lg border transition-all font-bold ${selectedTone === k ? 'bg-primary border-primary text-white shadow-md' : 'bg-surface border-border text-text-secondary hover:border-primary-light'}`}>{k}</button>
@@ -68,7 +73,9 @@ export const Step2: React.FC<Step2Props> = ({ selectedTone, setSelectedTone, sel
         </div>
       </div>
       <div className="space-y-4">
-        <label className="text-[10px] font-bold text-text-secondary uppercase tracking-widest block text-center">Personality Tags</label>
+        <label className="text-[10px] font-bold text-text-secondary uppercase tracking-widest block text-center">
+          Personality Tags <span className="text-rose-500">*</span>
+        </label>
         <div className="flex flex-wrap justify-center gap-2">
           {PERSONALITY_KEYWORDS.map(k => (
             <button key={k} onClick={() => togglePersonality(k)} className={`py-2 px-4 text-xs rounded-lg border transition-all font-bold ${selectedPersonalities.includes(k) ? 'bg-accent-soft border-accent text-primary-dark shadow-sm' : 'bg-surface border-border text-text-secondary hover:bg-background'}`}>{k}</button>
@@ -117,14 +124,21 @@ export const Step3: React.FC<Step3Props> = ({ userName, setUserName, honorific, 
     <div className="space-y-8 animate-in fade-in slide-in-from-right-4 duration-500">
       <div className="text-center space-y-3"><h1 className="text-2xl font-bold text-text-primary tracking-tight">우리의 연결</h1><p className="text-text-secondary text-sm font-medium">마지막 관문입니다. 당신을 알려주세요.</p></div>
       <div className="grid grid-cols-2 gap-8 px-2">
-        <div className="relative group"><label className="absolute -top-6 left-0 text-[10px] font-bold text-text-secondary uppercase tracking-widest">My Name</label><input type="text" value={userName} onChange={e => setUserName(e.target.value)} placeholder="당신의 이름" className="w-full py-2 bg-transparent border-b-2 border-border outline-none focus:border-primary transition-all font-bold text-sm text-text-primary" /></div>
-        <div className="relative group"><label className="absolute -top-6 left-0 text-[10px] font-bold text-text-secondary uppercase tracking-widest">Call Me</label><input type="text" value={honorific} onChange={e => setHonorific(e.target.value)} placeholder="부를 호칭" className="w-full py-2 bg-transparent border-b-2 border-border outline-none focus:border-primary transition-all font-bold text-sm text-text-primary" /></div>
+        <div className="relative group">
+          <label className="absolute -top-6 left-0 text-[10px] font-bold text-text-secondary uppercase tracking-widest">
+            My Name <span className="text-rose-500">*</span>
+          </label>
+          <input type="text" value={userName} onChange={e => setUserName(e.target.value)} placeholder="당신의 이름" className="w-full py-2 bg-transparent border-b-2 border-border outline-none focus:border-primary transition-all font-bold text-sm text-text-primary" />
+        </div>
+        <div className="relative group">
+          <label className="absolute -top-6 left-0 text-[10px] font-bold text-text-secondary uppercase tracking-widest">Call Me</label>
+          <input type="text" value={honorific} onChange={e => setHonorific(e.target.value)} placeholder="부를 호칭" className="w-full py-2 bg-transparent border-b-2 border-border outline-none focus:border-primary transition-all font-bold text-sm text-text-primary" />
+        </div>
       </div>
       <div className="space-y-4 px-2">
         <label className="text-[10px] font-bold text-text-secondary uppercase tracking-widest block">Gender</label>
         <div className="flex border border-border rounded-xl overflow-hidden p-1 gap-1">
           {(['MALE', 'FEMALE', 'NEUTRAL'] as const).map(g => (
-            // Fix: simplified ternary to avoid type overlap error between 'NEUTRAL' and 'FEMALE'
             <button key={g} onClick={() => setGender(g)} className={`flex-1 py-2.5 text-xs font-black rounded-lg transition-all ${gender === g ? 'bg-primary text-white shadow-md' : 'text-text-secondary hover:bg-background'}`}>{g === 'MALE' ? '남성' : g === 'FEMALE' ? '여성' : '중성'}</button>
           ))}
         </div>
@@ -135,15 +149,17 @@ export const Step3: React.FC<Step3Props> = ({ userName, setUserName, honorific, 
       </div>
       <div className="pt-2 px-2 space-y-4">
         <div className="relative group">
-          <label className="flex items-center gap-2 text-[10px] font-bold text-text-secondary uppercase tracking-widest mb-1.5">Gemini API Key</label>
-           <div className="flex gap-2 mt-4">
-          <a href="https://aistudio.google.com/app/apikey" target="_blank" rel="noopener noreferrer" className="flex-1 h-10 flex items-center justify-center gap-1.5 rounded-xl border border-border bg-background text-[10px] font-black text-text-secondary hover:bg-slate-50 transition-all">
-            API 키 발급받기 <ExternalLink size={12} />
-          </a>
-          <button onClick={handlePaste} className="flex-1 h-10 bg-primary/10 text-primary hover:bg-primary/20 text-[10px] font-black rounded-xl flex items-center justify-center gap-1.5 transition-all">
-            복사해 온 키 붙여넣기 <ClipboardPaste size={12} />
-          </button>
-        </div>
+          <label className="flex items-center gap-2 text-[10px] font-bold text-text-secondary uppercase tracking-widest mb-1.5">
+            Gemini API Key <span className="text-rose-500">*</span>
+          </label>
+          <div className="flex gap-2 mt-4">
+            <a href="https://aistudio.google.com/app/apikey" target="_blank" rel="noopener noreferrer" className="flex-1 h-10 flex items-center justify-center gap-1.5 rounded-xl border border-border bg-background text-[10px] font-black text-text-secondary hover:bg-slate-50 transition-all">
+              API 키 발급받기 <ExternalLink size={12} />
+            </a>
+            <button onClick={handlePaste} className="flex-1 h-10 bg-primary/10 text-primary hover:bg-primary/20 text-[10px] font-black rounded-xl flex items-center justify-center gap-1.5 transition-all">
+              복사해 온 키 붙여넣기 <ClipboardPaste size={12} />
+            </button>
+          </div>
           <div className="relative mt-2">
             <input 
               type="password" 
