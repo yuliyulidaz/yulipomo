@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useRef } from 'react';
 import { X } from 'lucide-react';
 import { CharacterProfile } from '../types';
@@ -5,6 +6,7 @@ import { ObservationDiary } from './ObservationDiary';
 import { OnboardingGuide } from './OnboardingGuide';
 import { ApiKeyExpiryModal } from './ApiKeyExpiryModal';
 import { ExitConfirmModal } from './ExitConfirmModal';
+import { EnergySavingOverlay } from './EnergySavingOverlay';
 
 // 설정 및 유틸리티
 import { LEVEL_TITLES } from './TimerConfig';
@@ -18,6 +20,7 @@ import { TopBadge, SettingsMenu, CharacterSection, TimerDisplay, CycleProgressBa
 import { useTimerCore } from '../hooks/useTimerCore';
 import { useAIManager } from '../hooks/useAIManager';
 import { useXPManager } from '../hooks/useXPManager';
+import { useMobileCare } from '../hooks/useMobileCare';
 
 interface TimerScreenProps {
   profile: CharacterProfile;
@@ -48,7 +51,10 @@ export const TimerScreen: React.FC<TimerScreenProps> = ({
   // --- 3. XP & Leveling Logic ---
   const { progressPercent, levelTitle } = useXPManager(profile);
 
-  // --- 4. Local UI State ---
+  // --- 4. Mobile Care Logic ---
+  const { isBatterySaving, setIsBatterySaving } = useMobileCare(isActive, triggerAIResponse);
+
+  // --- 5. Local UI State ---
   const [distractions, setDistractions] = useState(profile.cycleStats?.distractions ?? 0);
   const [clicks, setClicks] = useState(profile.cycleStats?.clicks ?? 0);
   const [badgeClicks, setBadgeClicks] = useState(0);
@@ -66,7 +72,7 @@ export const TimerScreen: React.FC<TimerScreenProps> = ({
   const [apiKeyPopupType, setApiKeyPopupType] = useState<'EXPIRED' | 'MANUAL'>('MANUAL');
   const [showExitModal, setShowExitModal] = useState(false);
 
-  // --- 5. Refs ---
+  // --- 6. Refs ---
   const resetHoldTimerRef = useRef<any>(null);
   const resetStartTimeRef = useRef<number | null>(null);
   const settingsBtnRef = useRef<HTMLDivElement>(null);
@@ -74,13 +80,13 @@ export const TimerScreen: React.FC<TimerScreenProps> = ({
   const resetBtnRef = useRef<HTMLButtonElement>(null);
   const startBtnRef = useRef<HTMLButtonElement>(null);
 
-  // --- 6. Effects & Sync ---
+  // --- 7. Effects & Sync ---
   useEffect(() => {
     const isFirstTime = localStorage.getItem('pomodoro_onboarding_done') !== 'true';
     if (isFirstTime) setTimeout(() => setShowOnboarding(true), 1000);
   }, []);
 
-  // --- 6-2. API Expiry Alert logic (Auto-popup only on break) ---
+  // --- 7-2. API Expiry Alert logic (Auto-popup only on break) ---
   useEffect(() => {
     if (isBreak && pendingExpiryAlert && !isApiKeyModalOpen) {
       setApiKeyPopupType('EXPIRED');
@@ -88,7 +94,7 @@ export const TimerScreen: React.FC<TimerScreenProps> = ({
     }
   }, [isBreak, pendingExpiryAlert, isApiKeyModalOpen]);
 
-  // --- 6-3. Back Button / History Handling ---
+  // --- 7-3. Back Button / History Handling ---
   useEffect(() => {
     window.history.pushState(null, "", window.location.href);
     const handlePopState = (e: PopStateEvent) => {
@@ -108,7 +114,7 @@ export const TimerScreen: React.FC<TimerScreenProps> = ({
     });
   }, [timeLeft, isActive, isBreak, sessionInCycle, distractions, clicks, onUpdateProfile]);
 
-  // --- 7. Event Handlers ---
+  // --- 8. Event Handlers ---
   const handleCharacterClick = () => {
     const wasBlocked = handleInteraction(isActive, isBreak);
     if (!wasBlocked && isActive && !isBreak) {
@@ -198,6 +204,8 @@ export const TimerScreen: React.FC<TimerScreenProps> = ({
   return (
     <div className={`relative w-full h-screen flex transition-colors duration-700 overflow-hidden font-sans select-none ${isDarkMode ? 'bg-[#0B0E14] text-slate-100' : 'bg-background text-text-primary'}`}>
       
+      <EnergySavingOverlay isVisible={isBatterySaving} />
+
       {showOnboarding && <OnboardingGuide isDarkMode={isDarkMode} targets={{ settings: settingsBtnRef, character: characterBoxRef, reset: resetBtnRef, start: startBtnRef }} onClose={(never) => { if(never) localStorage.setItem('pomodoro_onboarding_done', 'true'); setShowOnboarding(false); }} />}
 
       {profile.imageSrc && <div className={`absolute inset-0 z-0 transition-opacity duration-700 ${isDarkMode ? 'opacity-5' : 'opacity-10'}`}><img src={profile.imageSrc} alt="BG" className="w-full h-full object-cover blur-md scale-110" /></div>}
@@ -247,6 +255,8 @@ export const TimerScreen: React.FC<TimerScreenProps> = ({
                   setIsOpen={setIsSettingsOpen} 
                   isDarkMode={isDarkMode} 
                   onToggleDarkMode={() => setIsDarkMode(!isDarkMode)} 
+                  isBatterySaving={isBatterySaving}
+                  onToggleBatterySaving={() => setIsBatterySaving(!isBatterySaving)}
                   onExport={handleExportProfile} 
                   onApiKeyOpen={() => { setApiKeyPopupType('MANUAL'); setIsApiKeyModalOpen(true); setIsSettingsOpen(false); }} 
                   onShowGuide={() => { setShowOnboarding(true); setIsSettingsOpen(false); }}
