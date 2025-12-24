@@ -93,19 +93,6 @@ export const TimerScreen: React.FC<TimerScreenProps> = ({
     }
   }, [isBreak, pendingExpiryAlert, isApiKeyModalOpen]);
 
-  // 브라우저 탭 전환(이탈) 감지 로직: 다른 창에 갔다가 돌아오면 꾸짖기
-  useEffect(() => {
-    const handleVisibility = () => {
-      if (document.visibilityState === 'visible' && isActive && !isBreak) {
-        // 돌아왔을 때 세션 중이라면 꾸짖는 대사 트리거
-        triggerAIResponse('RETURN');
-        setDistractions(prev => prev + 1);
-      }
-    };
-    document.addEventListener('visibilitychange', handleVisibility);
-    return () => document.removeEventListener('visibilitychange', handleVisibility);
-  }, [isActive, isBreak, triggerAIResponse]);
-
   useEffect(() => {
     window.history.pushState(null, "", window.location.href);
     const handlePopState = (e: PopStateEvent) => {
