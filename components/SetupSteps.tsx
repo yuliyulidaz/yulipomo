@@ -134,7 +134,7 @@ export const Step3: React.FC<Step3Props> = ({ userName, setUserName, honorific, 
         <input type="text" value={todayTask} onChange={e => setTodayTask(e.target.value)} placeholder="예: 제작 마감, 수학 숙제 등" className="w-full px-4 py-3 bg-background border-2 border-border rounded-xl outline-none focus:border-primary transition-all text-sm font-bold text-text-primary placeholder:text-text-secondary/40" />
       </div>
       <div className="pt-2 px-2 space-y-4">
-        <div className="flex gap-2">
+        <div className="flex gap-2 mt-4">
           <a href="https://aistudio.google.com/app/apikey" target="_blank" rel="noopener noreferrer" className="flex-1 h-10 flex items-center justify-center gap-1.5 rounded-xl border border-border bg-background text-[10px] font-black text-text-secondary hover:bg-slate-50 transition-all">
             API 키 발급받기 <ExternalLink size={12} />
           </a>
@@ -144,7 +144,7 @@ export const Step3: React.FC<Step3Props> = ({ userName, setUserName, honorific, 
         </div>
         <div className="relative group">
           <label className="flex items-center gap-2 text-[10px] font-bold text-text-secondary uppercase tracking-widest mb-1.5">Gemini API Key</label>
-          <div className="relative">
+          <div className="relative mt-2">
             <input 
               type="password" 
               value={apiKey} 
