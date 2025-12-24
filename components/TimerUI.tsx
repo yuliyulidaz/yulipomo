@@ -96,7 +96,7 @@ export const CharacterSection: React.FC<CharacterSectionProps> = ({ profile, isB
               <div className={`px-4 py-1.5 rounded-full border backdrop-blur-md shadow-sm animate-pulse-slow flex items-center justify-center whitespace-nowrap
                 ${isDarkMode ? 'bg-emerald-500/10 border-emerald-500/20 shadow-emerald-500/5' : 'bg-primary/10 border-primary/20 shadow-primary/5'}`}>
                 <span className={`text-[10px] font-black uppercase tracking-widest ${isDarkMode ? 'text-emerald-400' : 'text-primary'}`}>
-                  가만히 바라보는 중...
+                  당신을 가만히 바라보는 중...
                 </span>
               </div>
             </div>
