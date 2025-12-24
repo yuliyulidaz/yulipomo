@@ -106,6 +106,8 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ isOpen, onClose, profile
                 <span>Finish: {profile.dialogueCache.praising.length}</span>
                 <span>Scold: {profile.dialogueCache.scolding.length}</span>
                 <span>Click: {profile.dialogueCache.click.length}</span>
+                <span>Idle: {profile.dialogueCache.idle.length}</span>
+                <span>Pause: {profile.dialogueCache.pause.length}</span>
              </div>
           </div>
         </div>
