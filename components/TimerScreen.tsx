@@ -56,6 +56,7 @@ export const TimerScreen: React.FC<TimerScreenProps> = ({
 
   // --- 5. Local UI State ---
   const [distractions, setDistractions] = useState(profile.cycleStats?.distractions ?? 0);
+  const [wasAway, setWasAway] = useState(false); // 이탈 감지용 플래그 추가
   const [clicks, setClicks] = useState(profile.cycleStats?.clicks ?? 0);
   const [badgeClicks, setBadgeClicks] = useState(0);
   const [showAdminAuth, setShowAdminAuth] = useState(false);
@@ -93,18 +94,27 @@ export const TimerScreen: React.FC<TimerScreenProps> = ({
     }
   }, [isBreak, pendingExpiryAlert, isApiKeyModalOpen]);
 
-  // 브라우저 탭 전환(이탈) 감지 로직: 다른 창에 갔다가 돌아오면 꾸짖기
+  // 브라우저 탭 전환(이탈) 감지 로직: 나갈 때 흔적을 남기고, 들어올 때 확인하여 꾸짖기
   useEffect(() => {
     const handleVisibility = () => {
-      if (document.visibilityState === 'visible' && isActive && !isBreak) {
-        // 돌아왔을 때 세션 중이라면 꾸짖는 대사 트리거
-        triggerAIResponse('RETURN');
-        setDistractions(prev => prev + 1);
+      if (document.visibilityState === 'hidden') {
+        // 나가는 순간: 타이머가 켜져 있고 집중 시간인 경우에만 "이탈함" 기록
+        if (isActive && !isBreak) {
+          setWasAway(true);
+        }
+      } else if (document.visibilityState === 'visible') {
+        // 돌아온 순간: 이탈 기록(wasAway)이 있고, 여전히 집중 시간(!isBreak)인 경우에만 꾸짖기
+        if (wasAway && !isBreak && isActive) {
+          triggerAIResponse('RETURN');
+          setDistractions(prev => prev + 1);
+        }
+        // 어떤 경우든 돌아왔으므로 플래그 초기화 (나간 사이 휴식이 된 경우 포함)
+        setWasAway(false);
       }
     };
     document.addEventListener('visibilitychange', handleVisibility);
     return () => document.removeEventListener('visibilitychange', handleVisibility);
-  }, [isActive, isBreak, triggerAIResponse]);
+  }, [isActive, isBreak, wasAway, triggerAIResponse]);
 
   useEffect(() => {
     window.history.pushState(null, "", window.location.href);
@@ -163,6 +173,7 @@ export const TimerScreen: React.FC<TimerScreenProps> = ({
       resetTimer(true);
       setDistractions(0);
       setClicks(0);
+      setWasAway(false); // 리셋 시 이탈 플래그도 초기화
       setMessage("마음을 새로 먹었나 보네? 처음부터 다시 시작하자.");
     } else if (duration < 300) {
       resetTimer(false);
@@ -207,6 +218,7 @@ export const TimerScreen: React.FC<TimerScreenProps> = ({
       <AdminPanel isOpen={isAdminMode && showAdminPanel} onClose={() => setShowAdminPanel(false)} profile={profile} onTimeLeap={() => setTimeLeft(10)} onLevelChange={(lv) => onUpdateProfile({ level: lv, xp: 0 })} clicks={clicks} isApiKeyAlert={pendingExpiryAlert} onToggleApiKeyAlert={() => setPendingExpiryAlert(!pendingExpiryAlert)} />
       {showReport && <ObservationDiary profile={profile} stats={{ distractions, clicks }} onClose={() => { setShowReport(false); setDistractions(0); setClicks(0); setShowChoiceModal(true); }} />}
       <CycleChoiceModal isOpen={showChoiceModal} isDarkMode={isDarkMode} onChoice={(opt) => { setShowChoiceModal(false); setSessionInCycle(0); setIsBreak(true); setIsActive(true); if(opt==='LONG'){ setTimeLeft(30*60); onTickXP(5); } else { setTimeLeft(5*60); onTickXP(25); } }} onExport={handleExportProfile} />
+      <ApiKeyExpiryModal isOpen={isApiKeyModalOpen} onClose={() => { setIsApiKeyModalOpen(false); setPendingExpiryAlert(false); }} type={apiKeyPopupType} currentApiKey={profile.apiKey || ''} isDarkMode={isDarkMode} onUpdateKey={(key) => onUpdateProfile({ apiKey: key })} />
       <ApiKeyExpiryModal isOpen={isApiKeyModalOpen} onClose={() => { setIsApiKeyModalOpen(false); setPendingExpiryAlert(false); }} type={apiKeyPopupType} currentApiKey={profile.apiKey || ''} isDarkMode={isDarkMode} onUpdateKey={(key) => onUpdateProfile({ apiKey: key })} />
       <ExitConfirmModal isOpen={showExitModal} onClose={() => setShowExitModal(false)} onConfirmExit={onReset} characterName={profile.name} isDarkMode={isDarkMode} />
       {(isApiKeyModalOpen || showExitModal) && <div className="fixed inset-0 z-[45] bg-transparent" onClick={() => { setIsApiKeyModalOpen(false); setShowExitModal(false); }} />}
