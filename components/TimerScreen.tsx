@@ -183,7 +183,7 @@ export const TimerScreen: React.FC<TimerScreenProps> = ({
 
       <ExitConfirmModal isOpen={showExitModal} onClose={() => setShowExitModal(false)} onConfirmExit={onReset} characterName={profile.name} isDarkMode={isDarkMode} />
 
-      {(isSettingsOpen || isApiKeyModalOpen || showExitModal) && <div className="fixed inset-0 z-30" onClick={() => { setIsSettingsOpen(false); setIsApiKeyModalOpen(false); setShowExitModal(false); }} />}
+      {(isSettingsOpen || isApiKeyModalOpen || showExitModal) && <div className="fixed inset-0 z-[45]" onClick={() => { setIsSettingsOpen(false); setIsApiKeyModalOpen(false); setShowExitModal(false); }} />}
 
       <main className="w-full h-full flex flex-col items-center justify-center relative p-4 md:p-8">
           <TopBadge level={profile.level} title={levelTitle} isAdminMode={isAdminMode} isDarkMode={isDarkMode} onBadgeClick={() => { const nc = badgeClicks+1; setBadgeClicks(nc); if(nc>=5){ setBadgeClicks(0); setShowAdminAuth(true); } setTimeout(()=>setBadgeClicks(0),2000); }} badgeClicks={badgeClicks} />
