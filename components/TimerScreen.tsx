@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useRef } from 'react';
 import { X } from 'lucide-react';
 import { CharacterProfile } from '../types';
@@ -158,8 +159,9 @@ export const TimerScreen: React.FC<TimerScreenProps> = ({
       resetTimer(false);
       setMessage("응? 다시 하고 싶어? 좋아, 다시 집중해보자.");
     } else {
-      // 중간에 떼어냄 (300ms ~ 2000ms): 리셋 취소, 현재 상태 및 대사 유지
-      // 아무 동작도 하지 않음 (timeLeft 보존)
+      // 중간에 떼어냄 (300ms ~ 2000ms): 리셋 취소
+      // '재시작됩니다' 안내창이 떠있을 경우 즉시 제거
+      setMessage(""); 
     }
   };
 
@@ -168,6 +170,8 @@ export const TimerScreen: React.FC<TimerScreenProps> = ({
     setIsResetHolding(false);
     setResetHoldProgress(0);
     if (resetHoldTimerRef.current) clearTimeout(resetHoldTimerRef.current);
+    // 버튼 밖으로 벗어나서 취소될 때도 안내 메시지 제거
+    setMessage(""); 
   };
 
   useEffect(() => {
@@ -220,12 +224,22 @@ export const TimerScreen: React.FC<TimerScreenProps> = ({
 
       <ExitConfirmModal isOpen={showExitModal} onClose={() => setShowExitModal(false)} onConfirmExit={onReset} characterName={profile.name} isDarkMode={isDarkMode} />
 
-      {(isSettingsOpen || isApiKeyModalOpen || showExitModal) && <div className="fixed inset-0 z-[45] bg-transparent" onClick={() => { setIsSettingsOpen(false); setIsApiKeyModalOpen(false); setShowExitModal(false); }} />}
+      {/* 설정 메뉴 전용 Backdrop: 카드 내부에서 렌더링하여 우선순위 제어 */}
+      {(isApiKeyModalOpen || showExitModal) && <div className="fixed inset-0 z-[45] bg-transparent" onClick={() => { setIsApiKeyModalOpen(false); setShowExitModal(false); }} />}
 
       <main className="w-full h-full flex flex-col items-center justify-center relative p-4 md:p-8">
           <TopBadge level={profile.level} title={levelTitle} isAdminMode={isAdminMode} isDarkMode={isDarkMode} onBadgeClick={() => { const nc = badgeClicks+1; setBadgeClicks(nc); if(nc>=5){ setBadgeClicks(0); setShowAdminAuth(true); } setTimeout(()=>setBadgeClicks(0),2000); }} badgeClicks={badgeClicks} />
 
           <div className={`w-full max-w-[450px] backdrop-blur-xl border p-6 md:p-8 rounded-[40px] shadow-[0_20px_50px_rgba(74,95,122,0.1)] flex flex-col items-center gap-6 md:gap-8 animate-in fade-in zoom-in duration-500 relative transition-colors duration-700 ${isDarkMode ? 'bg-[#161B22]/90 border-[#30363D]' : 'bg-surface/90 border-border'} ${isApiKeyModalOpen || isSettingsOpen ? 'overflow-visible z-50' : 'overflow-hidden'}`}>
+            
+            {/* 설정 메뉴 외부 클릭 감지용 투명 벽 (메뉴보다 아래, 카드 본체보다 위) */}
+            {isSettingsOpen && (
+              <div 
+                className="fixed inset-0 z-40 bg-transparent cursor-default" 
+                onClick={(e) => { e.stopPropagation(); setIsSettingsOpen(false); }} 
+              />
+            )}
+
             <div className={`absolute top-2.5 inset-x-8 h-1.5 z-10 ${isDarkMode ? 'bg-slate-700/20' : 'bg-border/20'} rounded-full overflow-hidden`}><div className="h-full bg-gradient-to-r from-primary to-accent transition-all duration-1000 ease-out rounded-full" style={{ width: `${progressPercent}%` }} /></div>
 
             <div className="w-full flex justify-between items-start mt-2 px-2 relative z-50">
@@ -236,6 +250,7 @@ export const TimerScreen: React.FC<TimerScreenProps> = ({
                   onToggleDarkMode={() => setIsDarkMode(!isDarkMode)} 
                   onExport={handleExportProfile} 
                   onApiKeyOpen={() => { setApiKeyPopupType('MANUAL'); setIsApiKeyModalOpen(true); setIsSettingsOpen(false); }} 
+                  onShowGuide={() => { setShowOnboarding(true); setIsSettingsOpen(false); }}
                   isAdminMode={isAdminMode} 
                   onShowAdminPanel={() => setShowAdminPanel(!showAdminPanel)} 
                   btnRef={settingsBtnRef} 
