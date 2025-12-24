@@ -1,14 +1,18 @@
 
 import { useState, useEffect, useCallback, useRef } from 'react';
 
+/**
+ * 휴대폰 사용자를 위한 케어 훅
+ * Vercel 빌드 시 발생하던 타입 파싱 에러 해결을 위해 명시적 인터페이스/타입 적용
+ */
 export const useMobileCare = (isActive: boolean, triggerAIResponse?: (type: string) => void) => {
-  const [isBatterySaving, setIsBatterySaving] = useState(false);
+  const [isBatterySaving, setIsBatterySaving] = useState<boolean>(false);
   const wakeLockRef = useRef<any>(null);
-  const batteryWarningSentRef = useRef(false);
+  const batteryWarningSentRef = useRef<boolean>(false);
 
   // 화면 켜짐 유지 (Wake Lock API)
   const requestWakeLock = useCallback(async () => {
-    if ('wakeLock' in navigator) {
+    if (typeof navigator !== 'undefined' && 'wakeLock' in navigator) {
       try {
         wakeLockRef.current = await (navigator as any).wakeLock.request('screen');
       } catch (err) {
@@ -19,8 +23,12 @@ export const useMobileCare = (isActive: boolean, triggerAIResponse?: (type: stri
 
   const releaseWakeLock = useCallback(async () => {
     if (wakeLockRef.current) {
-      await wakeLockRef.current.release();
-      wakeLockRef.current = null;
+      try {
+        await wakeLockRef.current.release();
+        wakeLockRef.current = null;
+      } catch (err) {
+        console.error('Wake Lock release error:', err);
+      }
     }
   }, []);
 
@@ -46,7 +54,7 @@ export const useMobileCare = (isActive: boolean, triggerAIResponse?: (type: stri
 
   // 배터리 상태 감시 (Battery Status API)
   useEffect(() => {
-    if (!('getBattery' in navigator)) return;
+    if (typeof navigator === 'undefined' || !('getBattery' in navigator)) return;
 
     const checkBattery = (battery: any) => {
       // 배터리가 20% 이하이고 충전 중이 아닐 때 알림 트리거
