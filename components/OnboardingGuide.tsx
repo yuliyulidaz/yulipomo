@@ -91,7 +91,16 @@ export const OnboardingGuide: React.FC<OnboardingGuideProps> = ({ isDarkMode, ta
         className="absolute z-[310] flex flex-col items-center pointer-events-none transition-all duration-500 ease-in-out"
         style={{ top: pos.top, left: pos.left }}
       >
-        <div className={`w-72 bg-surface p-6 rounded-[2rem] shadow-2xl pointer-events-auto border border-border animate-in zoom-in-95 duration-300 ${isDarkMode ? 'bg-slate-900 border-white/10' : ''}`}>
+        {/* Arrow decoration - Rendered before bubble and positioned behind it */}
+        <div 
+          className={`w-4 h-4 transform rotate-45 absolute transition-all duration-500 z-0 ${isDarkMode ? 'bg-slate-900 border-white/10' : 'bg-surface border-border'} ${pos.arrowAtTop ? '-top-2 border-t border-l' : '-bottom-2 border-b border-r'}`}
+          style={{ 
+            left: step === 1 ? '24px' : '140px', 
+            opacity: 1
+          }}
+        ></div>
+
+        <div className={`w-72 bg-surface p-6 rounded-[2rem] shadow-2xl pointer-events-auto border border-border animate-in zoom-in-95 duration-300 relative z-10 ${isDarkMode ? 'bg-slate-900 border-white/10' : ''}`}>
            <div className="flex items-center gap-2 mb-3">
               <div className="bg-primary text-white text-[10px] font-black px-2 py-0.5 rounded-full uppercase tracking-widest">Guide {step}/4</div>
            </div>
@@ -129,15 +138,6 @@ export const OnboardingGuide: React.FC<OnboardingGuideProps> = ({ isDarkMode, ta
               )}
            </div>
         </div>
-
-        {/* Arrow decoration */}
-        <div 
-          className={`w-4 h-4 transform rotate-45 border-t border-l absolute transition-all duration-500 ${isDarkMode ? 'bg-slate-900 border-white/10' : 'bg-surface border-border'} ${pos.arrowAtTop ? '-top-2' : '-bottom-2'}`}
-          style={{ 
-            left: step === 1 ? '24px' : '140px', 
-            opacity: 1
-          }}
-        ></div>
       </div>
     </div>
   );
