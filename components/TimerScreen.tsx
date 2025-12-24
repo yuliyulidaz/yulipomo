@@ -127,17 +127,26 @@ export const TimerScreen: React.FC<TimerScreenProps> = ({
     setMessage("저장되었습니다.");
   };
 
-  const handleResetStart = () => {
+  const handleResetStart = (e: React.MouseEvent | React.TouchEvent) => {
+    // 마우스/터치 중복 이벤트 방지
+    if (isResetHolding) return;
+    
     setIsResetHolding(true);
     setResetHoldProgress(0);
     resetStartTimeRef.current = Date.now();
     resetHoldTimerRef.current = setTimeout(() => setMessage("처음부터 재시작됩니다."), 1000);
   };
 
-  const handleResetEnd = () => {
+  const handleResetEnd = (e?: React.MouseEvent | React.TouchEvent) => {
     if (!isResetHolding) return;
+    
     const duration = Date.now() - (resetStartTimeRef.current || 0);
     
+    // 상태 초기화
+    setIsResetHolding(false);
+    setResetHoldProgress(0);
+    if (resetHoldTimerRef.current) clearTimeout(resetHoldTimerRef.current);
+
     if (duration >= RESET_HOLD_MS) {
       // 2초 이상 홀드: 전체 초기화
       resetTimer(true);
@@ -149,10 +158,13 @@ export const TimerScreen: React.FC<TimerScreenProps> = ({
       resetTimer(false);
       setMessage("응? 다시 하고 싶어? 좋아, 다시 집중해보자.");
     } else {
-      // 중간에 떼어냄 (300ms ~ 2000ms): 아무것도 하지 않고 현재 상태 유지
-      setMessage(""); 
+      // 중간에 떼어냄 (300ms ~ 2000ms): 리셋 취소, 현재 상태 및 대사 유지
+      // 아무 동작도 하지 않음 (timeLeft 보존)
     }
-    
+  };
+
+  const handleResetCancel = () => {
+    if (!isResetHolding) return;
     setIsResetHolding(false);
     setResetHoldProgress(0);
     if (resetHoldTimerRef.current) clearTimeout(resetHoldTimerRef.current);
@@ -162,10 +174,16 @@ export const TimerScreen: React.FC<TimerScreenProps> = ({
     let frame: any;
     if (isResetHolding) {
       const update = () => {
-        const progress = Math.min(100, ((Date.now() - (resetStartTimeRef.current || 0)) / RESET_HOLD_MS) * 100);
+        const now = Date.now();
+        const duration = now - (resetStartTimeRef.current || now);
+        const progress = Math.min(100, (duration / RESET_HOLD_MS) * 100);
         setResetHoldProgress(progress);
-        if (progress < 100) frame = requestAnimationFrame(update);
-        else handleResetEnd();
+        
+        if (progress < 100) {
+          frame = requestAnimationFrame(update);
+        } else {
+          handleResetEnd(); // 100% 도달 시 자동 실행
+        }
       };
       frame = requestAnimationFrame(update);
     }
@@ -207,7 +225,6 @@ export const TimerScreen: React.FC<TimerScreenProps> = ({
       <main className="w-full h-full flex flex-col items-center justify-center relative p-4 md:p-8">
           <TopBadge level={profile.level} title={levelTitle} isAdminMode={isAdminMode} isDarkMode={isDarkMode} onBadgeClick={() => { const nc = badgeClicks+1; setBadgeClicks(nc); if(nc>=5){ setBadgeClicks(0); setShowAdminAuth(true); } setTimeout(()=>setBadgeClicks(0),2000); }} badgeClicks={badgeClicks} />
 
-          {/* z-index를 z-40에서 z-50으로 상향하여 backdrop(z-45) 위로 메뉴가 올라오게 함 */}
           <div className={`w-full max-w-[450px] backdrop-blur-xl border p-6 md:p-8 rounded-[40px] shadow-[0_20px_50px_rgba(74,95,122,0.1)] flex flex-col items-center gap-6 md:gap-8 animate-in fade-in zoom-in duration-500 relative transition-colors duration-700 ${isDarkMode ? 'bg-[#161B22]/90 border-[#30363D]' : 'bg-surface/90 border-border'} ${isApiKeyModalOpen || isSettingsOpen ? 'overflow-visible z-50' : 'overflow-hidden'}`}>
             <div className={`absolute top-2.5 inset-x-8 h-1.5 z-10 ${isDarkMode ? 'bg-slate-700/20' : 'bg-border/20'} rounded-full overflow-hidden`}><div className="h-full bg-gradient-to-r from-primary to-accent transition-all duration-1000 ease-out rounded-full" style={{ width: `${progressPercent}%` }} /></div>
 
@@ -237,7 +254,7 @@ export const TimerScreen: React.FC<TimerScreenProps> = ({
             <div className="w-full flex flex-col items-center gap-6 mt-4 pb-4">
               <TimerDisplay isBreak={isBreak} isDarkMode={isDarkMode} timeLeft={timeLeft} formatTime={formatTime} />
               <CycleProgressBar overallProgressPercent={overallProgressPercent} isResetHolding={isResetHolding} resetHoldProgress={resetHoldProgress} isBreak={isBreak} sessionInCycle={sessionInCycle} isDarkMode={isDarkMode} />
-              <ControlButtons isBreak={isBreak} isActive={isActive} onToggle={toggleActive} onSkipBreak={skipBreak} resetBtnRef={resetBtnRef} startBtnRef={startBtnRef} onResetStart={handleResetStart} onResetEnd={handleResetEnd} onResetCancel={() => { setIsResetHolding(false); setResetHoldProgress(0); if(resetHoldTimerRef.current) clearTimeout(resetHoldTimerRef.current); }} isResetHolding={isResetHolding} isDarkMode={isDarkMode} />
+              <ControlButtons isBreak={isBreak} isActive={isActive} onToggle={toggleActive} onSkipBreak={skipBreak} resetBtnRef={resetBtnRef} startBtnRef={startBtnRef} onResetStart={handleResetStart} onResetEnd={handleResetEnd} onResetCancel={handleResetCancel} isResetHolding={isResetHolding} isDarkMode={isDarkMode} />
             </div>
           </div>
       </main>
