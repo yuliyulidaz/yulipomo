@@ -3,12 +3,12 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 
 /**
  * 휴대폰 사용자를 위한 케어 훅
- * Vercel 빌드 시 발생하던 타입 파싱 에러 해결을 위해 명시적 인터페이스/타입 적용
+ * 화면 꺼짐 방지(Wake Lock) 기능만 수행합니다.
+ * 배터리 감시 및 알람 로직은 사용자 몰입을 위해 삭제되었습니다.
  */
-export const useMobileCare = (isActive: boolean, triggerAIResponse?: (type: string) => void) => {
+export function useMobileCare(isActive: boolean) {
   const [isBatterySaving, setIsBatterySaving] = useState<boolean>(false);
   const wakeLockRef = useRef<any>(null);
-  const batteryWarningSentRef = useRef<boolean>(false);
 
   // 화면 켜짐 유지 (Wake Lock API)
   const requestWakeLock = useCallback(async () => {
@@ -16,7 +16,8 @@ export const useMobileCare = (isActive: boolean, triggerAIResponse?: (type: stri
       try {
         wakeLockRef.current = await (navigator as any).wakeLock.request('screen');
       } catch (err) {
-        console.warn('Wake Lock request failed:', err);
+        // 일부 환경에서 거부될 수 있으므로 경고만 표시
+        console.debug('Wake Lock request ignored or failed');
       }
     }
   }, []);
@@ -27,7 +28,7 @@ export const useMobileCare = (isActive: boolean, triggerAIResponse?: (type: stri
         await wakeLockRef.current.release();
         wakeLockRef.current = null;
       } catch (err) {
-        console.error('Wake Lock release error:', err);
+        console.debug('Wake Lock release ignored');
       }
     }
   }, []);
@@ -52,29 +53,8 @@ export const useMobileCare = (isActive: boolean, triggerAIResponse?: (type: stri
     };
   }, [isActive, requestWakeLock, releaseWakeLock]);
 
-  // 배터리 상태 감시 (Battery Status API)
-  useEffect(() => {
-    if (typeof navigator === 'undefined' || !('getBattery' in navigator)) return;
-
-    const checkBattery = (battery: any) => {
-      // 배터리가 20% 이하이고 충전 중이 아닐 때 알림 트리거
-      if (battery.level <= 0.2 && !battery.charging && !batteryWarningSentRef.current) {
-        if (triggerAIResponse) triggerAIResponse('BATTERY_LOW');
-        batteryWarningSentRef.current = true;
-      } else if (battery.charging || battery.level > 0.2) {
-        batteryWarningSentRef.current = false;
-      }
-    };
-
-    (navigator as any).getBattery().then((battery: any) => {
-      checkBattery(battery);
-      battery.addEventListener('levelchange', () => checkBattery(battery));
-      battery.addEventListener('chargingchange', () => checkBattery(battery));
-    });
-  }, [triggerAIResponse]);
-
   return {
     isBatterySaving,
     setIsBatterySaving
   };
-};
+}
