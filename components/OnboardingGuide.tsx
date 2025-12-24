@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useMemo } from 'react';
 import { ChevronRight } from 'lucide-react';
 
@@ -54,8 +53,8 @@ export const OnboardingGuide: React.FC<OnboardingGuideProps> = ({ isDarkMode, ta
 
   const getGuidePosition = () => {
     const isBottomHalf = spotlight.cy > window.innerHeight / 2;
-    // 리셋 버튼(Step 3) 설명창이 버튼을 가리지 않도록 오프셋을 180에서 210으로 늘려 위로 올림
-    const aboveOffset = step === 3 ? 210 : 180;
+    // 리셋 버튼(Step 3) 설명창이 버튼을 가리지 않도록 오프셋을 더 위로 조정 (기존 210 -> 240)
+    const aboveOffset = step === 3 ? 240 : 180;
     
     return {
       top: isBottomHalf ? spotlight.cy - spotlight.r - aboveOffset : spotlight.cy + spotlight.r + 20,
