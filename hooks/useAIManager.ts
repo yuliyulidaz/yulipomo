@@ -1,3 +1,4 @@
+
 import { useState, useCallback, useRef, useEffect } from 'react';
 import { GoogleGenAI } from "@google/genai";
 import { CharacterProfile } from '../types';
@@ -10,7 +11,8 @@ export const useAIManager = (
   profile: CharacterProfile,
   onUpdateProfile: (updates: Partial<CharacterProfile>) => void
 ) => {
-  const [message, setMessage] = useState(profile.initialGreeting || "시작할까?");
+  // '쉬는 시간' 상태로 복귀할 때는 시작 버튼 유도 멘트가 나오지 않도록 초기값 설정
+  const [message, setMessage] = useState(profile.savedIsBreak ? "" : (profile.initialGreeting || "시작할까?"));
   const [cooldownRemaining, setCooldownRemaining] = useState(0);
   const [pendingExpiryAlert, setPendingExpiryAlert] = useState(false);
   
