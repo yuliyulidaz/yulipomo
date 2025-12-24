@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useRef } from 'react';
 import { X } from 'lucide-react';
 import { CharacterProfile } from '../types';
@@ -220,7 +219,7 @@ export const TimerScreen: React.FC<TimerScreenProps> = ({
 
       <CycleChoiceModal isOpen={showChoiceModal} isDarkMode={isDarkMode} onChoice={(opt) => { setShowChoiceModal(false); setSessionInCycle(0); setIsBreak(true); setIsActive(true); if(opt==='LONG'){ setTimeLeft(30*60); onTickXP(5); } else { setTimeLeft(5*60); onTickXP(25); } }} onExport={handleExportProfile} />
 
-      <ApiKeyExpiryModal isOpen={isApiKeyModalOpen} onClose={() => setIsApiKeyModalOpen(false)} type={apiKeyPopupType} currentApiKey={profile.apiKey || ''} isDarkMode={isDarkMode} onUpdateKey={(key) => onUpdateProfile({ apiKey: key })} />
+      <ApiKeyExpiryModal isOpen={isApiKeyModalOpen} onClose={() => { setIsApiKeyModalOpen(false); setPendingExpiryAlert(false); }} type={apiKeyPopupType} currentApiKey={profile.apiKey || ''} isDarkMode={isDarkMode} onUpdateKey={(key) => onUpdateProfile({ apiKey: key })} />
 
       <ExitConfirmModal isOpen={showExitModal} onClose={() => setShowExitModal(false)} onConfirmExit={onReset} characterName={profile.name} isDarkMode={isDarkMode} />
 
@@ -255,6 +254,7 @@ export const TimerScreen: React.FC<TimerScreenProps> = ({
                   onShowAdminPanel={() => setShowAdminPanel(!showAdminPanel)} 
                   btnRef={settingsBtnRef} 
                   isApiKeyAlert={pendingExpiryAlert}
+                  isBreak={isBreak}
                 />
                 <button onClick={() => setShowExitModal(true)} className={`p-2.5 rounded-full transition-all border border-transparent ${isDarkMode ? 'text-slate-400 hover:bg-rose-900/30' : 'text-text-secondary hover:bg-rose-50 hover:text-rose-500'}`}><X size={20} /></button>
             </div>
