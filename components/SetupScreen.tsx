@@ -1,3 +1,4 @@
+
 import React, { useState, useRef, useEffect } from 'react';
 import { ArrowRight, AlertCircle, Loader2, Sparkles, ArrowLeft } from 'lucide-react';
 import { CharacterProfile, DialogueStyles } from '../types';
@@ -62,8 +63,9 @@ export const SetupScreen: React.FC<SetupScreenProps> = ({ onComplete }) => {
     }
     setError(null);
     
+    // 퀴즈 단계나 스텝 변경 시 이미 저장된 선택값이 있으면 불러오기
     if (step === 'QUIZ') {
-      const quizKeys: Array<keyof DialogueStyles> = ['late', 'gift', 'lazy'];
+      const quizKeys = (['late', 'gift', 'lazy'] as const);
       setTempQuizSelection(selectedStyles[quizKeys[currentQuizStep]] || '');
     }
   }, [step, currentQuizStep, selectedStyles]);
@@ -117,7 +119,7 @@ export const SetupScreen: React.FC<SetupScreenProps> = ({ onComplete }) => {
     return true;
   };
 
-  const checkIsValid = () => {
+  const isCurrentStepValid = () => {
     if (step === 'STEP1') return !!imageSrc && !!name.trim() && !!charGender;
     if (step === 'STEP2') return !!selectedTone && selectedPersonalities.length > 0;
     if (step === 'STEP3') return !!userName.trim() && !!apiKey.trim();
@@ -128,8 +130,7 @@ export const SetupScreen: React.FC<SetupScreenProps> = ({ onComplete }) => {
   const handleNextStep = () => {
     if (validateStep()) {
       setError(null);
-      if (step === 'STEP1') setStep('STEP2');
-      else if (step === 'STEP2') setStep('STEP3');
+      setStep(step === 'STEP1' ? 'STEP2' : 'STEP3');
     }
   };
 
@@ -137,10 +138,8 @@ export const SetupScreen: React.FC<SetupScreenProps> = ({ onComplete }) => {
     if (step === 'QUIZ') {
       if (currentQuizStep > 0) setCurrentQuizStep(prev => prev - 1);
       else setStep('STEP3');
-    } else if (step === 'STEP3') {
-      setStep('STEP2');
-    } else if (step === 'STEP2') {
-      setStep('STEP1');
+    } else {
+      setStep(step === 'STEP3' ? 'STEP2' : 'STEP1');
     }
   };
 
@@ -171,9 +170,8 @@ export const SetupScreen: React.FC<SetupScreenProps> = ({ onComplete }) => {
     setIsPartialRefreshing(true);
     try {
       const ai = new GoogleGenAI({ apiKey });
-      const situationKeys = ["late_options", "gift_options", "lazy_options"];
       const situations = ["지각했을 때", "선물이나 칭찬을 받았을 때", "딴짓을 할 때"];
-      const targetKey = situationKeys[currentQuizStep];
+      const targetKey = (["late_options", "gift_options", "lazy_options"] as const)[currentQuizStep];
       const prompt = `NEW 3 Korean options for "${situations[currentQuizStep]}" situation. JSON key: "${targetKey}". Character: ${name}, Style: ${selectedTone}.`;
       const response = await ai.models.generateContent({
         model: 'gemini-3-flash-preview', contents: prompt,
@@ -189,8 +187,7 @@ export const SetupScreen: React.FC<SetupScreenProps> = ({ onComplete }) => {
 
   const handleQuizSelect = (option: string) => {
     setTempQuizSelection(option);
-    const quizKeys: Array<keyof DialogueStyles> = ['late', 'gift', 'lazy'];
-    const key = quizKeys[currentQuizStep];
+    const key = (['late', 'gift', 'lazy'] as const)[currentQuizStep];
     setSelectedStyles(prev => ({ ...prev, [key]: option }));
   };
 
@@ -213,78 +210,54 @@ export const SetupScreen: React.FC<SetupScreenProps> = ({ onComplete }) => {
     }
   };
 
-  const isValid = checkIsValid();
+  const isValid = isCurrentStepValid();
 
   return (
     <div className="min-h-screen bg-white flex items-center justify-center p-0 font-sans">
-      <div className="w-full max-w-xl bg-white flex flex-col h-[100dvh] md:h-[720px] relative overflow-hidden">
+      <div className="w-full max-w-xl bg-white flex flex-col h-screen md:h-[720px] relative overflow-hidden">
         
         {/* 상단 스텝 알림 바 */}
-        <div className="flex-none w-full flex bg-white z-20">
+        <div className="absolute top-0 left-0 w-full flex bg-white z-20">
           {[1, 2, 3].map(i => {
             let isActive = false;
             if (step !== 'QUIZ') {
               if (step === 'STEP1' && i === 1) isActive = true;
               if (step === 'STEP2' && i <= 2) isActive = true;
               if (step === 'STEP3' && i <= 3) isActive = true;
-            } else { isActive = true; }
+            } else {
+              // 퀴즈 진행 중에도 3개 바 모두 활성 상태 유지
+              isActive = true;
+            }
             return (
-              <div key={i} className={`h-1 flex-1 transition-all duration-700 ${isActive ? 'bg-primary' : 'bg-slate-100'} ${i < 3 ? 'border-r-2 border-white' : ''}`} />
+              <div 
+                key={i} 
+                className={`h-1 flex-1 transition-all duration-700 ${isActive ? 'bg-primary' : 'bg-slate-100'} ${i < 3 ? 'border-r-2 border-white' : ''}`} 
+              />
             );
           })}
         </div>
 
-        {/* 메인 콘텐츠 영역 (스크롤 가능) */}
-        <div ref={containerRef} className="flex-1 overflow-y-auto scroll-smooth pt-4 relative">
+        <div ref={containerRef} className="flex-1 overflow-y-auto scroll-smooth pt-4">
           {step === 'STEP1' && <Step1 name={name} setName={setName} imageSrc={imageSrc} setImageSrc={setImageSrc} charGender={charGender} setCharGender={setCharGender} onLoadClick={() => fileInputRef.current?.click()} fileInputRef={fileInputRef} handleFileChange={handleFileChange} nameInputRef={nameInputRef} />}
-          
-          {(step === 'STEP2' || step === 'STEP3') && (
-            <div className="px-10 pb-8">
-              {step === 'STEP2' && <Step2 selectedTone={selectedTone} setSelectedTone={setSelectedTone} selectedPersonalities={selectedPersonalities} togglePersonality={togglePersonality} tmi={tmi} setTmi={setTmi} tmiRef={tmiRef} insertPlaceholder={insertPlaceholder} />}
-              {step === 'STEP3' && <Step3 userName={userName} setUserName={setUserName} honorific={honorific} setHonorific={setHonorific} gender={gender} setGender={setGender} todayTask={todayTask} setTodayTask={setTodayTask} apiKey={apiKey} setApiKey={setApiKey} name={name} userNameInputRef={userNameInputRef} apiKeyInputRef={apiKeyInputRef} />}
-            </div>
-          )}
-          
+          <div className="px-10 pb-28">
+            {step === 'STEP2' && <Step2 selectedTone={selectedTone} setSelectedTone={setSelectedTone} selectedPersonalities={selectedPersonalities} togglePersonality={togglePersonality} tmi={tmi} setTmi={setTmi} tmiRef={tmiRef} insertPlaceholder={insertPlaceholder} />}
+            {step === 'STEP3' && <Step3 userName={userName} setUserName={setUserName} honorific={honorific} setHonorific={setHonorific} gender={gender} setGender={setGender} todayTask={todayTask} setTodayTask={setTodayTask} apiKey={apiKey} setApiKey={setApiKey} name={name} userNameInputRef={userNameInputRef} apiKeyInputRef={apiKeyInputRef} />}
+          </div>
           {step === 'QUIZ' && <PersonalityQuiz currentQuizStep={currentQuizStep} name={name} imageSrc={imageSrc} quizData={quizData} tempSelection={tempQuizSelection} onTempSelect={handleQuizSelect} onRefresh={refreshCurrentQuizStep} isPartialRefreshing={isPartialRefreshing} />}
-
-          {/* 1, 2, 3단계일 때 버튼을 콘텐츠 최하단(스크롤 안)으로 배치 */}
-          {step !== 'QUIZ' && (
-            <div className="px-10 pb-24 pt-4 bg-white flex flex-col gap-3 relative">
-              {error && (
-                <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-4 w-[90%] max-w-sm px-4 py-3 bg-[#FF7F50] text-white text-[11px] font-bold rounded-xl flex items-center gap-2 shadow-xl animate-in slide-in-from-bottom-2 duration-300">
-                  <AlertCircle size={14} className="shrink-0" />
-                  <span className="flex-1">{error}</span>
-                </div>
-              )}
-              
-              <div className="flex gap-3">
-                {step !== 'STEP1' && <button onClick={handleBackStep} className="px-5 bg-white hover:bg-slate-50 text-text-secondary rounded-xl border border-slate-100 flex items-center justify-center transition-all active:scale-95 h-14"><ArrowLeft size={20}/></button>}
-                
-                {step === 'STEP3' ? (
-                  <button onClick={generatePersonalityOptions} disabled={isGenerating} className={`flex-1 bg-primary hover:bg-primary-light text-white font-black rounded-xl flex justify-center items-center gap-2 shadow-lg shadow-primary/20 transition-all h-14 ${isValid ? 'opacity-100' : 'opacity-40'}`}>
-                    {isGenerating ? <><Loader2 className="animate-spin" size={20}/> AI 분석 중</> : <>소환하기 <Sparkles size={16} className="text-accent-soft fill-accent"/></>}
-                  </button>
-                ) : (
-                  <button onClick={handleNextStep} className={`flex-1 bg-primary hover:bg-primary-light text-white font-black rounded-xl flex justify-center items-center gap-2 shadow-lg h-14 transition-all ${isValid ? 'opacity-100' : 'opacity-40'}`}>계속하기 <ArrowRight size={18}/></button>
-                )}
-              </div>
-            </div>
-          )}
         </div>
 
-        {/* 퀴즈 단계에서만 버튼을 하단에 고정 */}
-        {step === 'QUIZ' && (
-          <div className="flex-none p-4 pb-10 bg-white flex flex-col gap-3 relative border-t border-slate-50">
-            {error && (
-              <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-4 w-[90%] max-w-sm px-4 py-3 bg-[#FF7F50] text-white text-[11px] font-bold rounded-xl flex items-center gap-2 shadow-xl animate-in slide-in-from-bottom-2 duration-300">
-                <AlertCircle size={14} className="shrink-0" />
-                <span className="flex-1">{error}</span>
-              </div>
-            )}
+        <div className="absolute bottom-0 left-0 w-full p-4 bg-white flex flex-col gap-3">
+          {error && (
+            <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-4 w-[90%] max-w-sm px-4 py-3 bg-[#FF7F50] text-white text-[11px] font-bold rounded-xl flex items-center gap-2 shadow-xl animate-in slide-in-from-bottom-2 duration-300">
+              <AlertCircle size={14} className="shrink-0" />
+              <span className="flex-1">{error}</span>
+            </div>
+          )}
+          
+          <div className="flex gap-3">
+            {step !== 'STEP1' && <button onClick={handleBackStep} className="px-5 bg-white hover:bg-slate-50 text-text-secondary rounded-xl border border-slate-100 flex items-center justify-center transition-all active:scale-95 h-14"><ArrowLeft size={20}/></button>}
             
-            <div className="flex gap-3">
-              <button onClick={handleBackStep} className="px-5 bg-white hover:bg-slate-50 text-text-secondary rounded-xl border border-slate-100 flex items-center justify-center transition-all active:scale-95 h-14"><ArrowLeft size={20}/></button>
-              
+            {step === 'QUIZ' ? (
               <button 
                 onClick={handleQuizConfirm} 
                 disabled={!tempQuizSelection}
@@ -292,9 +265,15 @@ export const SetupScreen: React.FC<SetupScreenProps> = ({ onComplete }) => {
               >
                 {currentQuizStep === 2 ? '최종 선택 완료' : '선택하기'} <ArrowRight size={18}/>
               </button>
-            </div>
+            ) : step === 'STEP3' ? (
+              <button onClick={generatePersonalityOptions} disabled={isGenerating} className={`flex-1 bg-primary hover:bg-primary-light text-white font-black rounded-xl flex justify-center items-center gap-2 shadow-lg shadow-primary/20 transition-all h-14 ${isValid ? 'opacity-100' : 'opacity-40'}`}>
+                {isGenerating ? <><Loader2 className="animate-spin" size={20}/> AI 분석 중</> : <>소환하기 <Sparkles size={16} className="text-accent-soft fill-accent"/></>}
+              </button>
+            ) : (
+              <button onClick={handleNextStep} className={`flex-1 bg-primary hover:bg-primary-light text-white font-black rounded-xl flex justify-center items-center gap-2 shadow-lg h-14 transition-all ${isValid ? 'opacity-100' : 'opacity-40'}`}>계속하기 <ArrowRight size={18}/></button>
+            )}
           </div>
-        )}
+        </div>
       </div>
     </div>
   );
