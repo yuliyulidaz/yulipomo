@@ -1,271 +1,287 @@
-import React from 'react';
-import { Camera, FileJson, Heart, ExternalLink, ClipboardPaste, X } from 'lucide-react';
-import { FileUpload } from './FileUpload';
-import { TONE_KEYWORDS, PERSONALITY_KEYWORDS } from './SetupConfig';
+import React, { useState, useRef, useEffect } from 'react';
+import { ArrowRight, AlertCircle, Loader2, Sparkles, ArrowLeft } from 'lucide-react';
+import { CharacterProfile, DialogueStyles } from '../types';
+import { GoogleGenAI, Type } from "@google/genai";
 
-interface Step1Props {
-  name: string;
-  setName: (v: string) => void;
-  imageSrc: string | null;
-  setImageSrc: (v: string | null) => void;
-  charGender: 'MALE' | 'FEMALE' | 'NEUTRAL' | '';
-  setCharGender: (v: 'MALE' | 'FEMALE' | 'NEUTRAL') => void;
-  onLoadClick: () => void;
-  fileInputRef: React.RefObject<HTMLInputElement | null>;
-  handleFileChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
-  nameInputRef?: React.RefObject<HTMLInputElement | null>;
+// 설정 및 단계별 컴포넌트
+import { GREETING_TEMPLATES, SAFETY_SETTINGS } from './SetupConfig';
+import { Step1, Step2, Step3 } from './SetupSteps';
+import { PersonalityQuiz } from './PersonalityQuiz';
+
+interface SetupScreenProps {
+  onComplete: (profile: CharacterProfile) => void;
 }
 
-export const Step1: React.FC<Step1Props> = ({ name, setName, imageSrc, setImageSrc, charGender, setCharGender, onLoadClick, fileInputRef, handleFileChange, nameInputRef }) => (
-  <div className="flex flex-col items-center animate-in fade-in duration-700">
-    <div className="w-full flex flex-col items-center justify-center pt-6">
-      <div className="text-center">
-        <div className="flex items-center justify-center gap-2 mb-4">
-            <Heart size={14} className="text-accent fill-accent" />
-            <span className="text-[11px] font-black text-primary tracking-widest uppercase">최애와 딱 100분 집중하기</span>
-        </div>
-        <h1 className="text-xl font-black text-text-primary mb-2">최애 뽀모도로</h1>
-        <p className="text-text-secondary text-[11px] font-medium mb-8">당신과 함께 할 상대는 누구인가요?</p>
-        
-        <div className="relative w-32 h-32 md:w-44 md:h-44 mx-auto">
-          <div className={`w-full h-full rounded-2xl overflow-hidden border-2 transition-all duration-500 ${imageSrc ? 'border-primary shadow-lg shadow-primary/10' : 'border-border bg-background'}`}>
-            {imageSrc ? <img src={imageSrc} alt="Preview" className="w-full h-full object-cover" /> : <div className="w-full h-full flex flex-col items-center justify-center text-text-secondary opacity-40"><Camera size={40} strokeWidth={1} /></div>}
-          </div>
-          <div className="absolute -bottom-3 -right-3"><FileUpload onImageSelected={setImageSrc} currentImage={imageSrc} onClear={() => setImageSrc(null)} /></div>
-        </div>
-      </div>
-    </div>
+type SetupStep = 'STEP1' | 'STEP2' | 'STEP3' | 'QUIZ';
 
-    <div className="w-full flex flex-col items-center pt-6">
-      <div className="w-full max-w-xs space-y-8 flex flex-col items-center px-4">
-        <div className="relative w-full">
-          <label className="absolute -top-6 left-0 text-[10px] font-bold text-text-secondary uppercase tracking-widest">
-            최애 이름 <span className="text-rose-500">*</span>
-          </label>
-          <input ref={nameInputRef} type="text" value={name} onChange={e => setName(e.target.value)} placeholder="'최애'의 이름을 적어주세요" className="w-full px-0 py-3 bg-transparent border-b border-border outline-none focus:border-primary transition-all text-center font-semibold text-sm placeholder:text-border placeholder:font-normal text-text-primary" />
-        </div>
+export const SetupScreen: React.FC<SetupScreenProps> = ({ onComplete }) => {
+  const [step, setStep] = useState<SetupStep>('STEP1');
+  
+  // 상태 관리
+  const [apiKey, setApiKey] = useState('');
+  const [userName, setUserName] = useState('');
+  const [name, setName] = useState('');
+  const [honorific, setHonorific] = useState('');
+  const [imageSrc, setImageSrc] = useState<string | null>(null);
+  const [gender, setGender] = useState<'MALE' | 'FEMALE' | 'NEUTRAL'>('FEMALE');
+  const [charGender, setCharGender] = useState<'MALE' | 'FEMALE' | 'NEUTRAL' | ''>('');
+  const [tmi, setTmi] = useState('');
+  const [todayTask, setTodayTask] = useState('');
+  const [selectedTone, setSelectedTone] = useState<string>("");
+  const [selectedPersonalities, setSelectedPersonalities] = useState<string[]>([]);
 
-        <div className="w-full">
-          <div className="flex items-center gap-6">
-            <label className="text-[10px] font-bold text-text-secondary uppercase tracking-widest whitespace-nowrap">
-              최애 성별 <span className="text-rose-500">*</span>
-            </label>
-            <div className="flex gap-2">
-              {(['FEMALE', 'MALE', 'NEUTRAL'] as const).map(g => (
-                <button 
-                  key={g} 
-                  onClick={() => setCharGender(g)} 
-                  className={`py-1.5 px-3 text-xs rounded-md border transition-all ${
-                    charGender === g 
-                      ? 'bg-primary/10 border-primary text-primary shadow-sm' 
-                      : (charGender ? 'border-transparent text-slate-300' : 'bg-transparent border-transparent text-text-secondary hover:text-primary')
-                  }`}
-                >
-                  {g === 'MALE' ? '남성' : g === 'FEMALE' ? '여성' : '중성'}
-                </button>
-              ))}
-            </div>
-          </div>
-        </div>
-        
-        <div className="text-center pt-0">
-          <input type="file" ref={fileInputRef} onChange={handleFileChange} accept=".json" className="hidden" />
-          <button onClick={onLoadClick} className="flex items-center gap-2 px-6 py-2.5 text-primary/60 hover:text-primary transition-all group">
-            <FileJson size={14} className="group-hover:scale-110 transition-transform" />
-            <span className="text-xs font-black">계속 이어하기 (불러오기)</span>
-          </button>
-        </div>
-      </div>
-    </div>
-  </div>
-);
+  // 로직 상태
+  const [isGenerating, setIsGenerating] = useState(false);
+  const [isPartialRefreshing, setIsPartialRefreshing] = useState(false);
+  const [quizData, setQuizData] = useState<{ late_options: string[]; gift_options: string[]; lazy_options: string[]; } | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [currentQuizStep, setCurrentQuizStep] = useState<number>(0); 
+  const [selectedStyles, setSelectedStyles] = useState<DialogueStyles>({ late: '', gift: '', lazy: '' });
+  
+  // 퀴즈 현재 단계에서 표시할 선택값
+  const [tempQuizSelection, setTempQuizSelection] = useState<string>('');
 
-interface Step2Props {
-  selectedTone: string;
-  setSelectedTone: (v: string) => void;
-  selectedPersonalities: string[];
-  togglePersonality: (v: string) => void;
-  tmi: string;
-  setTmi: (v: string) => void;
-  tmiRef: React.RefObject<HTMLTextAreaElement | null>;
-  insertPlaceholder: (v: string) => void;
-}
+  // Refs
+  const containerRef = useRef<HTMLDivElement>(null);
+  const tmiRef = useRef<HTMLTextAreaElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const nameInputRef = useRef<HTMLInputElement>(null);
+  const userNameInputRef = useRef<HTMLInputElement>(null);
+  const apiKeyInputRef = useRef<HTMLInputElement>(null);
 
-export const Step2: React.FC<Step2Props> = ({ selectedTone, setSelectedTone, selectedPersonalities, togglePersonality, tmi, setTmi, tmiRef, insertPlaceholder }) => (
-  <div className="space-y-10 animate-in fade-in slide-in-from-right-4 duration-500 pt-16">
-    <div className="text-center space-y-3">
-      <h1 className="text-xl font-black text-text-primary mb-2">최애의 성격</h1>
-      <p className="text-text-secondary text-[11px] font-medium mb-10">상대는 당신에게 어떤 목소리로 말을 건네나요?</p>
-    </div>
-    <div className="space-y-8 text-left">
-      <div className="space-y-4">
-        <label className="text-[10px] font-bold text-text-secondary uppercase tracking-widest block">
-          말투 <span className="text-rose-500">*</span>
-        </label>
-        <div className="flex flex-wrap gap-2">
-          {TONE_KEYWORDS.map(k => (
-            <button 
-              key={k} 
-              onClick={() => setSelectedTone(k)} 
-              className={`py-1.5 px-3 text-xs rounded-md border transition-all ${
-                selectedTone === k 
-                  ? 'bg-primary/10 border-primary text-primary shadow-sm' 
-                  : (selectedTone ? 'bg-transparent border-transparent text-slate-300' : 'bg-transparent border-transparent text-text-secondary hover:text-primary')
-              }`}
-            >
-              {k}
-            </button>
-          ))}
-        </div>
-      </div>
-      <div className="space-y-4">
-        <label className="text-[10px] font-bold text-text-secondary uppercase tracking-widest block">
-          성격 키워드 (최대 2개) <span className="text-rose-500">*</span>
-        </label>
-        <div className="flex flex-wrap gap-2">
-          {PERSONALITY_KEYWORDS.map(k => (
-            <button 
-              key={k} 
-              onClick={() => togglePersonality(k)} 
-              disabled={!selectedPersonalities.includes(k) && selectedPersonalities.length >= 2}
-              className={`py-1.5 px-3 text-xs rounded-md border transition-all ${selectedPersonalities.includes(k) ? 'bg-primary/10 border-primary text-primary shadow-sm' : 'bg-transparent border-transparent text-text-secondary hover:text-primary disabled:opacity-30'}`}
-            >
-              {k}
-            </button>
-          ))}
-        </div>
-      </div>
-      <div className="space-y-4 pt-2">
-        <label className="text-[10px] font-bold text-text-secondary uppercase tracking-widest block">추가정보 (TMI)</label>
-        <div className="space-y-3">
-          <textarea 
-            ref={tmiRef} 
-            value={tmi} 
-            onChange={e => setTmi(e.target.value)} 
-            placeholder={`특이 사항이나 비밀 설정을 자유롭게 적어 주세요.\n{{user}}는 사용자, {{char}}는 최애입니다.\n예) {{char}}는 최고의 아이돌 {{user}}는 구박받는 매니저`} 
-            className="w-full h-56 p-4 bg-background border-none rounded-md outline-none focus:bg-surface transition-all text-sm leading-relaxed font-medium resize-none text-text-primary placeholder:text-text-secondary/60 placeholder:text-xs" 
-          />
-          <div className="flex gap-2 justify-start">
-            <button onClick={() => insertPlaceholder('{{user}}')} className="py-1 px-3 text-xs rounded bg-primary/10 border border-primary text-primary shadow-sm hover:bg-primary/20"> 나 {"{{user}}"} </button>
-            <button onClick={() => insertPlaceholder('{{char}}')} className="py-1 px-3 text-xs rounded bg-primary/10 border border-primary text-primary shadow-sm hover:bg-primary/20"> 최애 {"{{char}}"} </button>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
-);
+  useEffect(() => {
+    if (error) {
+      const timer = setTimeout(() => setError(null), 3000);
+      return () => clearTimeout(timer);
+    }
+  }, [error]);
 
-interface Step3Props {
-  userName: string;
-  setUserName: (v: string) => void;
-  honorific: string;
-  setHonorific: (v: string) => void;
-  gender: 'MALE' | 'FEMALE' | 'NEUTRAL';
-  setGender: (v: 'MALE' | 'FEMALE' | 'NEUTRAL') => void;
-  todayTask: string;
-  setTodayTask: (v: string) => void;
-  apiKey: string;
-  setApiKey: (v: string) => void;
-  name: string;
-  userNameInputRef?: React.RefObject<HTMLInputElement | null>;
-  apiKeyInputRef?: React.RefObject<HTMLInputElement | null>;
-}
+  useEffect(() => {
+    if (containerRef.current) {
+      containerRef.current.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+    setError(null);
+    
+    // 퀴즈 단계나 스텝 변경 시 이미 저장된 선택값이 있으면 불러오기
+    if (step === 'QUIZ') {
+      const quizKeys: Array<keyof DialogueStyles> = ['late', 'gift', 'lazy'];
+      setTempQuizSelection(selectedStyles[quizKeys[currentQuizStep]] || '');
+    }
+  }, [step, currentQuizStep, selectedStyles]);
 
-export const Step3: React.FC<Step3Props> = ({ userName, setUserName, honorific, setHonorific, gender, setGender, todayTask, setTodayTask, apiKey, setApiKey, name, userNameInputRef, apiKeyInputRef }) => {
-  const handlePaste = async () => {
-    try {
-      const text = await navigator.clipboard.readText();
-      const cleanText = text.trim();
-      // 기존 내용을 지우고 새로운 키로 완전히 대체
-      if (cleanText) {
-        setApiKey(cleanText);
-      }
-    } catch (err) {
-      console.error('Failed to read clipboard');
+  const togglePersonality = (keyword: string) => {
+    setSelectedPersonalities(prev => {
+      if (prev.includes(keyword)) return prev.filter(k => k !== keyword);
+      if (prev.length >= 2) return prev; 
+      return [...prev, keyword];
+    });
+  };
+
+  const insertPlaceholder = (placeholder: string) => {
+    if (!tmiRef.current) return;
+    const { selectionStart: start, selectionEnd: end, value: text } = tmiRef.current;
+    const newText = text.substring(0, start) + placeholder + text.substring(end);
+    setTmi(newText);
+    setTimeout(() => {
+        tmiRef.current?.focus();
+        tmiRef.current?.setSelectionRange(start + placeholder.length, start + placeholder.length);
+    }, 0);
+  };
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      try {
+        const loadedProfile = JSON.parse(event.target?.result as string) as CharacterProfile;
+        if (loadedProfile.name && loadedProfile.level !== undefined) onComplete(loadedProfile);
+        else setError("올바른 캐릭터 파일이 아닙니다.");
+      } catch (err) { setError("파일을 읽는 도중 오류가 발생했습니다."); }
+    };
+    reader.readAsText(file);
+    e.target.value = '';
+  };
+
+  const validateStep = () => {
+    if (step === 'STEP1') {
+      if (!imageSrc) { setError('최애의 이미지를 등록해주세요.'); return false; }
+      if (!name.trim()) { setError('최애의 이름을 입력해주세요.'); nameInputRef.current?.focus(); return false; }
+      if (!charGender) { setError('최애의 성별을 선택해주세요.'); return false; }
+    } else if (step === 'STEP2') {
+      if (!selectedTone) { setError('말투를 선택해주세요.'); return false; }
+      if (selectedPersonalities.length === 0) { setError('성격 키워드를 선택해주세요.'); return false; }
+    } else if (step === 'STEP3') {
+      if (!userName.trim()) { setError('당신의 이름을 입력해주세요.'); userNameInputRef.current?.focus(); return false; }
+      if (!apiKey.trim()) { setError('Gemini API 키를 입력해주세요.'); apiKeyInputRef.current?.focus(); return false; }
+    }
+    return true;
+  };
+
+  const isCurrentStepValid = () => {
+    if (step === 'STEP1') return !!imageSrc && !!name.trim() && !!charGender;
+    if (step === 'STEP2') return !!selectedTone && selectedPersonalities.length > 0;
+    if (step === 'STEP3') return !!userName.trim() && !!apiKey.trim();
+    if (step === 'QUIZ') return !!tempQuizSelection;
+    return false;
+  };
+
+  const handleNextStep = () => {
+    if (validateStep()) {
+      setError(null);
+      if (step === 'STEP1') setStep('STEP2');
+      else if (step === 'STEP2') setStep('STEP3');
     }
   };
 
+  const handleBackStep = () => {
+    if (step === 'QUIZ') {
+      if (currentQuizStep > 0) setCurrentQuizStep(prev => prev - 1);
+      else setStep('STEP3');
+    } else if (step === 'STEP3') {
+      setStep('STEP2');
+    } else if (step === 'STEP2') {
+      setStep('STEP1');
+    }
+  };
+
+  const generatePersonalityOptions = async () => {
+    if (!validateStep()) return;
+    setIsGenerating(true);
+    try {
+      const ai = new GoogleGenAI({ apiKey });
+      const processedTmi = tmi.replace(/{{user}}/g, userName).replace(/{{char}}/g, name);
+      const prompt = `Character Name: ${name}, User: ${userName}, Style: ${selectedTone}, Personality: [${selectedPersonalities.join(', ')}], TMI: ${processedTmi}. Create 3 Korean dialogue options for 3 situations: late_options, gift_options, lazy_options. JSON Format.`;
+      const response = await ai.models.generateContent({
+        model: 'gemini-3-flash-preview',
+        contents: prompt,
+        config: {
+          responseMimeType: "application/json",
+          responseSchema: { type: Type.OBJECT, properties: { late_options: { type: Type.ARRAY, items: { type: Type.STRING } }, gift_options: { type: Type.ARRAY, items: { type: Type.STRING } }, lazy_options: { type: Type.ARRAY, items: { type: Type.STRING } } } },
+          safetySettings: SAFETY_SETTINGS
+        },
+      });
+      setQuizData(JSON.parse(response.text || '{}'));
+      setStep('QUIZ');
+      setCurrentQuizStep(0);
+    } catch (e) { setError("AI 분석 실패: API 키가 올바른지 확인해주세요."); } finally { setIsGenerating(false); }
+  };
+
+  const refreshCurrentQuizStep = async () => {
+    if (isPartialRefreshing || !quizData) return;
+    setIsPartialRefreshing(true);
+    try {
+      const ai = new GoogleGenAI({ apiKey });
+      const situationKeys = ["late_options", "gift_options", "lazy_options"];
+      const situations = ["지각했을 때", "선물이나 칭찬을 받았을 때", "딴짓을 할 때"];
+      const targetKey = situationKeys[currentQuizStep];
+      const prompt = `NEW 3 Korean options for "${situations[currentQuizStep]}" situation. JSON key: "${targetKey}". Character: ${name}, Style: ${selectedTone}.`;
+      const response = await ai.models.generateContent({
+        model: 'gemini-3-flash-preview', contents: prompt,
+        config: { responseMimeType: "application/json", safetySettings: SAFETY_SETTINGS },
+      });
+      const parsed = JSON.parse(response.text || '{}');
+      if (parsed[targetKey]) {
+          setQuizData(prev => ({ ...prev!, [targetKey]: parsed[targetKey] }));
+          handleQuizSelect('');
+      }
+    } catch (e) { setError("새로고침 실패."); } finally { setIsPartialRefreshing(false); }
+  };
+
+  const handleQuizSelect = (option: string) => {
+    setTempQuizSelection(option);
+    const quizKeys: Array<keyof DialogueStyles> = ['late', 'gift', 'lazy'];
+    const key = quizKeys[currentQuizStep];
+    setSelectedStyles(prev => ({ ...prev, [key]: option }));
+  };
+
+  const handleQuizConfirm = () => {
+    if (!tempQuizSelection) return;
+    
+    if (currentQuizStep < 2) {
+      setCurrentQuizStep(prev => prev + 1);
+    } else {
+      const targetName = honorific || userName || "당신";
+      const initialGreeting = GREETING_TEMPLATES[selectedTone].replace("{honorific}", targetName);
+      onComplete({
+        apiKey, userName, name, honorific: targetName, imageSrc, gender, charGender,
+        speciesTrait: tmi, personality: [selectedTone, ...selectedPersonalities],
+        selectedDialogueStyles: selectedStyles,
+        dialogueCache: { scolding: [], praising: [], idle: [], click: [], pause: [], start: [] },
+        xp: 0, level: 1, maxXpForNextLevel: 10, streak: 0, totalFocusMinutes: 0, receivedNotes: [], initialGreeting,
+        todayTask: todayTask.trim() || undefined
+      });
+    }
+  };
+
+  const isValid = isCurrentStepValid();
+
   return (
-    <div className="animate-in fade-in slide-in-from-right-4 duration-500 pt-16">
-      <div className="text-center space-y-3 mb-16">
-        <h1 className="text-xl font-black text-text-primary mb-2">우리의 연결</h1>
-        <p className="text-text-secondary text-[11px] font-medium">마지막 관문입니다. 당신을 알려주세요.</p>
-      </div>
-
-      <div className="space-y-20 px-2">
-        <div className="grid grid-cols-2 gap-8">
-          <div className="relative group">
-            <label className="absolute -top-6 left-0 text-[10px] font-bold text-text-secondary uppercase tracking-widest">
-              내 이름 <span className="text-rose-500">*</span>
-            </label>
-            <input ref={userNameInputRef} type="text" value={userName} onChange={e => setUserName(e.target.value)} placeholder="당신의 이름" className="w-full py-2 bg-transparent border-b border-border outline-none focus:border-primary transition-all font-semibold text-sm text-text-primary" />
-          </div>
-          <div className="relative group">
-            <label className="absolute -top-6 left-0 text-[10px] font-bold text-text-secondary uppercase tracking-widest">호칭</label>
-            <input type="text" value={honorific} onChange={e => setHonorific(e.target.value)} placeholder="부를 호칭" className="w-full py-2 bg-transparent border-b border-border outline-none focus:border-primary transition-all font-semibold text-sm text-text-primary" />
-          </div>
-        </div>
-
-        <div className="relative w-full">
-          <label className="absolute -top-6 left-0 text-[10px] font-bold text-text-secondary uppercase tracking-widest">성별</label>
-          <div className="flex gap-2 pt-1">
-            {(['FEMALE', 'MALE', 'NEUTRAL'] as const).map(g => (
-              <button 
-                key={g} 
-                onClick={() => setGender(g)} 
-                className={`py-1.5 px-3 text-xs rounded-md border transition-all ${
-                  gender === g 
-                    ? 'bg-primary/10 border-primary text-primary shadow-sm' 
-                    : (gender ? 'border-transparent text-slate-300' : 'bg-transparent border-transparent text-text-secondary hover:text-primary')
-                }`}
-              >
-                {g === 'MALE' ? '남성' : g === 'FEMALE' ? '여성' : '중성'}
-              </button>
-            ))}
-          </div>
-        </div>
-
-        <div className="relative group">
-          <label className="absolute -top-6 left-0 flex items-center gap-2 text-[10px] font-bold text-text-secondary uppercase tracking-widest">
-            오늘 {name}와(과) 해야 할 일은?
-          </label>
-          <input type="text" value={todayTask} onChange={e => setTodayTask(e.target.value)} placeholder="예: 제작 마감, 수학 숙제 등" className="w-full py-2 bg-transparent border-b border-border outline-none focus:border-primary transition-all text-sm font-semibold text-text-primary placeholder:text-text-secondary/40 placeholder:font-normal" />
-        </div>
-
-        <div className="relative group">
-          <label className="absolute -top-6 left-0 flex items-center gap-2 text-[10px] font-bold text-text-secondary uppercase tracking-widest">
-            Gemini API Key <span className="text-rose-500">*</span>
-          </label>
-          <div className="pt-1">
-            <div className="flex gap-6 mb-2">
-              <a href="https://aistudio.google.com/app/apikey" target="_blank" rel="noopener noreferrer" className="text-[10px] font-black text-primary hover:text-primary-dark transition-all flex items-center gap-1.5 underline underline-offset-4 decoration-primary/30">
-                API 키 발급받기 <ExternalLink size={12} />
-              </a>
-              <button onClick={handlePaste} className="text-[10px] font-black text-primary hover:text-primary-dark transition-all flex items-center gap-1.5 underline underline-offset-4 decoration-primary/30">
-                키 붙여넣기 <ClipboardPaste size={12} />
-              </button>
-            </div>
-            <div className="relative">
-              <input 
-                ref={apiKeyInputRef}
-                type="password" 
-                value={apiKey} 
-                onChange={e => setApiKey(e.target.value)} 
-                placeholder="API 키를 입력하세요" 
-                className="w-full bg-transparent border-b border-border outline-none focus:border-primary font-semibold text-sm py-2 pr-10 placeholder:text-border text-text-primary transition-colors" 
+    <div className="min-h-screen bg-white flex items-center justify-center p-0 font-sans">
+      <div className="w-full max-w-xl bg-white flex flex-col h-[100dvh] md:h-[720px] relative overflow-hidden">
+        
+        {/* 상단 스텝 알림 바 (고정) */}
+        <div className="flex-none w-full flex bg-white z-20">
+          {[1, 2, 3].map(i => {
+            let isActive = false;
+            if (step !== 'QUIZ') {
+              if (step === 'STEP1' && i === 1) isActive = true;
+              if (step === 'STEP2' && i <= 2) isActive = true;
+              if (step === 'STEP3' && i <= 3) isActive = true;
+            } else {
+              isActive = true;
+            }
+            return (
+              <div 
+                key={i} 
+                className={`h-1 flex-1 transition-all duration-700 ${isActive ? 'bg-primary' : 'bg-slate-100'} ${i < 3 ? 'border-r-2 border-white' : ''}`} 
               />
-              {apiKey && (
+            );
+          })}
+        </div>
+
+        {/* 메인 콘텐츠 영역 (스크롤 가능하게 유지, 버튼을 내부 하단에 배치) */}
+        <div ref={containerRef} className="flex-1 overflow-y-auto scroll-smooth pt-4 relative">
+          {step === 'STEP1' && <Step1 name={name} setName={setName} imageSrc={imageSrc} setImageSrc={setImageSrc} charGender={charGender} setCharGender={setCharGender} onLoadClick={() => fileInputRef.current?.click()} fileInputRef={fileInputRef} handleFileChange={handleFileChange} nameInputRef={nameInputRef} />}
+          
+          {(step === 'STEP2' || step === 'STEP3') && (
+            <div className="px-10 pb-4">
+              {step === 'STEP2' && <Step2 selectedTone={selectedTone} setSelectedTone={setSelectedTone} selectedPersonalities={selectedPersonalities} togglePersonality={togglePersonality} tmi={tmi} setTmi={setTmi} tmiRef={tmiRef} insertPlaceholder={insertPlaceholder} />}
+              {step === 'STEP3' && <Step3 userName={userName} setUserName={setUserName} honorific={honorific} setHonorific={setHonorific} gender={gender} setGender={setGender} todayTask={todayTask} setTodayTask={setTodayTask} apiKey={apiKey} setApiKey={setApiKey} name={name} userNameInputRef={userNameInputRef} apiKeyInputRef={apiKeyInputRef} />}
+            </div>
+          )}
+          
+          {step === 'QUIZ' && <PersonalityQuiz currentQuizStep={currentQuizStep} name={name} imageSrc={imageSrc} quizData={quizData} tempSelection={tempQuizSelection} onTempSelect={handleQuizSelect} onRefresh={refreshCurrentQuizStep} isPartialRefreshing={isPartialRefreshing} />}
+
+          {/* 모든 단계의 버튼을 콘텐츠 하단(스크롤 안)으로 이동 */}
+          <div className={`px-10 ${step === 'STEP1' ? 'pb-20 pt-3' : 'pb-24 pt-4'} bg-white flex flex-col gap-3 relative`}>
+            {error && (
+              <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-4 w-[90%] max-w-sm px-4 py-3 bg-[#FF7F50] text-white text-[11px] font-bold rounded-xl flex items-center gap-2 shadow-xl animate-in slide-in-from-bottom-2 duration-300">
+                <AlertCircle size={14} className="shrink-0" />
+                <span className="flex-1">{error}</span>
+              </div>
+            )}
+            
+            <div className="flex gap-3">
+              {step !== 'STEP1' && <button onClick={handleBackStep} className="px-5 bg-white hover:bg-slate-50 text-text-secondary rounded-xl border border-slate-100 flex items-center justify-center transition-all active:scale-95 h-14"><ArrowLeft size={20}/></button>}
+              
+              {step === 'QUIZ' ? (
                 <button 
-                  onClick={() => setApiKey('')}
-                  className="absolute right-0 top-1/2 -translate-y-1/2 p-1.5 text-text-secondary hover:text-rose-500 transition-colors"
-                  title="삭제"
+                  onClick={handleQuizConfirm} 
+                  disabled={!tempQuizSelection}
+                  className={`flex-1 font-black rounded-xl flex justify-center items-center gap-2 shadow-lg transition-all h-14 ${tempQuizSelection ? 'bg-primary text-white shadow-primary/20' : 'bg-slate-100 text-slate-400 cursor-not-allowed opacity-40'}`}
                 >
-                  <X size={16} />
+                  {currentQuizStep === 2 ? '최종 선택 완료' : '선택하기'} <ArrowRight size={18}/>
                 </button>
+              ) : step === 'STEP3' ? (
+                <button onClick={generatePersonalityOptions} disabled={isGenerating} className={`flex-1 bg-primary hover:bg-primary-light text-white font-black rounded-xl flex justify-center items-center gap-2 shadow-lg shadow-primary/20 transition-all h-14 ${isValid ? 'opacity-100' : 'opacity-40'}`}>
+                  {isGenerating ? <><Loader2 className="animate-spin" size={20}/> AI 분석 중</> : <>소환하기 <Sparkles size={16} className="text-accent-soft fill-accent"/></>}
+                </button>
+              ) : (
+                <button onClick={handleNextStep} className={`flex-1 bg-primary hover:bg-primary-light text-white font-black rounded-xl flex justify-center items-center gap-2 shadow-lg h-14 transition-all ${isValid ? 'opacity-100' : 'opacity-40'}`}>계속하기 <ArrowRight size={18}/></button>
               )}
             </div>
           </div>
-          <p className="mt-2 text-[10px] text-text-secondary leading-relaxed font-bold tracking-tight">키를 입력하고 '소환하기'를 누르면 {name}이(가) 나타납니다.</p>
         </div>
       </div>
     </div>
