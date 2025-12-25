@@ -113,11 +113,11 @@ export const OnboardingGuide: React.FC<OnboardingGuideProps> = ({ isDarkMode, ch
            </div>
            
            <div className="text-[13px] font-medium leading-relaxed mb-6 whitespace-pre-line text-black/90">
-              {step === 1 && "설정: 다크모드, 절전모드, API키 등 설정을 변경할 수 있습니다."}
-              {step === 2 && "<span>캐릭터: 최애를 눌러 <b>응원</b>을 받을 수 있습니다.</span>"}
-              {step === 3 && `<span>TIP : ${characterName}와 함께하는 100분 동안\n화면이 꺼지지 않도록 기기의 디스플레이 <b>잠금 설정</b>을 확인하고 <b>충전기</b>를 미리 연결해 주세요.</span>`}
+              {step === 1 && "설정에서 다크모드, 절전모드, API키 등을 변경할 수 있습니다."}
+              {step === 2 && <span>최애를 눌러 <b>응원</b>을 받을 수 있습니다.</span>"}
+              {step === 3 && <span>TIP : ${characterName}와 함께하는 100분 동안\n화면이 꺼지지 않도록 기기의 디스플레이 <b>잠금 설정</b>을 확인하고 <b>충전기</b>를 미리 연결해 주세요.</span>}
               {step === 4 && "되돌아가기:\n짧게 누르면 현재의 25분 집중 시간만 초기화되고,\n길게 누르면 전체가 초기화됩니다."}
-              {step === 5 && "<span>시작: 이제 집중의 시간을 시작해 보세요.</span>"}
+              {step === 5 && <span>이제 <b>시작</b>을 누르고 최애와 함께 100분 간 집중 해 볼까요?</span>}
            </div>
            
            <div className="flex items-center justify-end">
