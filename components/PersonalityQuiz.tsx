@@ -22,21 +22,22 @@ export const PersonalityQuiz: React.FC<PersonalityQuizProps> = ({
   tempSelection, onTempSelect, 
   onRefresh, isPartialRefreshing 
 }) => {
+  // 각 상황(Step)별로 새로고침 기회를 1회씩 부여하기 위해 객체로 관리
   const [refreshUsed, setRefreshUsed] = useState<Record<number, boolean>>({});
 
   if (!quizData) return null;
   const options = currentQuizStep === 0 ? quizData.late_options : currentQuizStep === 1 ? quizData.gift_options : quizData.lazy_options;
 
   const handleRefreshClick = (e: React.MouseEvent) => {
-    e.stopPropagation(); // 배경 클릭 이벤트 전파 방지
-    if (refreshUsed[currentQuizStep]) return;
+    e.stopPropagation();
+    if (refreshUsed[currentQuizStep] || isPartialRefreshing) return;
     setRefreshUsed(prev => ({ ...prev, [currentQuizStep]: true }));
     onRefresh();
   };
 
   const handleOptionClick = (e: React.MouseEvent, option: string) => {
     e.stopPropagation();
-    // 이미 선택된 것을 다시 누르면 해제, 아니면 선택
+    // 이미 선택된 대사를 누르면 해제, 아니면 선택
     if (tempSelection === option) {
       onTempSelect('');
     } else {
@@ -46,18 +47,18 @@ export const PersonalityQuiz: React.FC<PersonalityQuizProps> = ({
 
   return (
     <div 
-      className="h-full flex flex-col animate-in fade-in slide-in-from-bottom-4 duration-500 pt-6 cursor-default"
+      className="h-full flex flex-col animate-in fade-in slide-in-from-bottom-4 duration-500 pt-2 cursor-default"
       onClick={() => onTempSelect('')} // 배경 클릭 시 선택 해제
     >
-      {/* 상단 영역: 캐릭터 이미지 아이콘 (간격 축소) */}
-      <div className="flex-shrink-0 flex justify-center mb-4">
+      {/* 상단 영역: 캐릭터 이미지 아이콘 (매우 좁은 간격) */}
+      <div className="flex-shrink-0 flex justify-center mb-3">
         <div className="w-16 h-16 md:w-20 md:h-20 rounded-full overflow-hidden border-2 border-primary/20 shadow-inner bg-background">
           <img src={imageSrc || ''} className="w-full h-full object-cover" alt="Character Icon" />
         </div>
       </div>
 
-      {/* 상황 설명 문구 (간격 축소) */}
-      <div className="text-center px-6 mb-6">
+      {/* 상황 설명 문구 */}
+      <div className="text-center px-6 mb-4">
         <h2 className="text-sm md:text-base font-black text-text-primary tracking-tight leading-tight whitespace-pre-line">
             {currentQuizStep === 0 && `상황 1. 내가 약속 시간에 늦었을 때,\n${name}의 반응은?`}
             {currentQuizStep === 1 && `상황 2. 뜻밖의 선물을 주었을 때,\n${name}의 반응은?`}
@@ -65,8 +66,8 @@ export const PersonalityQuiz: React.FC<PersonalityQuizProps> = ({
         </h2>
       </div>
 
-      {/* 둥근 따옴표 안에 캐릭터 대사 리스트 (굵기 완화) */}
-      <div className="flex-1 px-8 space-y-3 flex flex-col justify-start">
+      {/* 둥근 따옴표 캐릭터 대사 리스트 */}
+      <div className="px-8 space-y-3 flex flex-col">
         {options.map((option, index) => {
           const isSelected = tempSelection === option;
           return (
@@ -92,8 +93,8 @@ export const PersonalityQuiz: React.FC<PersonalityQuizProps> = ({
         })}
       </div>
 
-      {/* 하단 보조 텍스트 버튼 */}
-      <div className="flex-shrink-0 flex justify-center pt-4 pb-8">
+      {/* 리필 버튼: 대사 리스트와 일정한 간격을 두고 바로 아래에 배치 */}
+      <div className="flex justify-center mt-6 pb-10">
         <button 
           onClick={handleRefreshClick} 
           disabled={isPartialRefreshing || refreshUsed[currentQuizStep]} 
