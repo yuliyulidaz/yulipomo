@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useRef } from 'react';
 import { X } from 'lucide-react';
 import { CharacterProfile } from '../types';
@@ -238,7 +237,7 @@ export const TimerScreen: React.FC<TimerScreenProps> = ({
             <div className={`absolute top-2.5 inset-x-8 h-1.5 z-10 ${isDarkMode ? 'bg-slate-700/20' : 'bg-border/20'} rounded-full overflow-hidden`}><div className="h-full bg-gradient-to-r from-primary to-accent transition-all duration-1000 ease-out rounded-full" style={{ width: `${progressPercent}%` }} /></div>
             <div className="w-full flex justify-between items-start mt-2 px-2 relative z-50">
                 <SettingsMenu isOpen={isSettingsOpen} setIsOpen={setIsSettingsOpen} isDarkMode={isDarkMode} onToggleDarkMode={() => setIsDarkMode(!isDarkMode)} isBatterySaving={isBatterySaving} onToggleBatterySaving={() => setIsBatterySaving(!isBatterySaving)} onExport={handleExportProfile} onApiKeyOpen={() => { setApiKeyPopupType('MANUAL'); setIsApiKeyModalOpen(true); setIsSettingsOpen(false); }} onShowGuide={() => { setShowOnboarding(true); setIsSettingsOpen(false); }} isAdminMode={isAdminMode} onShowAdminPanel={() => setShowAdminPanel(!showAdminPanel)} btnRef={settingsBtnRef} isApiKeyAlert={pendingExpiryAlert} isBreak={isBreak} />
-                <button onClick={() => setShowExitModal(true)} className={`p-2.5 rounded-full transition-all border border-transparent ${isDarkMode ? 'text-slate-400 hover:bg-rose-900/30' : 'text-text-secondary hover:bg-rose-50 hover:text-rose-500'}`}><X size={20} /></button>
+                <button onClick={() => setShowExitModal(true)} className={`p-2.5 rounded-full transition-all border border-transparent ${isDarkMode ? 'text-slate-400 hover:bg-white/10' : 'text-text-secondary hover:bg-slate-100'}`}><X size={20} /></button>
             </div>
             <CharacterSection profile={profile} isBreak={isBreak} cooldownRemaining={cooldownRemaining} cooldownMs={COOLDOWN_MS} message={message} isApiKeyModalOpen={isApiKeyModalOpen} isDarkMode={isDarkMode} onCharacterClick={handleCharacterClick} characterBoxRef={characterBoxRef} />
             <div className="text-center space-y-1 -mt-10">
