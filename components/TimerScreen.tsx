@@ -79,6 +79,7 @@ export const TimerScreen: React.FC<TimerScreenProps> = ({
   const characterBoxRef = useRef<HTMLDivElement>(null);
   const resetBtnRef = useRef<HTMLButtonElement>(null);
   const startBtnRef = useRef<HTMLButtonElement>(null);
+  const affinityRef = useRef<HTMLDivElement>(null);
 
   // --- 7. Effects & Sync ---
   useEffect(() => {
@@ -201,7 +202,7 @@ export const TimerScreen: React.FC<TimerScreenProps> = ({
   return (
     <div className={`relative w-full h-screen flex transition-colors duration-700 overflow-hidden font-sans select-none ${isDarkMode ? 'bg-[#0B0E14] text-slate-100' : 'bg-background text-text-primary'}`}>
       <EnergySavingOverlay isVisible={isBatterySaving} />
-      {showOnboarding && <OnboardingGuide isDarkMode={isDarkMode} characterName={profile.name} targets={{ settings: settingsBtnRef, character: characterBoxRef, reset: resetBtnRef, start: startBtnRef }} onClose={(never) => { if(never) localStorage.setItem('pomodoro_onboarding_done', 'true'); setShowOnboarding(false); }} />}
+      {showOnboarding && <OnboardingGuide isDarkMode={isDarkMode} characterName={profile.name} targets={{ settings: settingsBtnRef, character: characterBoxRef, reset: resetBtnRef, start: startBtnRef, affinity: affinityRef }} onClose={(never) => { if(never) localStorage.setItem('pomodoro_onboarding_done', 'true'); setShowOnboarding(false); }} />}
       {profile.imageSrc && <div className={`absolute inset-0 z-0 transition-opacity duration-700 ${isDarkMode ? 'opacity-5' : 'opacity-10'}`}><img src={profile.imageSrc} alt="BG" className="w-full h-full object-cover blur-md scale-110" /></div>}
       <AdminAuthModal isOpen={showAdminAuth} onClose={() => setShowAdminAuth(false)} password={adminPassword} setPassword={setAdminPassword} onVerify={(e) => { e.preventDefault(); if(adminPassword==='PTSD'){ setIsAdminMode(true); setShowAdminPanel(true); setShowAdminAuth(false); setAdminPassword(''); setMessage("관리자 모드 활성화!"); } else { setAdminPassword(''); setShowAdminAuth(false); setMessage("비밀번호 틀림."); } }} />
       <AdminPanel isOpen={isAdminMode && showAdminPanel} onClose={() => setShowAdminPanel(false)} profile={profile} onTimeLeap={() => setTimeLeft(10)} onLevelChange={(lv) => onUpdateProfile({ level: lv, xp: 0 })} clicks={clicks} isApiKeyAlert={pendingExpiryAlert} onToggleApiKeyAlert={() => setPendingExpiryAlert(!pendingExpiryAlert)} />
@@ -212,7 +213,7 @@ export const TimerScreen: React.FC<TimerScreenProps> = ({
       {(isApiKeyModalOpen || showExitModal) && <div className="fixed inset-0 z-[45] bg-transparent" onClick={() => { setIsApiKeyModalOpen(false); setShowExitModal(false); }} />}
 
       <main className="w-full h-full flex flex-col items-center justify-center relative p-4 md:p-8">
-          <TopBadge level={profile.level} title={levelTitle} isAdminMode={isAdminMode} isDarkMode={isDarkMode} onBadgeClick={() => { const nc = badgeClicks+1; setBadgeClicks(nc); if(nc>=5){ setBadgeClicks(0); setShowAdminAuth(true); } setTimeout(()=>setBadgeClicks(0),2000); }} badgeClicks={badgeClicks} />
+          <TopBadge ref={affinityRef} level={profile.level} title={levelTitle} isAdminMode={isAdminMode} isDarkMode={isDarkMode} onBadgeClick={() => { const nc = badgeClicks+1; setBadgeClicks(nc); if(nc>=5){ setBadgeClicks(0); setShowAdminAuth(true); } setTimeout(()=>setBadgeClicks(0),2000); }} badgeClicks={badgeClicks} />
           <div className={`w-full max-w-[450px] backdrop-blur-xl border p-6 md:p-8 rounded-[40px] shadow-[0_20px_50px_rgba(74,95,122,0.1)] flex flex-col items-center gap-6 md:gap-8 animate-in fade-in zoom-in duration-500 relative transition-colors duration-700 ${isDarkMode ? 'bg-[#161B22]/90 border-[#30363D]' : 'bg-surface/90 border-border'} ${isApiKeyModalOpen || isSettingsOpen ? 'overflow-visible z-50' : 'overflow-hidden'}`}>
             {isSettingsOpen && <div className="fixed inset-0 z-40 bg-black/[0.02] backdrop-blur-[1.2px] cursor-default animate-in fade-in duration-300" onClick={(e) => { e.stopPropagation(); setIsSettingsOpen(false); }} />}
             <div className={`absolute top-2.5 inset-x-8 h-1.5 z-10 ${isDarkMode ? 'bg-slate-700/20' : 'bg-border/20'} rounded-full overflow-hidden`}><div className="h-full bg-gradient-to-r from-primary to-accent transition-all duration-1000 ease-out rounded-full" style={{ width: `${progressPercent}%` }} /></div>
