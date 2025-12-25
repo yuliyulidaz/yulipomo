@@ -134,9 +134,9 @@ export const CharacterSection: React.FC<CharacterSectionProps> = ({ profile, isB
       )}
 
       {message && !isApiKeyModalOpen && (
-        <div className="absolute -top-20 left-1/2 transform -translate-x-1/2 w-64 text-center z-20 animate-in fade-in slide-in-from-bottom-2 pointer-events-none">
-          <div className={`text-xs md:text-sm font-medium px-6 py-3 rounded-[20px] shadow-2xl backdrop-blur-lg border ${isDarkMode ? 'bg-slate-900/80 border-white/10 text-slate-100' : 'bg-surface/80 border-white/50 text-text-primary'}`}>
-            "{message}"
+        <div className="absolute -top-20 left-1/2 transform -translate-x-1/2 w-72 text-center z-20 animate-in fade-in slide-in-from-bottom-2 pointer-events-none">
+          <div className={`text-xs md:text-sm font-medium px-4 py-2.5 rounded-[20px] shadow-2xl backdrop-blur-lg border ${isDarkMode ? 'bg-slate-900/80 border-white/10 text-slate-100' : 'bg-surface/80 border-white/50 text-text-primary'}`}>
+            {message}
           </div>
         </div>
       )}
