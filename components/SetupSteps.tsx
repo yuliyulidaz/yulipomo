@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Camera, FileJson, Heart, ExternalLink, ClipboardPaste, X } from 'lucide-react';
 import { FileUpload } from './FileUpload';
@@ -18,15 +17,15 @@ interface Step1Props {
 }
 
 export const Step1: React.FC<Step1Props> = ({ name, setName, imageSrc, setImageSrc, charGender, setCharGender, onLoadClick, fileInputRef, handleFileChange, nameInputRef }) => (
-  <div className="h-full min-h-[600px] flex flex-col items-center animate-in fade-in duration-700">
-    <div className="flex-1 w-full flex flex-col items-center justify-center pt-10">
+  <div className="flex flex-col items-center animate-in fade-in duration-700">
+    <div className="w-full flex flex-col items-center justify-center pt-6">
       <div className="text-center">
         <div className="flex items-center justify-center gap-2 mb-4">
             <Heart size={14} className="text-accent fill-accent" />
             <span className="text-[11px] font-black text-primary tracking-widest uppercase">최애와 딱 100분 집중하기</span>
         </div>
         <h1 className="text-xl font-black text-text-primary mb-2">최애 뽀모도로</h1>
-        <p className="text-text-secondary text-[11px] font-medium mb-10">당신과 함께 할 상대는 누구인가요?</p>
+        <p className="text-text-secondary text-[11px] font-medium mb-8">당신과 함께 할 상대는 누구인가요?</p>
         
         <div className="relative w-32 h-32 md:w-44 md:h-44 mx-auto">
           <div className={`w-full h-full rounded-2xl overflow-hidden border-2 transition-all duration-500 ${imageSrc ? 'border-primary shadow-lg shadow-primary/10' : 'border-border bg-background'}`}>
@@ -37,8 +36,8 @@ export const Step1: React.FC<Step1Props> = ({ name, setName, imageSrc, setImageS
       </div>
     </div>
 
-    <div className="flex-1 w-full flex flex-col items-center pt-8">
-      <div className="w-full max-w-xs space-y-10 flex flex-col items-center px-4">
+    <div className="w-full flex flex-col items-center pt-6">
+      <div className="w-full max-w-xs space-y-8 flex flex-col items-center px-4">
         <div className="relative w-full">
           <label className="absolute -top-6 left-0 text-[10px] font-bold text-text-secondary uppercase tracking-widest">
             최애 이름 <span className="text-rose-500">*</span>
@@ -69,7 +68,7 @@ export const Step1: React.FC<Step1Props> = ({ name, setName, imageSrc, setImageS
           </div>
         </div>
         
-        <div className="text-center pt-2">
+        <div className="text-center pt-0">
           <input type="file" ref={fileInputRef} onChange={handleFileChange} accept=".json" className="hidden" />
           <button onClick={onLoadClick} className="flex items-center gap-2 px-6 py-2.5 text-primary/60 hover:text-primary transition-all group">
             <FileJson size={14} className="group-hover:scale-110 transition-transform" />
