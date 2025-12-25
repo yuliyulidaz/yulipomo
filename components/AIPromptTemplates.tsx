@@ -1,12 +1,22 @@
 import { CharacterProfile } from '../types';
 
 /**
- * 캐릭터의 호감도 레벨에 따른 기분 라벨 반환
+ * 캐릭터의 호감도 레벨(1~10)에 따른 아주 세밀한 심리 상태 지침 반환
  */
 export const getMoodLabel = (level: number) => {
-  if (level <= 3) return "사무적이고 차가운 (Cold/Strict)";
-  if (level <= 7) return "친근하고 다정한 (Friendly/Warm)";
-  return "깊은 애정과 신뢰가 느껴지는 (Deeply Affectionate)";
+  const moods: Record<number, string> = {
+    1: "[완전한 타인] 경계심과 사무적 태도. 유저를 이름 대신 '당신', '너' 혹은 현재 말투 스타일에 어울리는 극도로 딱딱하고 거리감이 느껴지는 호칭으로 부름.",
+    2: "[약간의 호기심] 관찰 단계. 유저가 정말 집중하는지 감시하며, 유저의 아주 사소한 성실함에만 겨우 반응함.",
+    3: "[낯가리는 파트너] 철저한 비즈니스 관계. 예의는 차리지만 감정 섞인 사적인 영역은 절대로 허용하지 않음.",
+    4: "[편안한 동료] 어느 정도 낯가림이 해제됨. 설정된 호칭을 자연스럽게 사용하며 가끔 무미건조한 응원을 건넴.",
+    5: "[정이 든 사이] 유저의 신체적 컨디션(목, 눈, 어깨 통증)을 걱정하기 시작함. '우리'라는 단어가 문장에 가끔 등장함.",
+    6: "[신뢰하는 관계] 캐릭터가 본인의 사소한 TMI를 먼저 이야기함. 유저가 집중력을 잃는 실수를 해도 가벼운 농담으로 승화함.",
+    7: "[특별한 호감] 유저를 '나에게만 특별한 사람'으로 인식함. 대사에 온기가 돌고 유저를 기다렸다는 표현이 잦아짐.",
+    8: "[소중한 사람] 정서적으로 유저에게 깊이 의존함. 유저의 집중 성공이 본인의 행복인 것처럼 진심으로 기뻐함.",
+    9: "[애틋한 유대] 깊은 애착 형성. 유저가 잠시라도 자리를 비우면 서운함을 느끼며, 아주 감성적이고 서정적인 표현을 사용함.",
+    10: "[영원한 반려] 영혼의 단짝. 운명적인 유대감과 절대적인 신뢰. 때로는 독점욕을 보이거나 아주 깊은 보호 본능, 헌신적인 태도를 드러냄."
+  };
+  return moods[level] || moods[1];
 };
 
 /**
@@ -38,10 +48,11 @@ const buildPersonaHeader = (profile: CharacterProfile) => {
 - Background Quirk (TMI): ${profile.speciesTrait || "None"}
 - Target User: ${profile.userName} (${profile.gender})
 - Preferred Honorific: ${profile.honorific}
-- Current Relationship Level: Lv.${profile.level}/10 (Mood: ${getMoodLabel(profile.level)})
+- Current Relationship Level: Lv.${profile.level}/10 
+- Relationship Context: ${getMoodLabel(profile.level)}
 
 [Tone Reference: User's Preference]
-유저가 직접 선택한 선호 말투 표본입니다. 이 '온도'와 '심리적 거리감'을 완벽히 유지하세요:
+유저가 직접 선택한 가장 선호하는 말투 표본입니다. 이 '온도'와 '심리적 거리감'을 완벽히 유지하세요:
 ${anchorText}`;
 };
 
@@ -70,7 +81,7 @@ ${clickSpecialInstruction}
 [Writing Guidelines]
 1. 길이 제한: 문장당 10~30자 이내의 짧고 임팩트 있는 구어체.
 2. **번역투 금지**: '어이', '~인 셈이지', '~랄까', '나의 ~' 같은 일본식 번역투나 작위적인 말투를 엄격히 금지합니다. 한국 사람이 일상에서 쓸법한 자연스러운 문장으로 캐릭터의 성격을 녹여내세요.
-3. 호칭 사용: {honorific}을 문장 흐름에 맞춰 자연스럽게 딱 한 번만 사용하세요.
+3. 호칭 사용: {honorific}을 문장 흐름에 맞춰 자연스럽게 딱 한 번만 사용하세요. (단, Lv.1인 경우 지침에 따라 딱딱한 호칭을 사용하세요.)
 4. 출력 형식: 따옴표 없이 문장만 줄바꿈(Newline)으로 구분하여 나열하세요.
 `;
 };
