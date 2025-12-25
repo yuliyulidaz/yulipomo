@@ -76,7 +76,7 @@ export const OnboardingGuide: React.FC<OnboardingGuideProps> = ({ isDarkMode, ch
 
     // 사용자 요청에 따른 특정 스텝 높이 추가 조정
     if (step === 4) verticalOffset = -220; // 4번은 많이 위로
-    if (step === 5) verticalOffset = -240; // 5번은 버튼을 가리지 않게 조금 더 위로
+    if (step === 5) verticalOffset = -190; // 5번은 너무 멀지 않게 위치 조정 (기존 -240에서 변경)
 
     const leftPos = Math.max(20, Math.min(window.innerWidth - 300, spotlight.cx - 140));
     
@@ -121,7 +121,7 @@ export const OnboardingGuide: React.FC<OnboardingGuideProps> = ({ isDarkMode, ch
            
            <div className="text-[13px] font-medium leading-relaxed mb-6 whitespace-pre-line text-black">
               {step === 1 && <span><b>설정</b>에서 다크모드, 절전모드, API키 등을 변경할 수 있습니다.</span>}
-              {step === 2 && <span>최애를 눌러 <b>응원</b>을 받을 수 있습니다.</span>}
+              {step === 2 && <span>25분의 집중 시간동안 최애의 <b>응원</b>과 <b>감시</b>를 받을 수 있습니다. 5분 휴식 시간에는 최애도 휴식합니다.</span>}
               {step === 3 && <span><b>TIP</b> : {characterName}와 함께하는 100분 동안 화면이 꺼지지 않도록, 기기의 디스플레이 <b>잠금 설정</b>을 확인하고 <b>충전기</b>를 미리 연결해 주세요.</span>}
               {step === 4 && <span><b>되돌아가기</b>:<br/><b>짧게</b> 누르면 현재의 25분 집중 시간만 초기화되고, <b>길게</b> 누르면 전체가 초기화됩니다.</span>}
               {step === 5 && <span>이제 <b>시작</b>을 누르고 {characterName}와 함께 100분 간 집중 해 볼까요?</span>}
