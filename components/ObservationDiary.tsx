@@ -82,7 +82,12 @@ export const ObservationDiary: React.FC<ObservationDiaryProps> = ({ profile, sta
   const [isGenerating, setIsGenerating] = useState(true);
   const [isScreenshotMode, setIsScreenshotMode] = useState(false);
   const [showToast, setShowToast] = useState(false);
-  const [dateStr] = useState(() => new Date().toLocaleDateString('ko-KR', { year: 'numeric', month: '2-digit', day: '2-digit' }).replace(/\. /g, '.').replace(/\.$/, ''));
+  const [dateStr] = useState(() => {
+    const now = new Date();
+    const d = now.toLocaleDateString('ko-KR', { year: 'numeric', month: '2-digit', day: '2-digit' }).replace(/\. /g, '.').replace(/\.$/, '');
+    const t = now.toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit', hour12: false });
+    return `${d} ${t}`;
+  });
 
   useEffect(() => {
     const generateDiaryFlow = async () => {
@@ -177,34 +182,42 @@ export const ObservationDiary: React.FC<ObservationDiaryProps> = ({ profile, sta
       >
         <div className="absolute inset-0 pointer-events-none opacity-40 mix-blend-multiply bg-[url('https://www.transparenttextures.com/patterns/handmade-paper.png')]"></div>
         
-        <div className="flex-1 p-8 space-y-6 flex flex-col relative overflow-hidden">
+        <div className="flex-1 p-8 pb-4 space-y-5 flex flex-col relative overflow-hidden">
+            {/* 상단 라벨 (한국어화) */}
             <div className="flex justify-between items-start border-b-2 border-primary/10 pb-4">
               <div className="space-y-1">
-                <h3 className="font-sans font-black text-xs uppercase tracking-[0.2em] text-primary-dark opacity-80">Secret Observation Log</h3>
+                <h3 className="font-sans font-black text-xs text-primary-dark opacity-90">{profile.name}의 {profile.userName} 관찰일지</h3>
                 <p className="font-sans font-bold text-[10px] text-text-secondary">{dateStr}</p>
               </div>
               <div className="bg-primary/10 px-2 py-1 rounded text-[9px] font-black text-primary-dark uppercase">Classified</div>
             </div>
 
-            <div className="grid grid-cols-2 gap-8 py-2">
-                <div className="space-y-1">
-                    <span className="block text-[8px] font-black text-text-secondary/50 uppercase">Observer</span>
-                    <span className="block text-xs font-bold text-text-primary tracking-tight">{profile.name}</span>
+            {/* 통계 그리드 (상단으로 이동) */}
+            <div className="grid grid-cols-3 gap-2 py-1 bg-primary/5 rounded-xl border border-primary/5">
+                <div className="flex flex-col items-center justify-center py-1">
+                    <span className="text-[8px] font-black text-primary/60 uppercase">집중시간</span>
+                    <span className="text-xs font-bold text-primary-dark">100분</span>
                 </div>
-                <div className="space-y-1 text-right">
-                    <span className="block text-[8px] font-black text-text-secondary/50 uppercase">Subject</span>
-                    <span className="block text-xs font-bold text-text-primary tracking-tight">{profile.userName}</span>
+                <div className="flex flex-col items-center justify-center py-1 border-x border-primary/10">
+                    <span className="text-[8px] font-black text-rose-400/80 uppercase">딴짓</span>
+                    <span className="text-xs font-bold text-rose-500">{stats.distractions}회</span>
+                </div>
+                <div className="flex flex-col items-center justify-center py-1">
+                    <span className="text-[8px] font-black text-primary/60 uppercase">대화</span>
+                    <span className="text-xs font-bold text-primary">{stats.clicks}회</span>
                 </div>
             </div>
 
-            <div className="relative mx-auto py-2">
-                <div className="w-32 h-32 bg-white p-2 shadow-xl border border-primary/5 rotate-1 relative transition-transform hover:rotate-0 duration-500">
+            {/* 폴라로이드 사진 영역 */}
+            <div className="relative mx-auto flex-shrink-0">
+                <div className="w-28 h-28 bg-white p-2 shadow-xl border border-primary/5 rotate-1 relative transition-transform hover:rotate-0 duration-500">
                     <img src={profile.imageSrc || ''} className="w-full h-full object-cover grayscale-[0.1] sepia-[0.15] contrast-110" alt="Character" />
                     <div className="absolute inset-0 bg-primary/5 pointer-events-none"></div>
                 </div>
             </div>
 
-            <div className="flex-1 relative flex flex-col">
+            {/* 본문 영역: 스크롤 가능하도록 수정 */}
+            <div className="flex-1 relative overflow-hidden flex flex-col">
                {isGenerating ? (
                  <div className="flex-1 flex flex-col items-center justify-center gap-4 text-primary-light/60">
                     <div className="relative">
@@ -212,22 +225,26 @@ export const ObservationDiary: React.FC<ObservationDiaryProps> = ({ profile, sta
                         <PenTool className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-primary animate-bounce" size={20} />
                     </div>
                     <p className="font-diary text-2xl text-center leading-tight animate-pulse text-primary-dark">
-                        {profile.name}이(가) 당신과의<br/>100분을 회상하는 중...
+                        {profile.name}이(가) 당신과의<br/>100분을 기록하는 중...
                     </p>
                  </div>
                ) : (
-                 <div className="flex-1 relative">
+                 <div className="flex-1 relative flex flex-col overflow-hidden">
+                    {/* 줄노트 배경 가로줄 (전체 영역에 고정) */}
                     <div className="absolute inset-0 pointer-events-none opacity-20" 
                          style={{ backgroundImage: 'linear-gradient(#4A5F7A 1px, transparent 1px)', backgroundSize: '100% 2.2rem' }}>
                     </div>
                     
-                    <div className={`relative z-10 font-diary leading-[2.2rem] text-[#3D382E] whitespace-pre-wrap animate-in fade-in slide-in-from-bottom-4 duration-1000 fill-mode-both ${getFontSize()}`}>
-                        {content}
+                    {/* 실제 텍스트가 스크롤되는 영역 */}
+                    <div className="flex-1 overflow-y-auto pr-2 custom-diary-scroll relative z-10">
+                        <div className={`font-diary leading-[2.2rem] text-[#3D382E] whitespace-pre-wrap animate-in fade-in slide-in-from-bottom-4 duration-1000 fill-mode-both pb-20 ${getFontSize()}`}>
+                            {content}
+                        </div>
                     </div>
 
-                    {/* 캐릭터 인장 (Stamp): 레벨명까지 캐릭터 손글씨체로 변경 */}
-                    <div className="absolute bottom-4 right-0 transform rotate-[-15deg] animate-in zoom-in fade-in duration-700 delay-1000 fill-mode-both">
-                        <div className="w-24 h-24 rounded-full border-[3px] border-rose-600/50 flex flex-col items-center justify-center text-rose-600/50 p-1 relative">
+                    {/* 캐릭터 인장 (텍스트 위에 떠있도록) */}
+                    <div className="absolute bottom-4 right-0 transform rotate-[-15deg] animate-in zoom-in fade-in duration-700 delay-1000 fill-mode-both pointer-events-none z-20">
+                        <div className="w-24 h-24 rounded-full border-[3px] border-rose-600/50 flex flex-col items-center justify-center text-rose-600/50 p-1 bg-[#FCFAF2]/40 backdrop-blur-[1px]">
                             <div className="absolute inset-0 rounded-full border border-rose-600/20 m-0.5"></div>
                             <span className="font-diary text-xs font-bold leading-none mb-1 opacity-90">{LEVEL_TITLES[profile.level]}</span>
                             <span className="font-diary text-2xl font-bold leading-none">{profile.name}</span>
@@ -239,41 +256,41 @@ export const ObservationDiary: React.FC<ObservationDiaryProps> = ({ profile, sta
             </div>
         </div>
 
+        {/* 하단 버튼 영역 개편 */}
         {!isScreenshotMode && (
-          <div className="bg-[#E8E2D0]/50 px-8 py-5 backdrop-blur-md border-t border-primary/5 flex flex-col gap-4 z-40">
-              <div className="flex justify-between items-center">
-                <div className="flex gap-5">
-                    <div className="flex flex-col">
-                        <span className="text-[8px] font-black uppercase text-primary-dark/40 tracking-wider">Session</span>
-                        <span className="text-xs font-bold text-primary-dark">100m</span>
-                    </div>
-                    <div className="flex flex-col">
-                        <span className="text-[8px] font-black uppercase text-rose-400/60 tracking-wider">Distract</span>
-                        <span className="text-xs font-bold text-rose-500">{stats.distractions}회</span>
-                    </div>
-                    <div className="flex flex-col">
-                        <span className="text-[8px] font-black uppercase text-primary/40 tracking-wider">Interact</span>
-                        <span className="text-xs font-bold text-primary">{stats.clicks}회</span>
-                    </div>
-                </div>
-                <div className="flex gap-2">
-                  <button 
-                      onClick={(e) => { e.stopPropagation(); enterScreenshotMode(); }} 
-                      className="w-10 h-10 bg-white/80 text-primary rounded-xl shadow-sm border border-primary/10 hover:bg-white flex items-center justify-center transition-all active:scale-90"
-                      title="스크린샷 모드"
-                  >
-                      <Camera size={18} />
-                  </button>
-                  <button 
-                      onClick={(e) => { e.stopPropagation(); onClose(); }} 
-                      className="px-5 h-10 bg-primary text-white rounded-xl font-bold text-xs shadow-lg shadow-primary/20 hover:bg-primary-dark transition-all active:scale-95 flex items-center gap-2"
-                  >
-                      닫기 <ArrowRight size={14} />
-                  </button>
-                </div>
-              </div>
+          <div className="p-6 pt-0 flex gap-3 z-40 bg-gradient-to-t from-[#FCFAF2] via-[#FCFAF2] to-transparent">
+              <button 
+                  onClick={(e) => { e.stopPropagation(); enterScreenshotMode(); }} 
+                  className="flex-1 h-12 bg-white border-2 border-[#E8E2D0] text-primary rounded-xl shadow-sm hover:bg-[#F0EEE4] flex items-center justify-center gap-2 transition-all active:scale-95 group font-bold text-sm"
+              >
+                  <Camera size={18} className="group-hover:scale-110 transition-transform" />
+                  스샷 모드
+              </button>
+              <button 
+                  onClick={(e) => { e.stopPropagation(); onClose(); }} 
+                  className="flex-[1.5] h-12 bg-primary text-white rounded-xl font-bold text-sm shadow-lg shadow-primary/20 hover:bg-primary-dark transition-all active:scale-95 flex items-center justify-center gap-2"
+              >
+                  일지 닫기 <ArrowRight size={16} />
+              </button>
           </div>
         )}
+
+        {/* 스크롤바 커스텀 스타일 */}
+        <style dangerouslySetInnerHTML={{ __html: `
+          .custom-diary-scroll::-webkit-scrollbar {
+            width: 4px;
+          }
+          .custom-diary-scroll::-webkit-scrollbar-track {
+            background: transparent;
+          }
+          .custom-diary-scroll::-webkit-scrollbar-thumb {
+            background: rgba(74, 95, 122, 0.1);
+            border-radius: 10px;
+          }
+          .custom-diary-scroll::-webkit-scrollbar-thumb:hover {
+            background: rgba(74, 95, 122, 0.2);
+          }
+        `}} />
       </div>
     </div>
   );
