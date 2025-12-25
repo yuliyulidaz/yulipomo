@@ -67,27 +67,19 @@ export const OnboardingGuide: React.FC<OnboardingGuideProps> = ({ isDarkMode, ch
     if (step === 3) {
       // 화면 정중앙 배치
       return {
-        top: (window.innerHeight - 300) / 2,
-        left: (window.innerWidth - 288) / 2,
-        arrowAtTop: false,
-        noArrow: true,
-        arrowLeft: 0
+        top: (window.innerHeight - 250) / 2,
+        left: (window.innerWidth - 288) / 2
       };
     }
 
     const isBottomHalf = spotlight.cy > window.innerHeight / 2;
-    // Step 5를 기존보다 더 위로 올리기 위해 220으로 상향 (기존 180)
-    const aboveOffset = step === 4 ? 240 : (step === 5 ? 220 : 180);
-    
+    // 요소와의 간격 유지
+    const verticalOffset = isBottomHalf ? -180 : 20;
     const leftPos = Math.max(20, Math.min(window.innerWidth - 300, spotlight.cx - 140));
     
     return {
-      top: isBottomHalf ? spotlight.cy - spotlight.r - aboveOffset : spotlight.cy + spotlight.r + 20,
-      left: leftPos,
-      arrowAtTop: !isBottomHalf,
-      noArrow: false,
-      // 마름모가 버튼 중앙을 정확히 가리키도록 동적 계산 (마름모 너비 16px의 절반인 8px 차감)
-      arrowLeft: spotlight.cx - leftPos - 8
+      top: isBottomHalf ? spotlight.cy - spotlight.r + verticalOffset : spotlight.cy + spotlight.r + verticalOffset,
+      left: leftPos
     };
   };
 
@@ -116,55 +108,45 @@ export const OnboardingGuide: React.FC<OnboardingGuideProps> = ({ isDarkMode, ch
 
       {/* Guide Content */}
       <div 
-        className="absolute z-[310] flex flex-col items-center pointer-events-none transition-all duration-500 ease-in-out"
+        className="absolute z-[310] flex flex-col pointer-events-none transition-all duration-500 ease-in-out"
         style={{ top: pos.top, left: pos.left }}
       >
-        {/* Arrow decoration - 투명도를 완전히 제거하고(opacity-100) 색상을 통일 */}
-        {!pos.noArrow && (
-          <div 
-            className={`w-4 h-4 transform rotate-45 absolute transition-all duration-500 -z-10 opacity-100 ${isDarkMode ? 'bg-slate-900 border-white/20' : 'bg-white border-border'} ${pos.arrowAtTop ? '-top-2 border-t border-l' : '-bottom-2 border-b border-r'}`}
-            style={{ 
-              left: `${pos.arrowLeft}px`
-            }}
-          ></div>
-        )}
-
-        <div className={`w-72 p-6 rounded-[2rem] shadow-2xl pointer-events-auto border border-border animate-in zoom-in-95 duration-300 relative z-10 opacity-100 ${isDarkMode ? 'bg-slate-900 border-white/20' : 'bg-white'}`}>
-           <div className="flex items-center gap-2 mb-3">
-              <div className="bg-primary text-white text-[10px] font-black px-2 py-0.5 rounded-full uppercase tracking-widest">Guide {step}/5</div>
+        <div className="w-72 p-5 rounded-xl shadow-2xl pointer-events-auto bg-white/90 backdrop-blur-md border-none animate-in zoom-in-95 duration-300 relative z-10">
+           <div className="flex items-center gap-2 mb-2">
+              <span className="text-[10px] font-black text-black/40 uppercase tracking-widest">Guide {step}/5</span>
            </div>
            
-           <p className={`text-sm font-bold leading-relaxed mb-6 whitespace-pre-line ${isDarkMode ? 'text-slate-200' : 'text-text-primary'}`}>
+           <p className="text-sm font-medium leading-relaxed mb-5 whitespace-pre-line text-black">
               {step === 1 && "설정: 다크모드, API키 등 설정을 변경할 수 있습니다."}
               {step === 2 && "캐릭터: 최애를 톡톡 눌러서 응원을 받으세요."}
-              {step === 3 && `TIP : ${characterName} 와 100분동안 집중하기 전에\n\n1. 최애와 타이머를 계속 볼 수 있도록, 디스플레이 설정에서 '화면 자동 잠금/꺼짐'을 '안 함'으로 설정해주세요.\n2. 미리 충전기를 연결해 주세요.`}
-              {step === 4 && "되돌아가기:\n한 번 누르면 현재 세션 초기화,\n길게 누르면 사이클이 통째로 초기화 됩니다."}
+              {step === 3 && `TIP : ${characterName} 와 100분동안 집중하기 전에\n\n1. 화면 자동 잠금 설정을 '안 함'으로 변경해주세요.\n2. 충전기를 미리 연결해 주세요.`}
+              {step === 4 && "되돌아가기:\n한 번 누르면 세션 초기화,\n길게 누르면 전체 사이클이 초기화됩니다."}
               {step === 5 && "시작: 이제 시작 버튼을 누르고 집중을 시작해 보세요."}
            </p>
            
-           <div className="flex items-center justify-between gap-3">
+           <div className="flex items-center justify-end gap-2">
               {step < 5 ? (
                 <button 
                   onClick={handleNext}
-                  className="flex-1 py-3 bg-primary text-white rounded-xl font-black text-xs shadow-lg shadow-primary/20 flex items-center justify-center gap-1.5 active:scale-95 transition-all"
+                  className="py-1.5 px-4 bg-black text-white rounded-lg font-bold text-xs active:scale-95 transition-all flex items-center gap-1"
                 >
-                  다음 <ChevronRight size={14} />
+                  다음 <ChevronRight size={12} />
                 </button>
               ) : (
-                <>
+                <div className="flex gap-2 w-full">
                   <button 
                     onClick={() => onClose(true)}
-                    className="flex-1 py-3 bg-background border border-border text-text-secondary rounded-xl font-bold text-[10px] active:scale-95 transition-all"
+                    className="flex-1 py-1.5 bg-black/5 text-black/60 rounded-lg font-bold text-[10px] active:scale-95 transition-all"
                   >
                     다시 보지 않기
                   </button>
                   <button 
                     onClick={() => onClose(false)}
-                    className="flex-1 py-3 bg-primary text-white rounded-xl font-black text-xs shadow-lg shadow-primary/20 active:scale-95 transition-all"
+                    className="flex-1 py-1.5 bg-black text-white rounded-lg font-bold text-xs active:scale-95 transition-all"
                   >
                     시작하기
                   </button>
-                </>
+                </div>
               )}
            </div>
         </div>
