@@ -88,17 +88,11 @@ export const ObservationDiary: React.FC<ObservationDiaryProps> = ({ profile, sta
     const generateDiaryFlow = async () => {
       const minDuration = new Promise(resolve => setTimeout(resolve, 2200));
       const relationshipTitle = LEVEL_TITLES[profile.level];
-      const moodLabel = getMoodLabel(profile.level);
       const taskText = profile.todayTask ? `"${profile.todayTask}"` : "오늘의 할 일";
       let finalContent = "";
 
       try {
         const ai = new GoogleGenAI({ apiKey: profile.apiKey || process.env.API_KEY });
-        const hour = new Date().getHours();
-        const timeContext = hour >= 5 && hour < 12 ? "싱그러운 아침 공기" : 
-                           hour >= 12 && hour < 17 ? "나른한 오후의 햇살" :
-                           hour >= 17 && hour < 21 ? "짙게 물드는 노을빛" : "고요한 새벽의 정적";
-
         const prompt = `
 [Character Persona]
 - 이름: ${profile.name}
@@ -157,7 +151,6 @@ export const ObservationDiary: React.FC<ObservationDiaryProps> = ({ profile, sta
   const enterScreenshotMode = () => {
     setIsScreenshotMode(true);
     setShowToast(true);
-    // 안내문이 너무 오래 떠있지 않도록 2초 후 사라지게 조정
     setTimeout(() => setShowToast(false), 2000);
   };
 
@@ -182,11 +175,9 @@ export const ObservationDiary: React.FC<ObservationDiaryProps> = ({ profile, sta
         className={`w-full max-w-[350px] aspect-[9/16] bg-[#FCFAF2] rounded-2xl shadow-[0_30px_60px_-12px_rgba(0,0,0,0.5)] relative border-4 border-[#E8E2D0] overflow-hidden transform transition-all duration-700 flex flex-col origin-center ${isScreenshotMode ? 'scale-105' : 'animate-in zoom-in-95'}`}
         onClick={(e) => !isScreenshotMode && e.stopPropagation()}
       >
-        {/* 거친 종이 질감 오버레이 */}
         <div className="absolute inset-0 pointer-events-none opacity-40 mix-blend-multiply bg-[url('https://www.transparenttextures.com/patterns/handmade-paper.png')]"></div>
         
         <div className="flex-1 p-8 space-y-6 flex flex-col relative overflow-hidden">
-            {/* 상단 라벨 (시스템 폰트) */}
             <div className="flex justify-between items-start border-b-2 border-primary/10 pb-4">
               <div className="space-y-1">
                 <h3 className="font-sans font-black text-xs uppercase tracking-[0.2em] text-primary-dark opacity-80">Secret Observation Log</h3>
@@ -195,7 +186,6 @@ export const ObservationDiary: React.FC<ObservationDiaryProps> = ({ profile, sta
               <div className="bg-primary/10 px-2 py-1 rounded text-[9px] font-black text-primary-dark uppercase">Classified</div>
             </div>
 
-            {/* 기록자/대상 정보 (시스템 폰트) */}
             <div className="grid grid-cols-2 gap-8 py-2">
                 <div className="space-y-1">
                     <span className="block text-[8px] font-black text-text-secondary/50 uppercase">Observer</span>
@@ -207,7 +197,6 @@ export const ObservationDiary: React.FC<ObservationDiaryProps> = ({ profile, sta
                 </div>
             </div>
 
-            {/* 폴라로이드 사진 영역 */}
             <div className="relative mx-auto py-2">
                 <div className="w-32 h-32 bg-white p-2 shadow-xl border border-primary/5 rotate-1 relative transition-transform hover:rotate-0 duration-500">
                     <img src={profile.imageSrc || ''} className="w-full h-full object-cover grayscale-[0.1] sepia-[0.15] contrast-110" alt="Character" />
@@ -215,7 +204,6 @@ export const ObservationDiary: React.FC<ObservationDiaryProps> = ({ profile, sta
                 </div>
             </div>
 
-            {/* 본문 영역: 줄노트 질감 + 손글씨 */}
             <div className="flex-1 relative flex flex-col">
                {isGenerating ? (
                  <div className="flex-1 flex flex-col items-center justify-center gap-4 text-primary-light/60">
@@ -229,7 +217,6 @@ export const ObservationDiary: React.FC<ObservationDiaryProps> = ({ profile, sta
                  </div>
                ) : (
                  <div className="flex-1 relative">
-                    {/* 줄노트 배경 가로줄 */}
                     <div className="absolute inset-0 pointer-events-none opacity-20" 
                          style={{ backgroundImage: 'linear-gradient(#4A5F7A 1px, transparent 1px)', backgroundSize: '100% 2.2rem' }}>
                     </div>
@@ -238,13 +225,13 @@ export const ObservationDiary: React.FC<ObservationDiaryProps> = ({ profile, sta
                         {content}
                     </div>
 
-                    {/* 캐릭터 인장 (Stamp) */}
+                    {/* 캐릭터 인장 (Stamp): 레벨명까지 캐릭터 손글씨체로 변경 */}
                     <div className="absolute bottom-4 right-0 transform rotate-[-15deg] animate-in zoom-in fade-in duration-700 delay-1000 fill-mode-both">
-                        <div className="w-20 h-20 rounded-full border-[3px] border-rose-600/60 flex flex-col items-center justify-center text-rose-600/60 p-1 relative">
-                            <div className="absolute inset-0 rounded-full border border-rose-600/30 m-0.5"></div>
-                            <span className="text-[7px] font-black uppercase tracking-widest leading-none mb-1 opacity-80">{LEVEL_TITLES[profile.level]}</span>
+                        <div className="w-24 h-24 rounded-full border-[3px] border-rose-600/50 flex flex-col items-center justify-center text-rose-600/50 p-1 relative">
+                            <div className="absolute inset-0 rounded-full border border-rose-600/20 m-0.5"></div>
+                            <span className="font-diary text-xs font-bold leading-none mb-1 opacity-90">{LEVEL_TITLES[profile.level]}</span>
                             <span className="font-diary text-2xl font-bold leading-none">{profile.name}</span>
-                            <span className="text-[8px] font-black mt-1 border-t border-rose-600/40 pt-0.5 px-2">APPROVED</span>
+                            <span className="text-[8px] font-black mt-1 border-t border-rose-600/40 pt-0.5 px-2 tracking-tighter">APPROVED</span>
                         </div>
                     </div>
                  </div>
@@ -252,7 +239,6 @@ export const ObservationDiary: React.FC<ObservationDiaryProps> = ({ profile, sta
             </div>
         </div>
 
-        {/* 하단 통계 영역 (시스템 폰트, 스크린샷 시 숨김) */}
         {!isScreenshotMode && (
           <div className="bg-[#E8E2D0]/50 px-8 py-5 backdrop-blur-md border-t border-primary/5 flex flex-col gap-4 z-40">
               <div className="flex justify-between items-center">
