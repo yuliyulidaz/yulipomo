@@ -72,15 +72,40 @@ export const useAIManager = (
       const getMood = () => {
         if (currentProfile.level <= 3) return "Cold, Strict, Minimalist";
         if (currentProfile.level <= 7) return "Friendly, Warm, Helpful";
-        return "Deeply Affointed, Loving, Obsessive";
+        return "Deeply Affectionate, Protective, Loving";
       };
       const situations: Record<string, string> = { 
-        scolding: 'slacking off', praising: 'finished focus session', 
-        idle: 'mid-focus encouragement', click: 'interaction with user', 
-        pause: 'user paused focus', start: 'user started focus' 
+        scolding: 'slacking off and being lazy', 
+        praising: 'successfully finished focus session', 
+        idle: 'encouraging user during mid-focus', 
+        click: 'casual interaction when user calls the character', 
+        pause: 'user temporarily paused the focus timer', 
+        start: 'user just started or resumed the focus timer' 
       };
+
+      // 사용자가 퀴즈에서 선택한 대사를 '말투 기준점(Anchor)'으로 제공
+      const anchors = currentProfile.selectedDialogueStyles;
+      const anchorText = anchors ? `
+Reference Dialogues (User's preferred style):
+- When User was late: "${anchors.late}"
+- When User gave a gift: "${anchors.gift}"
+- When User was slacking off: "${anchors.lazy}"
+` : "";
       
-      const prompt = `Roleplay as ${currentProfile.name}. User: ${currentProfile.userName}. Mood: ${getMood()}. Personality: ${currentProfile.personality.join(', ')}. Situation: ${situations[category]}. Write ${count} short Korean sentences (10-20 chars). Use {honorific}. Separate by Newline.`;
+      const prompt = `
+Roleplay as ${currentProfile.name}.
+Target User: ${currentProfile.userName} (${currentProfile.gender}). Preferred Honorific: ${currentProfile.honorific}.
+Current Mood: ${getMood()}. Character Personality: ${currentProfile.personality.join(', ')}.
+Background TMI: ${currentProfile.speciesTrait || "None"}.
+${anchorText}
+
+Task: Write ${count} unique, short Korean sentences (10-20 chars) for the situation: "${situations[category]}".
+Creative Guidelines:
+1. Maintain the exact 'tone temperature' and 'psychological distance' shown in the Reference Dialogues.
+2. Do NOT repeat the reference sentences themselves. Create entirely new ones.
+3. Avoid translation-style or unnatural subculture phrasing. Use modern, natural spoken Korean.
+4. Use {honorific} Naturally where appropriate. No quotes. Separate each sentence by a Newline.
+`;
       
       const result = await ai.models.generateContent({ 
         model: 'gemini-3-flash-preview', 
