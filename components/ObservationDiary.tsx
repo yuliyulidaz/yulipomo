@@ -93,14 +93,19 @@ export const ObservationDiary: React.FC<ObservationDiaryProps> = ({ profile, sta
   const [dateStr] = useState(() => new Date().toLocaleDateString('ko-KR', { year: 'numeric', month: '2-digit', day: '2-digit' }).replace(/\. /g, '.').replace(/\.$/, ''));
 
   useEffect(() => {
-    const generateDiary = async () => {
+    const generateDiaryFlow = async () => {
+      // 1. 최소 2초간의 "작성 중" 연출 보장
+      const minDuration = new Promise(resolve => setTimeout(resolve, 2200));
+      
       const relationshipTitle = LEVEL_TITLES[profile.level];
       const moodLabel = getMoodLabel(profile.level);
       const taskText = profile.todayTask ? `"${profile.todayTask}"` : "오늘의 할 일";
+      
+      let finalContent = "";
 
+      // 2. 일기 생성 시도 (API 혹은 폴백)
       try {
         const ai = new GoogleGenAI({ apiKey: profile.apiKey || process.env.API_KEY });
-        
         const hour = new Date().getHours();
         const timeContext = hour >= 5 && hour < 12 ? "싱그러운 아침 공기" : 
                            hour >= 12 && hour < 17 ? "나른한 오후의 햇살" :
@@ -122,23 +127,10 @@ export const ObservationDiary: React.FC<ObservationDiaryProps> = ({ profile, sta
 
 [Writing Mission: 비밀 관찰 일지 작성]
 당신은 지난 100분간 유저의 곁을 지키며 이 기록을 작성했습니다. 다음 가이드라인에 따라 '한글'로 일지를 작성하세요.
-
-1. 숫자 언급 지침:
-   - 딴짓 횟수(${stats.distractions})와 클릭 횟수(${stats.clicks})를 문장에 정확히 포함하되, 캐릭터의 말투에 녹여 자연스럽게 언급하세요.
-
-2. 상호작용(클릭)에 대한 레벨별 해석:
-   - Lv.1~3: "집중에 방해되게 나를 ${stats.clicks}번이나 불러서 귀찮았다"는 뉘앙스.
-   - Lv.4~7: "네가 나를 ${stats.clicks}번이나 찾아줘서 내심 기뻤다"는 친밀한 뉘앙스.
-   - Lv.8~10: "너의 목소리가 더 듣고 싶었다." 만약 클릭이 6회 미만이면 "고작 ${stats.clicks}번이라니, 나를 잊은 건 아닌지 서운하다"는 깊은 애착과 독점욕 표현.
-
-3. 일지 구성 (3~4문장):
-   - [관찰]: 유저가 일을 할 때의 사소한 습관이나 분위기 묘사 (예: 미간을 찌푸리거나, 숨을 고르거나, 펜을 굴리는 모습 등).
-   - [평가]: 딴짓 횟수와 클릭 횟수에 대한 캐릭터의 주관적 감상.
-   - [약속/응원]: 다음 세션을 위한 구체적인 약속이나 짧고 강렬한 응원.
-
-4. 문체 및 제약:
-   - 유저가 선택한 말투(${profile.personality[0]})와 캐릭터 페르소나를 완벽히 반영할 것.
-   - '랄까', '일까나' 같은 번역투 절대 금지. 한국어 구어체로 서정적이거나 위트 있게 작성.
+1. 숫자 언급: 딴짓 횟수(${stats.distractions})와 클릭 횟수(${stats.clicks})를 캐릭터 말투에 녹여 자연스럽게 언급.
+2. 상호작용 해석: 레벨에 맞춰 귀찮음(Lv.1~3), 기쁨(Lv.4~7), 집착/서운(Lv.8~10) 뉘앙스 반영.
+3. 구성: [관찰] -> [평가] -> [약속/응원] 순으로 3~4문장.
+4. 문체: 유저가 선택한 말투(${profile.personality[0]}) 반영.
 
 반드시 다음 JSON 형식으로만 응답하세요:
 { "content": "작성된 일지 내용" }`;
@@ -155,53 +147,41 @@ export const ObservationDiary: React.FC<ObservationDiaryProps> = ({ profile, sta
         
         const data = JSON.parse(response.text || '{}');
         if (data.content) {
-          setContent(data.content);
+          finalContent = data.content;
         } else {
           throw new Error("Empty content");
         }
       } catch (e) {
         console.warn("Diary generation failed, using modular fallback logic.");
-        
         // 조립식 폴백 로직 실행
         const toneKey = profile.personality[0] || "존댓말";
         const t = MODULAR_FALLBACK[toneKey] || MODULAR_FALLBACK["존댓말"];
         const h = profile.honorific || profile.userName || "당신";
         const task = profile.todayTask || "할 일";
 
-        // 1. 도입부
         let msg = t.intro.replace("{honorific}", h).replace("{task}", task) + " ";
-        
-        // 2. 딴짓 평가
-        if (stats.distractions === 0) {
-          msg += t.zeroDist + " ";
-        } else {
-          msg += t.someDist.replace("{distractions}", String(stats.distractions)) + " ";
-        }
+        if (stats.distractions === 0) msg += t.zeroDist + " ";
+        else msg += t.someDist.replace("{distractions}", String(stats.distractions)) + " ";
 
-        // 3. 클릭 해석 (레벨별 분기)
-        if (profile.level <= 3) {
-          msg += t.clickLow.replace("{clicks}", String(stats.clicks)) + " ";
-        } else if (profile.level <= 7) {
-          msg += t.clickMid.replace("{clicks}", String(stats.clicks)) + " ";
-        } else {
-          // 레벨 8-10: 클릭 수에 따라 서운함 또는 애정 표현
-          if (stats.clicks < 6) {
-            msg += t.clickLonely.replace("{clicks}", String(stats.clicks)) + " ";
-          } else {
-            msg += t.clickHigh.replace("{clicks}", String(stats.clicks)) + " ";
-          }
+        if (profile.level <= 3) msg += t.clickLow.replace("{clicks}", String(stats.clicks)) + " ";
+        else if (profile.level <= 7) msg += t.clickMid.replace("{clicks}", String(stats.clicks)) + " ";
+        else {
+          if (stats.clicks < 6) msg += t.clickLonely.replace("{clicks}", String(stats.clicks)) + " ";
+          else msg += t.clickHigh.replace("{clicks}", String(stats.clicks)) + " ";
         }
-
-        // 4. 마무리
         msg += t.outro;
-        
-        setContent(msg);
-      } finally {
-        setIsGenerating(false);
+        finalContent = msg;
       }
+
+      // 3. 생성된 콘텐츠가 준비되더라도 최소 시간(minDuration)이 지날 때까지 대기
+      await minDuration;
+      
+      // 4. 모든 준비가 끝나면 한 번에 상태 업데이트
+      setContent(finalContent);
+      setIsGenerating(false);
     };
 
-    generateDiary();
+    generateDiaryFlow();
   }, [profile, stats]);
 
   const enterScreenshotMode = () => {
@@ -284,17 +264,22 @@ export const ObservationDiary: React.FC<ObservationDiaryProps> = ({ profile, sta
                </div>
                
                {isGenerating ? (
-                 <div className="flex-1 flex flex-col items-center justify-center gap-4 text-primary-light/40">
-                   <Loader2 className="animate-spin" size={30} />
-                   <p className="font-diary text-xl animate-pulse tracking-tight">{profile.name}이(가) 기록 중...</p>
+                 <div className="flex-1 flex flex-col items-center justify-center gap-4 text-primary-light/60 px-4">
+                   <div className="relative">
+                      <Loader2 className="animate-spin text-primary/30" size={40} />
+                      <PenTool className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-primary animate-bounce" size={18} />
+                   </div>
+                   <p className="font-diary text-xl text-center leading-tight animate-pulse tracking-tight text-[#4A4434]/70">
+                    {profile.name}이(가) 당신과의<br/>100분을 생각 중...
+                   </p>
                  </div>
                ) : (
                  <div className="flex-1 overflow-y-auto pr-1">
-                   <div className={`font-diary leading-tight text-[#4A4434] whitespace-pre-wrap animate-in fade-in slide-in-from-bottom-2 duration-1000 ${getFontSize()}`}>
+                   <div className={`font-diary leading-tight text-[#4A4434] whitespace-pre-wrap animate-in fade-in slide-in-from-bottom-3 duration-1000 fill-mode-both ${getFontSize()}`}>
                       {content}
                    </div>
                    
-                   <div className="text-right pt-6 mt-4 border-t border-primary/10 mb-2">
+                   <div className="text-right pt-6 mt-4 border-t border-primary/10 mb-2 animate-in fade-in duration-1000 delay-500 fill-mode-both">
                         <p className="font-diary text-xl md:text-2xl text-primary-dark">
                             <span className="text-[10px] md:text-xs opacity-60 mr-1.5">{LEVEL_TITLES[profile.level]}</span>
                             {profile.name} 씀.
