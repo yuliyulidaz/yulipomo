@@ -12,19 +12,11 @@ interface ObservationDiaryProps {
 }
 
 const LEVEL_TITLES: Record<number, string> = {
-  1: "완전한 타인",
-  2: "약간의 호기심",
-  3: "낯가리는 파트너",
-  4: "편안한 동료",
-  5: "정이 든 사이",
-  6: "신뢰하는 관계",
-  7: "특별한 호감",
-  8: "소중한 사람",
-  9: "애틋한 연인",
-  10: "영원한 반려"
+  1: "완전한 타인", 2: "약간의 호기심", 3: "낯가리는 파트너", 4: "편안한 동료",
+  5: "정이 든 사이", 6: "신뢰하는 관계", 7: "특별한 호감", 8: "소중한 사람",
+  9: "애틋한 연인", 10: "영원한 반려"
 };
 
-// 지능형 폴백 템플릿 구성
 const MODULAR_FALLBACK: Record<string, any> = {
   "반말": {
     intro: "{honorific}, 오늘 {task} 하느라 정말 수고했어.",
@@ -94,16 +86,12 @@ export const ObservationDiary: React.FC<ObservationDiaryProps> = ({ profile, sta
 
   useEffect(() => {
     const generateDiaryFlow = async () => {
-      // 1. 최소 2초간의 "작성 중" 연출 보장
       const minDuration = new Promise(resolve => setTimeout(resolve, 2200));
-      
       const relationshipTitle = LEVEL_TITLES[profile.level];
       const moodLabel = getMoodLabel(profile.level);
       const taskText = profile.todayTask ? `"${profile.todayTask}"` : "오늘의 할 일";
-      
       let finalContent = "";
 
-      // 2. 일기 생성 시도 (API 혹은 폴백)
       try {
         const ai = new GoogleGenAI({ apiKey: profile.apiKey || process.env.API_KEY });
         const hour = new Date().getHours();
@@ -115,45 +103,30 @@ export const ObservationDiary: React.FC<ObservationDiaryProps> = ({ profile, sta
 [Character Persona]
 - 이름: ${profile.name}
 - 성격: ${profile.personality.join(', ')}
-- 배경 및 TMI: ${profile.speciesTrait || '없음'}
+- 배경: ${profile.speciesTrait || '없음'}
 - 관계 단계: Lv.${profile.level} (${relationshipTitle})
-- 심리 상태: ${moodLabel}
 
 [Input Focus Data]
-- 집중한 일: ${taskText}에 매진하던 모습
+- 집중한 일: ${taskText}
 - 딴짓 횟수: ${stats.distractions}회
 - 상호작용(클릭) 횟수: ${stats.clicks}회
-- 현재 분위기: ${timeContext}
 
-[Writing Mission: 비밀 관찰 일지 작성]
-당신은 지난 100분간 유저의 곁을 지키며 이 기록을 작성했습니다. 다음 가이드라인에 따라 '한글'로 일지를 작성하세요.
-1. 숫자 언급: 딴짓 횟수(${stats.distractions})와 클릭 횟수(${stats.clicks})를 캐릭터 말투에 녹여 자연스럽게 언급.
-2. 상호작용 해석: 레벨에 맞춰 귀찮음(Lv.1~3), 기쁨(Lv.4~7), 집착/서운(Lv.8~10) 뉘앙스 반영.
-3. 구성: [관찰] -> [평가] -> [약속/응원] 순으로 3~4문장.
-4. 문체: 유저가 선택한 말투(${profile.personality[0]}) 반영.
-
-반드시 다음 JSON 형식으로만 응답하세요:
-{ "content": "작성된 일지 내용" }`;
+[Writing Mission]
+유저의 선택 말투(${profile.personality[0]})로 '비밀 관찰 일지'를 작성하세요.
+1. 딴짓(${stats.distractions})과 클릭(${stats.clicks}) 횟수를 자연스럽게 포함.
+2. 관찰-평가-약속 순서로 3~4문장 작성.
+3. 한국어 구어체로만 작성할 것. JSON 응답 필수.
+{ "content": "내용" }`;
 
         const response = await ai.models.generateContent({
           model: 'gemini-3-flash-preview',
           contents: prompt,
-          config: { 
-            responseMimeType: "application/json", 
-            safetySettings: SAFETY_SETTINGS,
-            temperature: 0.8
-          }
+          config: { responseMimeType: "application/json", safetySettings: SAFETY_SETTINGS, temperature: 0.8 }
         });
         
         const data = JSON.parse(response.text || '{}');
-        if (data.content) {
-          finalContent = data.content;
-        } else {
-          throw new Error("Empty content");
-        }
+        finalContent = data.content || "기록 실패";
       } catch (e) {
-        console.warn("Diary generation failed, using modular fallback logic.");
-        // 조립식 폴백 로직 실행
         const toneKey = profile.personality[0] || "존댓말";
         const t = MODULAR_FALLBACK[toneKey] || MODULAR_FALLBACK["존댓말"];
         const h = profile.honorific || profile.userName || "당신";
@@ -173,10 +146,7 @@ export const ObservationDiary: React.FC<ObservationDiaryProps> = ({ profile, sta
         finalContent = msg;
       }
 
-      // 3. 생성된 콘텐츠가 준비되더라도 최소 시간(minDuration)이 지날 때까지 대기
       await minDuration;
-      
-      // 4. 모든 준비가 끝나면 한 번에 상태 업데이트
       setContent(finalContent);
       setIsGenerating(false);
     };
@@ -187,26 +157,20 @@ export const ObservationDiary: React.FC<ObservationDiaryProps> = ({ profile, sta
   const enterScreenshotMode = () => {
     setIsScreenshotMode(true);
     setShowToast(true);
-    setTimeout(() => setShowToast(false), 4000);
-  };
-
-  const handleContainerClick = () => {
-    if (isScreenshotMode) {
-      onClose();
-    }
+    // 안내문이 너무 오래 떠있지 않도록 2초 후 사라지게 조정
+    setTimeout(() => setShowToast(false), 2000);
   };
 
   const getFontSize = () => {
-    if (content.length > 200) return 'text-base';
-    if (content.length > 160) return 'text-lg';
-    if (content.length > 120) return 'text-xl';
+    if (content.length > 200) return 'text-lg';
+    if (content.length > 150) return 'text-xl';
     return 'text-2xl';
   };
 
   return (
     <div 
-      className="fixed inset-0 z-[500] flex items-center justify-center p-4 bg-black/60 backdrop-blur-md animate-in fade-in duration-500"
-      onClick={handleContainerClick}
+      className="fixed inset-0 z-[500] flex items-center justify-center p-4 bg-black/70 backdrop-blur-md animate-in fade-in duration-500"
+      onClick={() => isScreenshotMode && onClose()}
     >
       {showToast && (
         <div className="fixed top-10 left-1/2 -translate-x-1/2 z-[600] bg-black/80 text-white px-6 py-3 rounded-full text-sm font-bold shadow-2xl animate-in fade-in slide-in-from-top-4 duration-500">
@@ -215,106 +179,110 @@ export const ObservationDiary: React.FC<ObservationDiaryProps> = ({ profile, sta
       )}
 
       <div 
-        className={`w-full max-w-[340px] aspect-[9/16] bg-[#FAF8F1] rounded-2xl shadow-2xl relative border-8 border-white/90 overflow-hidden transform transition-all duration-700 flex flex-col origin-center ${isScreenshotMode ? 'scale-105' : 'animate-in zoom-in-95'}`}
-        onClick={(e) => {
-          if (isScreenshotMode) {
-            onClose();
-          } else {
-            e.stopPropagation();
-          }
-        }}
+        className={`w-full max-w-[350px] aspect-[9/16] bg-[#FCFAF2] rounded-2xl shadow-[0_30px_60px_-12px_rgba(0,0,0,0.5)] relative border-4 border-[#E8E2D0] overflow-hidden transform transition-all duration-700 flex flex-col origin-center ${isScreenshotMode ? 'scale-105' : 'animate-in zoom-in-95'}`}
+        onClick={(e) => !isScreenshotMode && e.stopPropagation()}
       >
-        <div className="absolute inset-0 pointer-events-none opacity-30 mix-blend-multiply bg-[url('https://www.transparenttextures.com/patterns/grid-me.png')]"></div>
+        {/* 거친 종이 질감 오버레이 */}
+        <div className="absolute inset-0 pointer-events-none opacity-40 mix-blend-multiply bg-[url('https://www.transparenttextures.com/patterns/handmade-paper.png')]"></div>
         
-        <div className="flex-1 p-7 md:p-8 space-y-3 flex flex-col relative overflow-hidden">
-            <div className="absolute -top-3 left-1/2 -translate-x-1/2 w-28 h-8 bg-primary/20 backdrop-blur-sm transform -rotate-1 border border-primary/10 shadow-sm z-30 flex items-center justify-center">
-                <span className="text-[10px] font-black tracking-widest text-primary/60 uppercase">Secret Log</span>
+        <div className="flex-1 p-8 space-y-6 flex flex-col relative overflow-hidden">
+            {/* 상단 라벨 (시스템 폰트) */}
+            <div className="flex justify-between items-start border-b-2 border-primary/10 pb-4">
+              <div className="space-y-1">
+                <h3 className="font-sans font-black text-xs uppercase tracking-[0.2em] text-primary-dark opacity-80">Secret Observation Log</h3>
+                <p className="font-sans font-bold text-[10px] text-text-secondary">{dateStr}</p>
+              </div>
+              <div className="bg-primary/10 px-2 py-1 rounded text-[9px] font-black text-primary-dark uppercase">Classified</div>
             </div>
 
-            <div className="space-y-2 pt-3">
-              <div className="flex justify-between items-baseline border-b border-primary/10 pb-1">
-                <h3 className="font-serif italic font-bold text-lg md:text-xl text-primary-dark">비밀 관찰 일지</h3>
-                <span className="text-[9px] font-bold text-text-secondary">{dateStr}</span>
-              </div>
-              
-              <div className="grid grid-cols-2 gap-4 text-[8px] font-black uppercase tracking-tighter text-primary/50">
-                <div className="flex flex-col">
-                    <span>Recorder</span>
-                    <span className="text-[11px] text-text-primary mt-0.5">{profile.name}</span>
+            {/* 기록자/대상 정보 (시스템 폰트) */}
+            <div className="grid grid-cols-2 gap-8 py-2">
+                <div className="space-y-1">
+                    <span className="block text-[8px] font-black text-text-secondary/50 uppercase">Observer</span>
+                    <span className="block text-xs font-bold text-text-primary tracking-tight">{profile.name}</span>
                 </div>
-                <div className="flex flex-col text-right">
-                    <span>Subject</span>
-                    <span className="text-[11px] text-text-primary mt-0.5">{profile.honorific || profile.userName}</span>
+                <div className="space-y-1 text-right">
+                    <span className="block text-[8px] font-black text-text-secondary/50 uppercase">Subject</span>
+                    <span className="block text-xs font-bold text-text-primary tracking-tight">{profile.userName}</span>
                 </div>
-              </div>
             </div>
 
-            <div className="relative mx-auto mt-0.5 flex-shrink-0">
-                <div className="w-28 h-28 md:w-32 md:h-32 bg-white p-2 shadow-lg border border-primary/5 rotate-2 relative">
-                    <img src={profile.imageSrc || ''} className="w-full h-full object-cover grayscale-[0.2] sepia-[0.1]" alt="Character" />
+            {/* 폴라로이드 사진 영역 */}
+            <div className="relative mx-auto py-2">
+                <div className="w-32 h-32 bg-white p-2 shadow-xl border border-primary/5 rotate-1 relative transition-transform hover:rotate-0 duration-500">
+                    <img src={profile.imageSrc || ''} className="w-full h-full object-cover grayscale-[0.1] sepia-[0.15] contrast-110" alt="Character" />
                     <div className="absolute inset-0 bg-primary/5 pointer-events-none"></div>
                 </div>
-                <div className="absolute -top-2 -left-3 w-10 h-6 bg-accent/20 backdrop-blur-sm rotate-[-45deg] border border-accent/10 opacity-70"></div>
             </div>
 
-            <div className="flex-1 mt-1 flex flex-col overflow-hidden">
-               <div className="flex items-center gap-2 mb-2 flex-shrink-0">
-                  <PenTool size={12} className="text-primary-light" />
-                  <span className="text-[9px] font-bold text-primary-light uppercase tracking-widest">Observation Note</span>
-               </div>
-               
+            {/* 본문 영역: 줄노트 질감 + 손글씨 */}
+            <div className="flex-1 relative flex flex-col">
                {isGenerating ? (
-                 <div className="flex-1 flex flex-col items-center justify-center gap-4 text-primary-light/60 px-4">
-                   <div className="relative">
-                      <Loader2 className="animate-spin text-primary/30" size={40} />
-                      <PenTool className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-primary animate-bounce" size={18} />
-                   </div>
-                   <p className="font-diary text-xl text-center leading-tight animate-pulse tracking-tight text-[#4A4434]/70">
-                    {profile.name}이(가) 당신과의<br/>100분을 생각 중...
-                   </p>
+                 <div className="flex-1 flex flex-col items-center justify-center gap-4 text-primary-light/60">
+                    <div className="relative">
+                        <Loader2 className="animate-spin text-primary/20" size={50} />
+                        <PenTool className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-primary animate-bounce" size={20} />
+                    </div>
+                    <p className="font-diary text-2xl text-center leading-tight animate-pulse text-primary-dark">
+                        {profile.name}이(가) 당신과의<br/>100분을 회상하는 중...
+                    </p>
                  </div>
                ) : (
-                 <div className="flex-1 overflow-y-auto pr-1">
-                   <div className={`font-diary leading-tight text-[#4A4434] whitespace-pre-wrap animate-in fade-in slide-in-from-bottom-3 duration-1000 fill-mode-both ${getFontSize()}`}>
-                      {content}
-                   </div>
-                   
-                   <div className="text-right pt-6 mt-4 border-t border-primary/10 mb-2 animate-in fade-in duration-1000 delay-500 fill-mode-both">
-                        <p className="font-diary text-xl md:text-2xl text-primary-dark">
-                            <span className="text-[10px] md:text-xs opacity-60 mr-1.5">{LEVEL_TITLES[profile.level]}</span>
-                            {profile.name} 씀.
-                        </p>
+                 <div className="flex-1 relative">
+                    {/* 줄노트 배경 가로줄 */}
+                    <div className="absolute inset-0 pointer-events-none opacity-20" 
+                         style={{ backgroundImage: 'linear-gradient(#4A5F7A 1px, transparent 1px)', backgroundSize: '100% 2.2rem' }}>
+                    </div>
+                    
+                    <div className={`relative z-10 font-diary leading-[2.2rem] text-[#3D382E] whitespace-pre-wrap animate-in fade-in slide-in-from-bottom-4 duration-1000 fill-mode-both ${getFontSize()}`}>
+                        {content}
+                    </div>
+
+                    {/* 캐릭터 인장 (Stamp) */}
+                    <div className="absolute bottom-4 right-0 transform rotate-[-15deg] animate-in zoom-in fade-in duration-700 delay-1000 fill-mode-both">
+                        <div className="w-20 h-20 rounded-full border-[3px] border-rose-600/60 flex flex-col items-center justify-center text-rose-600/60 p-1 relative">
+                            <div className="absolute inset-0 rounded-full border border-rose-600/30 m-0.5"></div>
+                            <span className="text-[7px] font-black uppercase tracking-widest leading-none mb-1 opacity-80">{LEVEL_TITLES[profile.level]}</span>
+                            <span className="font-diary text-2xl font-bold leading-none">{profile.name}</span>
+                            <span className="text-[8px] font-black mt-1 border-t border-rose-600/40 pt-0.5 px-2">APPROVED</span>
+                        </div>
                     </div>
                  </div>
                )}
             </div>
         </div>
 
+        {/* 하단 통계 영역 (시스템 폰트, 스크린샷 시 숨김) */}
         {!isScreenshotMode && (
-          <div className="bg-white/60 px-6 py-4 backdrop-blur-sm border-t border-primary/10 flex flex-col gap-3 z-40">
+          <div className="bg-[#E8E2D0]/50 px-8 py-5 backdrop-blur-md border-t border-primary/5 flex flex-col gap-4 z-40">
               <div className="flex justify-between items-center">
-                <div className="flex gap-4">
+                <div className="flex gap-5">
                     <div className="flex flex-col">
-                        <span className="text-[8px] font-black uppercase text-primary/40">Focus</span>
-                        <span className="text-[10px] font-bold text-primary-dark">100m</span>
+                        <span className="text-[8px] font-black uppercase text-primary-dark/40 tracking-wider">Session</span>
+                        <span className="text-xs font-bold text-primary-dark">100m</span>
                     </div>
                     <div className="flex flex-col">
-                        <span className="text-[8px] font-black uppercase text-rose-300">Wander</span>
-                        <span className="text-[10px] font-bold text-rose-400">{stats.distractions}</span>
+                        <span className="text-[8px] font-black uppercase text-rose-400/60 tracking-wider">Distract</span>
+                        <span className="text-xs font-bold text-rose-500">{stats.distractions}회</span>
+                    </div>
+                    <div className="flex flex-col">
+                        <span className="text-[8px] font-black uppercase text-primary/40 tracking-wider">Interact</span>
+                        <span className="text-xs font-bold text-primary">{stats.clicks}회</span>
                     </div>
                 </div>
                 <div className="flex gap-2">
                   <button 
                       onClick={(e) => { e.stopPropagation(); enterScreenshotMode(); }} 
-                      className="px-4 py-2 bg-accent text-white rounded-full font-black text-[10px] hover:bg-accent-dark transition-all active:scale-95 shadow-md flex items-center gap-1.5"
+                      className="w-10 h-10 bg-white/80 text-primary rounded-xl shadow-sm border border-primary/10 hover:bg-white flex items-center justify-center transition-all active:scale-90"
+                      title="스크린샷 모드"
                   >
-                      <Camera size={12} /> 스샷 모드
+                      <Camera size={18} />
                   </button>
                   <button 
                       onClick={(e) => { e.stopPropagation(); onClose(); }} 
-                      className="px-4 py-2 bg-primary text-white rounded-full font-black text-[10px] hover:bg-primary-dark transition-all active:scale-95 shadow-md flex items-center gap-1.5"
+                      className="px-5 h-10 bg-primary text-white rounded-xl font-bold text-xs shadow-lg shadow-primary/20 hover:bg-primary-dark transition-all active:scale-95 flex items-center gap-2"
                   >
-                      닫기 <ArrowRight size={12} />
+                      닫기 <ArrowRight size={14} />
                   </button>
                 </div>
               </div>
