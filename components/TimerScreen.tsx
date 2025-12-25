@@ -1,237 +1,185 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { X } from 'lucide-react';
-import { CharacterProfile } from '../types';
-import { ObservationDiary } from './ObservationDiary';
-import { OnboardingGuide } from './OnboardingGuide';
-import { ApiKeyExpiryModal } from './ApiKeyExpiryModal';
-import { ExitConfirmModal } from './ExitConfirmModal';
-import { EnergySavingOverlay } from './EnergySavingOverlay';
+import React, { useState, useEffect, useMemo } from 'react';
+import { ChevronRight } from 'lucide-react';
 
-// 설정 및 유틸리티
-import { LEVEL_TITLES } from './TimerConfig';
-import { formatTime, calculateOverallProgress, cleanDialogue } from './TimerUtils';
-
-// 모달 및 UI 컴포넌트
-import { AdminAuthModal, AdminPanel, CycleChoiceModal } from './TimerModals';
-import { TopBadge, SettingsMenu, CharacterSection, TimerDisplay, CycleProgressBar, ControlButtons } from './TimerUI';
-
-// 커스텀 훅
-import { useTimerCore } from '../hooks/useTimerCore';
-import { useAIManager } from '../hooks/useAIManager';
-import { useXPManager } from '../hooks/useXPManager';
-import { useMobileCare } from '../hooks/useMobileCare';
-
-interface TimerScreenProps {
-  profile: CharacterProfile;
-  onReset: () => void;
-  onTickXP: (amount: number) => void;
-  onUpdateProfile: (updates: Partial<CharacterProfile>) => void;
-  onSessionComplete: (wasSuccess: boolean) => void;
+interface OnboardingGuideProps {
+  isDarkMode: boolean;
+  characterName: string;
+  targets: {
+    settings: React.RefObject<HTMLElement | null>;
+    character: React.RefObject<HTMLElement | null>;
+    reset: React.RefObject<HTMLElement | null>;
+    start: React.RefObject<HTMLElement | null>;
+    affinity: React.RefObject<HTMLElement | null>;
+  };
+  onClose: (neverShowAgain: boolean) => void;
 }
 
-const RESET_HOLD_MS = 2000;
+export const OnboardingGuide: React.FC<OnboardingGuideProps> = ({ isDarkMode, characterName, targets, onClose }) => {
+  const [step, setStep] = useState(1);
+  const [spotlight, setSpotlight] = useState<{ 
+    cx: number; cy: number; r: number; visible: boolean; 
+    extra?: { cx: number; cy: number; r: number } 
+  }>({ cx: 0, cy: 0, r: 0, visible: false });
 
-export const TimerScreen: React.FC<TimerScreenProps> = ({ 
-  profile, onReset, onTickXP, onUpdateProfile, onSessionComplete 
-}) => {
-  // --- 1. AI & Dialogue Logic ---
-  const {
-    message, setMessage, cooldownRemaining, setCooldownRemaining,
-    triggerAIResponse, handleInteraction, pendingExpiryAlert, setPendingExpiryAlert, COOLDOWN_MS
-  } = useAIManager(profile, onUpdateProfile);
+  const updateSpotlight = useMemo(() => () => {
+    let target: HTMLElement | null = null;
+    let radius = 40;
+    let extraSpotlight: { cx: number; cy: number; r: number } | undefined = undefined;
 
-  // --- 2. Core Timer Logic ---
-  const {
-    timeLeft, setTimeLeft, isActive, setIsActive, isBreak, setIsBreak,
-    sessionInCycle, setSessionInCycle, showReport, setShowReport,
-    toggleActive, skipBreak, resetTimer
-  } = useTimerCore(profile, onTickXP, onSessionComplete, triggerAIResponse);
-
-  // --- 3. XP & Leveling Logic ---
-  const { progressPercent, levelTitle } = useXPManager(profile);
-
-  // --- 4. Mobile Care Logic ---
-  const { isBatterySaving, setIsBatterySaving } = useMobileCare(isActive);
-
-  // --- 5. Local UI State ---
-  const [distractions, setDistractions] = useState(profile.cycleStats?.distractions ?? 0);
-  const [clicks, setClicks] = useState(profile.cycleStats?.clicks ?? 0);
-  const [badgeClicks, setBadgeClicks] = useState(0);
-  const [showAdminAuth, setShowAdminAuth] = useState(false);
-  const [adminPassword, setAdminPassword] = useState('');
-  const [isAdminMode, setIsAdminMode] = useState(false);
-  const [showAdminPanel, setShowAdminPanel] = useState(false);
-  const [isResetHolding, setIsResetHolding] = useState(false);
-  const [resetHoldProgress, setResetHoldProgress] = useState(0);
-  const [showOnboarding, setShowOnboarding] = useState(false);
-  const [showChoiceModal, setShowChoiceModal] = useState(false);
-  const [isDarkMode, setIsDarkMode] = useState(false);
-  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
-  const [isApiKeyModalOpen, setIsApiKeyModalOpen] = useState(false);
-  const [apiKeyPopupType, setApiKeyPopupType] = useState<'EXPIRED' | 'MANUAL'>('MANUAL');
-  const [showExitModal, setShowExitModal] = useState(false);
-
-  // --- 6. Refs ---
-  const resetHoldTimerRef = useRef<any>(null);
-  const resetStartTimeRef = useRef<number | null>(null);
-  const settingsBtnRef = useRef<HTMLDivElement>(null);
-  const characterBoxRef = useRef<HTMLDivElement>(null);
-  const resetBtnRef = useRef<HTMLButtonElement>(null);
-  const startBtnRef = useRef<HTMLButtonElement>(null);
-  const affinityRef = useRef<HTMLDivElement>(null);
-
-  // --- 7. Effects & Sync ---
-  useEffect(() => {
-    const isFirstTime = localStorage.getItem('pomodoro_onboarding_done') !== 'true';
-    if (isFirstTime) setTimeout(() => setShowOnboarding(true), 1000);
-  }, []);
-
-  useEffect(() => {
-    if (isBreak && pendingExpiryAlert && !isApiKeyModalOpen) {
-      setApiKeyPopupType('EXPIRED');
-      setIsApiKeyModalOpen(true);
-    }
-  }, [isBreak, pendingExpiryAlert, isApiKeyModalOpen]);
-
-  // 브라우저 탭 전환(이탈) 감지 로직: 다른 창에 갔다가 돌아오면 꾸짖기
-  useEffect(() => {
-    const handleVisibility = () => {
-      if (document.visibilityState === 'visible' && isActive && !isBreak) {
-        // 돌아왔을 때 세션 중이라면 꾸짖는 대사 트리거
-        triggerAIResponse('RETURN');
-        setDistractions(prev => prev + 1);
+    if (step === 1) target = targets.settings.current;
+    if (step === 2) { 
+      target = targets.character.current; 
+      radius = 100;
+      // 2단계에서 상단 호감도 표시 배지도 함께 강조
+      if (targets.affinity.current) {
+        const rect = targets.affinity.current.getBoundingClientRect();
+        extraSpotlight = {
+          cx: rect.left + rect.width / 2,
+          cy: rect.top + rect.height / 2,
+          r: Math.max(rect.width, rect.height) / 2 + 10
+        };
       }
-    };
-    document.addEventListener('visibilitychange', handleVisibility);
-    return () => document.removeEventListener('visibilitychange', handleVisibility);
-  }, [isActive, isBreak, triggerAIResponse]);
+    }
+    if (step === 3) { 
+      setSpotlight({ 
+        cx: window.innerWidth / 2, 
+        cy: window.innerHeight / 2, 
+        r: 0, 
+        visible: true 
+      });
+      return;
+    }
+    if (step === 4) { target = targets.reset.current; radius = 40; }
+    if (step === 5) { target = targets.start.current; radius = 50; }
 
-  useEffect(() => {
-    window.history.pushState(null, "", window.location.href);
-    const handlePopState = (e: PopStateEvent) => {
-      e.preventDefault();
-      setShowExitModal(true);
-      window.history.pushState(null, "", window.location.href);
-    };
-    window.addEventListener('popstate', handlePopState);
-    return () => window.removeEventListener('popstate', handlePopState);
-  }, []);
+    if (!target) {
+      setSpotlight({ cx: 0, cy: 0, r: 0, visible: false });
+      return;
+    }
 
-  useEffect(() => {
-    onUpdateProfile({
-      savedTimeLeft: timeLeft, savedIsActive: isActive, savedIsBreak: isBreak,
-      savedSessionInCycle: sessionInCycle, lastActive: Date.now(),
-      cycleStats: { distractions, clicks }
+    const rect = target.getBoundingClientRect();
+    setSpotlight({
+      cx: rect.left + rect.width / 2,
+      cy: rect.top + rect.height / 2,
+      r: Math.max(rect.width, rect.height) / 2 + 10,
+      visible: true,
+      extra: extraSpotlight
     });
-  }, [timeLeft, isActive, isBreak, sessionInCycle, distractions, clicks, onUpdateProfile]);
-
-  // --- 8. Event Handlers ---
-  const handleCharacterClick = () => {
-    const wasBlocked = handleInteraction(isActive, isBreak);
-    if (!wasBlocked && isActive && !isBreak) {
-      setClicks(prev => prev + 1);
-    }
-  };
-
-  const handleExportProfile = () => {
-    const dataStr = JSON.stringify(profile, null, 2);
-    const dataUri = 'data:application/json;charset=utf-8,' + encodeURIComponent(dataStr);
-    const linkElement = document.createElement('a');
-    linkElement.setAttribute('href', dataUri);
-    linkElement.setAttribute('download', `${profile.name}_backup.json`);
-    linkElement.click();
-    setIsSettingsOpen(false);
-    setMessage("저장되었습니다.");
-  };
-
-  const handleResetStart = (e: React.MouseEvent | React.TouchEvent) => {
-    if (isResetHolding) return;
-    setIsResetHolding(true);
-    setResetHoldProgress(0);
-    resetStartTimeRef.current = Date.now();
-    resetHoldTimerRef.current = setTimeout(() => setMessage("처음부터 재시작됩니다."), 1000);
-  };
-
-  const handleResetEnd = (e?: React.MouseEvent | React.TouchEvent) => {
-    if (!isResetHolding) return;
-    const duration = Date.now() - (resetStartTimeRef.current || 0);
-    setIsResetHolding(false);
-    setResetHoldProgress(0);
-    if (resetHoldTimerRef.current) clearTimeout(resetHoldTimerRef.current);
-
-    if (duration >= RESET_HOLD_MS) {
-      resetTimer(true);
-      setDistractions(0);
-      setClicks(0);
-      setMessage("마음을 새로 먹었나 보네? 처음부터 다시 시작하자.");
-    } else if (duration < 300) {
-      resetTimer(false);
-      setMessage("응? 다시 하고 싶어? 좋아, 다시 집중해보자.");
-    } else {
-      setMessage(""); 
-    }
-  };
-
-  const handleResetCancel = () => {
-    if (!isResetHolding) return;
-    setIsResetHolding(false);
-    setResetHoldProgress(0);
-    if (resetHoldTimerRef.current) clearTimeout(resetHoldTimerRef.current);
-    setMessage(""); 
-  };
+  }, [step, targets]);
 
   useEffect(() => {
-    let frame: any;
-    if (isResetHolding) {
-      const update = () => {
-        const now = Date.now();
-        const duration = now - (resetStartTimeRef.current || now);
-        const progress = Math.min(100, (duration / RESET_HOLD_MS) * 100);
-        setResetHoldProgress(progress);
-        if (progress < 100) frame = requestAnimationFrame(update);
-        else handleResetEnd();
-      };
-      frame = requestAnimationFrame(update);
-    }
-    return () => cancelAnimationFrame(frame);
-  }, [isResetHolding]);
+    updateSpotlight();
+    window.addEventListener('resize', updateSpotlight);
+    return () => window.removeEventListener('resize', updateSpotlight);
+  }, [updateSpotlight]);
 
-  const overallProgressPercent = calculateOverallProgress(sessionInCycle, isBreak, timeLeft);
+  const handleNext = () => {
+    if (step < 5) setStep(step + 1);
+    else onClose(false);
+  };
+
+  const getGuidePosition = () => {
+    if (step === 3) {
+      return {
+        top: (window.innerHeight - 220) / 2,
+        left: (window.innerWidth - 280) / 2
+      };
+    }
+
+    const isBottomHalf = spotlight.cy > window.innerHeight / 2;
+    
+    // 기본 오프셋 설정
+    let verticalOffset = isBottomHalf ? -160 : 20;
+
+    // 사용자 요청에 따른 특정 스텝 높이 추가 조정
+    if (step === 4) verticalOffset = -220; // 4번은 많이 위로
+    if (step === 5) verticalOffset = -190; // 5번은 너무 멀지 않게 위치 조정
+
+    const leftPos = Math.max(20, Math.min(window.innerWidth - 300, spotlight.cx - 140));
+    
+    return {
+      top: isBottomHalf ? spotlight.cy - spotlight.r + verticalOffset : spotlight.cy + spotlight.r + verticalOffset,
+      left: leftPos
+    };
+  };
+
+  const pos = getGuidePosition();
+
+  if (!spotlight.visible) return null;
 
   return (
-    <div className={`relative w-full h-screen flex transition-colors duration-700 overflow-hidden font-sans select-none ${isDarkMode ? 'bg-[#0B0E14] text-slate-100' : 'bg-background text-text-primary'}`}>
-      <EnergySavingOverlay isVisible={isBatterySaving} />
-      {showOnboarding && <OnboardingGuide isDarkMode={isDarkMode} characterName={profile.name} targets={{ settings: settingsBtnRef, character: characterBoxRef, reset: resetBtnRef, start: startBtnRef, affinity: affinityRef }} onClose={(never) => { if(never) localStorage.setItem('pomodoro_onboarding_done', 'true'); setShowOnboarding(false); }} />}
-      {profile.imageSrc && <div className={`absolute inset-0 z-0 transition-opacity duration-700 ${isDarkMode ? 'opacity-5' : 'opacity-10'}`}><img src={profile.imageSrc} alt="BG" className="w-full h-full object-cover blur-md scale-110" /></div>}
-      <AdminAuthModal isOpen={showAdminAuth} onClose={() => setShowAdminAuth(false)} password={adminPassword} setPassword={setAdminPassword} onVerify={(e) => { e.preventDefault(); if(adminPassword==='PTSD'){ setIsAdminMode(true); setShowAdminPanel(true); setShowAdminAuth(false); setAdminPassword(''); setMessage("관리자 모드 활성화!"); } else { setAdminPassword(''); setShowAdminAuth(false); setMessage("비밀번호 틀림."); } }} />
-      <AdminPanel isOpen={isAdminMode && showAdminPanel} onClose={() => setShowAdminPanel(false)} profile={profile} onTimeLeap={() => setTimeLeft(10)} onLevelChange={(lv) => onUpdateProfile({ level: lv, xp: 0 })} clicks={clicks} isApiKeyAlert={pendingExpiryAlert} onToggleApiKeyAlert={() => setPendingExpiryAlert(!pendingExpiryAlert)} />
-      {showReport && <ObservationDiary profile={profile} stats={{ distractions, clicks }} onClose={() => { setShowReport(false); setDistractions(0); setClicks(0); setShowChoiceModal(true); }} />}
-      <CycleChoiceModal isOpen={showChoiceModal} isDarkMode={isDarkMode} onChoice={(opt) => { setShowChoiceModal(false); setSessionInCycle(0); setIsBreak(true); setIsActive(true); if(opt==='LONG'){ setTimeLeft(30*60); onTickXP(5); } else { setTimeLeft(5*60); onTickXP(25); } }} onExport={handleExportProfile} />
-      <ApiKeyExpiryModal isOpen={isApiKeyModalOpen} onClose={() => { setIsApiKeyModalOpen(false); setPendingExpiryAlert(false); }} type={apiKeyPopupType} currentApiKey={profile.apiKey || ''} isDarkMode={isDarkMode} onUpdateKey={(key) => onUpdateProfile({ apiKey: key })} />
-      <ExitConfirmModal isOpen={showExitModal} onClose={() => setShowExitModal(false)} onConfirmExit={onReset} characterName={profile.name} isDarkMode={isDarkMode} />
-      {(isApiKeyModalOpen || showExitModal) && <div className="fixed inset-0 z-[45] bg-transparent" onClick={() => { setIsApiKeyModalOpen(false); setShowExitModal(false); }} />}
+    <div className="fixed inset-0 z-[300] overflow-hidden animate-in fade-in duration-500">
+      {/* Background Mask */}
+      <svg className="absolute inset-0 w-full h-full pointer-events-none">
+        <defs>
+          <mask id="spotlight-mask">
+            <rect width="100%" height="100%" fill="white" />
+            <circle 
+              cx={spotlight.cx} 
+              cy={spotlight.cy} 
+              r={spotlight.r} 
+              fill="black" 
+              className="transition-all duration-500 ease-in-out"
+            />
+            {spotlight.extra && (
+              <circle 
+                cx={spotlight.extra.cx} 
+                cy={spotlight.extra.cy} 
+                r={spotlight.extra.r} 
+                fill="black" 
+                className="transition-all duration-500 ease-in-out"
+              />
+            )}
+          </mask>
+        </defs>
+        <rect width="100%" height="100%" fill="rgba(0,0,0,0.6)" mask="url(#spotlight-mask)" className="pointer-events-auto" />
+      </svg>
 
-      <main className="w-full h-full flex flex-col items-center justify-center relative p-4 md:p-8">
-          <TopBadge ref={affinityRef} level={profile.level} title={levelTitle} isAdminMode={isAdminMode} isDarkMode={isDarkMode} onBadgeClick={() => { const nc = badgeClicks+1; setBadgeClicks(nc); if(nc>=5){ setBadgeClicks(0); setShowAdminAuth(true); } setTimeout(()=>setBadgeClicks(0),2000); }} badgeClicks={badgeClicks} />
-          <div className={`w-full max-w-[450px] backdrop-blur-xl border p-6 md:p-8 rounded-[40px] shadow-[0_20px_50px_rgba(74,95,122,0.1)] flex flex-col items-center gap-6 md:gap-8 animate-in fade-in zoom-in duration-500 relative transition-colors duration-700 ${isDarkMode ? 'bg-[#161B22]/90 border-[#30363D]' : 'bg-surface/90 border-border'} ${isApiKeyModalOpen || isSettingsOpen ? 'overflow-visible z-50' : 'overflow-hidden'}`}>
-            {isSettingsOpen && <div className="fixed inset-0 z-40 bg-black/[0.02] backdrop-blur-[1.2px] cursor-default animate-in fade-in duration-300" onClick={(e) => { e.stopPropagation(); setIsSettingsOpen(false); }} />}
-            <div className={`absolute top-2.5 inset-x-8 h-1.5 z-10 ${isDarkMode ? 'bg-slate-700/20' : 'bg-border/20'} rounded-full overflow-hidden`}><div className="h-full bg-gradient-to-r from-primary to-accent transition-all duration-1000 ease-out rounded-full" style={{ width: `${progressPercent}%` }} /></div>
-            <div className="w-full flex justify-between items-start mt-2 px-2 relative z-50">
-                <SettingsMenu isOpen={isSettingsOpen} setIsOpen={setIsSettingsOpen} isDarkMode={isDarkMode} onToggleDarkMode={() => setIsDarkMode(!isDarkMode)} isBatterySaving={isBatterySaving} onToggleBatterySaving={() => setIsBatterySaving(!isBatterySaving)} onExport={handleExportProfile} onApiKeyOpen={() => { setApiKeyPopupType('MANUAL'); setIsApiKeyModalOpen(true); setIsSettingsOpen(false); }} onShowGuide={() => { setShowOnboarding(true); setIsSettingsOpen(false); }} isAdminMode={isAdminMode} onShowAdminPanel={() => setShowAdminPanel(!showAdminPanel)} btnRef={settingsBtnRef} isApiKeyAlert={pendingExpiryAlert} isBreak={isBreak} />
-                <button onClick={() => setShowExitModal(true)} className={`p-2.5 rounded-full transition-all border border-transparent ${isDarkMode ? 'text-slate-400 hover:bg-rose-900/30' : 'text-text-secondary hover:bg-rose-50 hover:text-rose-500'}`}><X size={20} /></button>
-            </div>
-            <CharacterSection profile={profile} isBreak={isBreak} cooldownRemaining={cooldownRemaining} cooldownMs={COOLDOWN_MS} message={message} isApiKeyModalOpen={isApiKeyModalOpen} isDarkMode={isDarkMode} onCharacterClick={handleCharacterClick} characterBoxRef={characterBoxRef} />
-            <div className="text-center space-y-1 -mt-10">
-                <h2 className={`text-3xl md:text-4xl font-bold tracking-tight ${isDarkMode ? 'text-slate-100' : 'text-text-primary'}`}>{profile.name}</h2>
-                <p className={`text-[10px] font-bold tracking-widest uppercase ${isDarkMode ? 'text-slate-400' : 'text-text-secondary'}`}>To. {profile.honorific || profile.userName}</p>
-            </div>
-            <div className="w-full flex flex-col items-center gap-6 mt-4 pb-4">
-              <TimerDisplay isBreak={isBreak} isDarkMode={isDarkMode} timeLeft={timeLeft} formatTime={formatTime} />
-              <CycleProgressBar overallProgressPercent={overallProgressPercent} isResetHolding={isResetHolding} resetHoldProgress={resetHoldProgress} isBreak={isBreak} sessionInCycle={sessionInCycle} isDarkMode={isDarkMode} />
-              <ControlButtons isBreak={isBreak} isActive={isActive} onToggle={toggleActive} onSkipBreak={skipBreak} resetBtnRef={resetBtnRef} startBtnRef={startBtnRef} onResetStart={handleResetStart} onResetEnd={handleResetEnd} onResetCancel={handleResetCancel} isResetHolding={isResetHolding} isDarkMode={isDarkMode} />
-            </div>
-          </div>
-      </main>
+      {/* Guide Content Card */}
+      <div 
+        className="absolute z-[310] flex flex-col pointer-events-none transition-all duration-500 ease-in-out"
+        style={{ top: pos.top, left: pos.left }}
+      >
+        <div className="w-[280px] p-6 rounded-2xl shadow-2xl pointer-events-auto bg-white/85 backdrop-blur-md border-none animate-in zoom-in-95 duration-300">
+           <div className="flex items-center justify-between mb-4">
+              <span className="text-[9px] font-black text-black/30 uppercase tracking-widest">Guide {step}/5</span>
+           </div>
+           
+           <div className="text-[13px] font-medium leading-relaxed mb-6 whitespace-pre-line text-black">
+              {step === 1 && <span><b>설정</b>에서 다크모드, 절전모드, API키 등을 변경할 수 있습니다.</span>}
+              {step === 2 && <span>25분의 집중 시간 동안 최애의 <b>응원</b>과 <b>감시</b>를 받을 수 있습니다. 집중할수록 <b>호감도</b>가 쌓이고, 응원 대사도 관계에 맞게 달라집니다.</span>}
+              {step === 3 && <span><b>TIP</b> : {characterName}와 함께하는 100분 동안 화면이 꺼지지 않도록, 기기의 디스플레이 <b>잠금 설정</b>을 확인하고 <b>충전기</b>를 미리 연결해 주세요.</span>}
+              {step === 4 && <span><b>되돌아가기</b>:<br/><b>짧게</b> 누르면 현재의 25분 집중 시간만 초기화되고, <b>길게</b> 누르면 전체가 초기화됩니다.</span>}
+              {step === 5 && <span>이제 <b>시작</b>을 누르고 {characterName}와 함께 100분 간 집중 해 볼까요?</span>}
+           </div>
+           
+           <div className="flex items-center justify-end">
+              {step < 5 ? (
+                <button 
+                  onClick={handleNext}
+                  className="py-1.5 px-3 bg-black text-white rounded-lg font-bold text-[11px] active:scale-95 transition-all flex items-center gap-1 shadow-sm"
+                >
+                  다음 <ChevronRight size={12} strokeWidth={3} />
+                </button>
+              ) : (
+                <div className="flex gap-2 w-full">
+                  <button 
+                    onClick={() => onClose(true)}
+                    className="flex-1 py-1.5 bg-black/5 text-black/50 rounded-lg font-bold text-[10px] active:scale-95 transition-all"
+                  >
+                    다시 보지 않기
+                  </button>
+                  <button 
+                    onClick={() => onClose(false)}
+                    className="flex-1 py-1.5 bg-black text-white rounded-lg font-bold text-[11px] active:scale-95 transition-all shadow-md"
+                  >
+                    닫기
+                  </button>
+                </div>
+              )}
+           </div>
+        </div>
+      </div>
     </div>
   );
 };
