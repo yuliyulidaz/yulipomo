@@ -64,7 +64,7 @@ export const OnboardingGuide: React.FC<OnboardingGuideProps> = ({ isDarkMode, ch
   const getGuidePosition = () => {
     if (step === 3) {
       return {
-        top: (window.innerHeight - 200) / 2,
+        top: (window.innerHeight - 220) / 2,
         left: (window.innerWidth - 280) / 2
       };
     }
@@ -85,7 +85,7 @@ export const OnboardingGuide: React.FC<OnboardingGuideProps> = ({ isDarkMode, ch
 
   return (
     <div className="fixed inset-0 z-[300] overflow-hidden animate-in fade-in duration-500">
-      {/* Spotlight Mask Area */}
+      {/* Background Mask */}
       <svg className="absolute inset-0 w-full h-full pointer-events-none">
         <defs>
           <mask id="spotlight-mask">
@@ -102,21 +102,21 @@ export const OnboardingGuide: React.FC<OnboardingGuideProps> = ({ isDarkMode, ch
         <rect width="100%" height="100%" fill="rgba(0,0,0,0.6)" mask="url(#spotlight-mask)" className="pointer-events-auto" />
       </svg>
 
-      {/* Guide Content Card */}
+      {/* Simple Semi-transparent White Card */}
       <div 
         className="absolute z-[310] flex flex-col pointer-events-none transition-all duration-500 ease-in-out"
         style={{ top: pos.top, left: pos.left }}
       >
-        <div className="w-[280px] p-6 rounded-2xl shadow-2xl pointer-events-auto bg-white/80 backdrop-blur-xl border-none animate-in zoom-in-95 duration-300">
+        <div className="w-[280px] p-6 rounded-xl shadow-2xl pointer-events-auto bg-white/85 backdrop-blur-md border-none animate-in zoom-in-95 duration-300">
            <div className="flex items-center justify-between mb-4">
-              <span className="text-[9px] font-black text-black/30 uppercase tracking-[0.2em]">User Guide {step}/5</span>
+              <span className="text-[9px] font-black text-black/30 uppercase tracking-widest">Guide {step}/5</span>
            </div>
            
-           <div className="text-[13px] font-medium leading-relaxed mb-6 whitespace-pre-line text-black/90">
-              {step === 1 && "설정에서 다크모드, 절전모드, API키 등을 변경할 수 있습니다."}
-              {step === 2 && <span>최애를 눌러 <b>응원</b>을 받을 수 있습니다.</span>"}
-              {step === 3 && <span>TIP : ${characterName}와 함께하는 100분 동안\n화면이 꺼지지 않도록 기기의 디스플레이 <b>잠금 설정</b>을 확인하고 <b>충전기</b>를 미리 연결해 주세요.</span>}
-              {step === 4 && "되돌아가기:\n짧게 누르면 현재의 25분 집중 시간만 초기화되고,\n길게 누르면 전체가 초기화됩니다."}
+           <div className="text-[13px] font-medium leading-relaxed mb-6 whitespace-pre-line text-black">
+              {step === 1 && <span><b>설정</b>에서 다크모드, 절전모드, API키 등을 변경할 수 있습니다.</span>}
+              {step === 2 && <span>최애를 눌러 <b>응원</b>을 받을 수 있습니다.</span>}
+              {step === 3 && <span><b>TIP</b> : {characterName}와 함께하는 100분 동안 화면이 꺼지지 않도록 기기의 디스플레이 <b>잠금 설정</b>을 확인하고 <b>충전기</b>를 미리 연결해 주세요.</span>}
+              {step === 4 && <span><b>되돌아가기</b>:<br/>짧게 누르면 현재의 25분 집중 시간만 초기화되고, 길게 누르면 <b>전체</b>가 초기화됩니다.</span>}
               {step === 5 && <span>이제 <b>시작</b>을 누르고 최애와 함께 100분 간 집중 해 볼까요?</span>}
            </div>
            
@@ -124,7 +124,7 @@ export const OnboardingGuide: React.FC<OnboardingGuideProps> = ({ isDarkMode, ch
               {step < 5 ? (
                 <button 
                   onClick={handleNext}
-                  className="py-1.5 px-3 bg-black text-white rounded-lg font-bold text-[11px] active:scale-95 transition-all flex items-center gap-1 hover:bg-black/80 shadow-md"
+                  className="py-1.5 px-3 bg-black text-white rounded-lg font-bold text-[11px] active:scale-95 transition-all flex items-center gap-1 shadow-sm"
                 >
                   다음 <ChevronRight size={12} strokeWidth={3} />
                 </button>
@@ -132,13 +132,13 @@ export const OnboardingGuide: React.FC<OnboardingGuideProps> = ({ isDarkMode, ch
                 <div className="flex gap-2 w-full">
                   <button 
                     onClick={() => onClose(true)}
-                    className="flex-1 py-1.5 bg-black/5 text-black/40 rounded-lg font-bold text-[10px] active:scale-95 transition-all hover:bg-black/10"
+                    className="flex-1 py-1.5 bg-black/5 text-black/50 rounded-lg font-bold text-[10px] active:scale-95 transition-all"
                   >
                     다시 보지 않기
                   </button>
                   <button 
                     onClick={() => onClose(false)}
-                    className="flex-1 py-1.5 bg-black text-white rounded-lg font-bold text-[11px] active:scale-95 transition-all hover:bg-black/80 shadow-md"
+                    className="flex-1 py-1.5 bg-black text-white rounded-lg font-bold text-[11px] active:scale-95 transition-all shadow-md"
                   >
                     닫기
                   </button>
