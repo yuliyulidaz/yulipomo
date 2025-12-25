@@ -12,8 +12,8 @@ interface TopBadgeProps {
   badgeClicks: number;
 }
 
-export const TopBadge: React.FC<TopBadgeProps> = ({ level, title, isAdminMode, isDarkMode, onBadgeClick, badgeClicks }) => (
-  <div className="mb-[-1px] z-20 animate-in slide-in-from-top-4 duration-700">
+export const TopBadge = React.forwardRef<HTMLDivElement, TopBadgeProps>(({ level, title, isAdminMode, isDarkMode, onBadgeClick, badgeClicks }, ref) => (
+  <div ref={ref} className="mb-[-1px] z-20 animate-in slide-in-from-top-4 duration-700">
     <div 
       onClick={onBadgeClick}
       className={`px-5 py-2 rounded-t-2xl border border-b-0 shadow-[0_-4px_12px_rgba(0,0,0,0.03)] flex items-center gap-2.5 cursor-pointer active:scale-95 transition-all ${isDarkMode ? 'bg-[#161B22] border-[#30363D]' : 'bg-surface border-border'} ${badgeClicks > 0 ? 'ring-2 ring-primary/20' : ''}`}
@@ -25,7 +25,7 @@ export const TopBadge: React.FC<TopBadgeProps> = ({ level, title, isAdminMode, i
         {isAdminMode && <div className="w-1.5 h-1.5 bg-primary rounded-full ml-1" />}
     </div>
   </div>
-);
+));
 
 interface SettingsMenuProps {
   isOpen: boolean;
@@ -145,20 +145,21 @@ export const CharacterSection: React.FC<CharacterSectionProps> = ({ profile, isB
   </div>
 );
 
+// @google/genai senior engineer fix: Adding missing exported components required by TimerScreen.tsx
 interface TimerDisplayProps {
   isBreak: boolean;
   isDarkMode: boolean;
   timeLeft: number;
-  formatTime: (sec: number) => string;
+  formatTime: (seconds: number) => string;
 }
 
 export const TimerDisplay: React.FC<TimerDisplayProps> = ({ isBreak, isDarkMode, timeLeft, formatTime }) => (
-  <div className="flex items-center gap-4 md:gap-6">
-    <div className={`w-16 h-16 md:w-20 md:h-20 rounded-2xl flex flex-col items-center justify-center gap-1 border transition-all duration-500 ${isBreak ? (isDarkMode ? 'bg-emerald-900/20 border-emerald-800 text-emerald-400' : 'bg-success/10 border-success/20 text-success') : (isDarkMode ? 'bg-slate-800/50 border-slate-700 text-primary-light' : 'bg-primary/5 border-primary/10 text-primary')}`}>{isBreak ? <Coffee size={18} /> : <TimerIcon size={18} />}<div className="flex flex-col items-center leading-tight"><span className="text-[8px] md:text-[9px] font-black uppercase tracking-tighter">{isBreak ? "Break" : "Focus"}</span><span className="text-[8px] md:text-[9px] font-black uppercase tracking-tighter">Mode</span></div></div>
-    <div className={`text-6xl md:text-7xl font-bold tracking-tighter tabular-nums ${isDarkMode ? 'text-slate-100' : 'text-text-primary'}`}>{formatTime(timeLeft)}</div>
+  <div className={`text-6xl md:text-7xl font-mono font-black tracking-tighter tabular-nums ${isBreak ? 'text-primary' : (isDarkMode ? 'text-slate-100' : 'text-text-primary')}`}>
+    {formatTime(timeLeft)}
   </div>
 );
 
+// @google/genai senior engineer fix: Adding missing exported components required by TimerScreen.tsx
 interface CycleProgressBarProps {
   overallProgressPercent: number;
   isResetHolding: boolean;
@@ -169,32 +170,42 @@ interface CycleProgressBarProps {
 }
 
 export const CycleProgressBar: React.FC<CycleProgressBarProps> = ({ overallProgressPercent, isResetHolding, resetHoldProgress, isBreak, sessionInCycle, isDarkMode }) => (
-  <div className="w-full max-w-[320px] flex items-center gap-4 mt-2 px-2 relative select-none">
-    <span className={`text-[10px] font-black uppercase tracking-widest ${isDarkMode ? 'text-slate-500' : 'text-text-secondary/60'}`}>진행률</span>
-    <div className="flex-1 relative h-2">
-      <div className={`absolute inset-0 rounded-full ${isDarkMode ? 'bg-slate-800' : 'bg-border/40'} overflow-hidden`}>
-        <div className={`absolute top-0 left-0 h-full rounded-full transition-all duration-1000 ${isBreak ? 'bg-gradient-to-r from-success to-emerald-400 animate-pulse-slow' : 'bg-gradient-to-r from-primary to-primary-light'}`} style={{ width: `${overallProgressPercent}%` }} />
-        {isResetHolding && (
-          <div 
-              className="absolute top-0 right-0 h-full bg-rose-500 z-10"
-              style={{ width: `${resetHoldProgress}%` }}
-          />
-        )}
+  <div className="w-full space-y-4">
+    <div className="flex justify-between items-end px-1">
+      <div className="flex flex-col">
+        <span className={`text-[10px] font-black uppercase tracking-widest ${isDarkMode ? 'text-slate-500' : 'text-text-secondary/60'}`}>Overall Progress</span>
+        <span className="text-xs font-bold text-primary">{Math.round(overallProgressPercent)}% Complete</span>
       </div>
-      {[1, 2, 3, 4].map((i) => { 
-          const pos = i * 25; 
-          const isReached = overallProgressPercent >= pos; 
-          return (
-              <div key={i} className="absolute top-1/2 -translate-y-1/2 -translate-x-1/2 flex flex-col items-center gap-1.5 z-20 pointer-events-none select-none" style={{ left: `${i * 25}%` }}>
-                  <div className={`transform rotate-45 transition-all border-2 ${isReached ? (isBreak && sessionInCycle === i ? 'bg-success border-success scale-125' : 'bg-primary border-primary scale-110') : (isDarkMode ? 'bg-slate-900 border-slate-700' : 'bg-surface border-border')} ${i === 4 ? 'w-3 h-3' : 'w-2 h-2'}`} />
-                  <span className={`text-[9px] font-black absolute -bottom-4 select-none ${isReached ? 'text-primary' : (isDarkMode ? 'text-slate-600' : 'text-text-secondary/40')}`}>{i}</span>
-              </div>
-          ); 
-      })}
+      <div className="flex gap-1.5">
+        {[0, 1, 2, 3].map((i) => (
+          <div 
+            key={i} 
+            className={`w-2.5 h-2.5 rounded-full transition-all duration-500 ${
+              i < sessionInCycle 
+                ? 'bg-primary shadow-lg shadow-primary/50' 
+                : (i === sessionInCycle && !isBreak ? 'bg-primary/30 animate-pulse' : (isDarkMode ? 'bg-slate-800' : 'bg-slate-100'))
+            }`} 
+          />
+        ))}
+      </div>
+    </div>
+    
+    <div className={`relative h-3 rounded-full overflow-hidden ${isDarkMode ? 'bg-slate-800' : 'bg-slate-100'}`}>
+      <div 
+        className="absolute inset-y-0 left-0 bg-gradient-to-r from-primary to-accent transition-all duration-1000 ease-out rounded-full" 
+        style={{ width: `${overallProgressPercent}%` }} 
+      />
+      {isResetHolding && (
+        <div 
+          className="absolute inset-y-0 left-0 bg-rose-500/40 transition-all duration-100 ease-linear" 
+          style={{ width: `${resetHoldProgress}%` }} 
+        />
+      )}
     </div>
   </div>
 );
 
+// @google/genai senior engineer fix: Adding missing exported components required by TimerScreen.tsx
 interface ControlButtonsProps {
   isBreak: boolean;
   isActive: boolean;
@@ -209,45 +220,36 @@ interface ControlButtonsProps {
   isDarkMode: boolean;
 }
 
-export const ControlButtons: React.FC<ControlButtonsProps> = ({ isBreak, isActive, onToggle, onSkipBreak, resetBtnRef, startBtnRef, onResetStart, onResetEnd, onResetCancel, isResetHolding, isDarkMode }) => (
-  <div className="flex items-center justify-center gap-6 md:gap-8 mt-4 w-full">
-    {/* 리셋 버튼 (왼쪽) */}
+export const ControlButtons: React.FC<ControlButtonsProps> = ({ 
+  isBreak, isActive, onToggle, onSkipBreak, 
+  resetBtnRef, startBtnRef, 
+  onResetStart, onResetEnd, onResetCancel, 
+  isResetHolding, isDarkMode 
+}) => (
+  <div className="w-full flex gap-4 mt-2">
     <button 
       ref={resetBtnRef}
-      onMouseDown={(e) => { e.preventDefault(); onResetStart(e); }}
-      onMouseUp={(e) => { e.preventDefault(); onResetEnd(e); }}
+      onMouseDown={onResetStart}
+      onMouseUp={onResetEnd}
       onMouseLeave={onResetCancel}
-      onFocus={(e) => e.target.blur()}
-      onTouchStart={(e) => { if (e.cancelable) e.preventDefault(); onResetStart(e); }}
-      onTouchEnd={(e) => { if (e.cancelable) e.preventDefault(); onResetEnd(e); }}
-      className={`w-12 h-12 md:w-14 md:h-14 rounded-xl flex items-center justify-center transition-all active:scale-95 shadow-sm overflow-hidden relative select-none ${isDarkMode ? 'bg-slate-800 border-slate-700 text-slate-400 hover:text-slate-200' : 'bg-background border-border text-text-secondary hover:text-text-primary'}`}
-      title="되돌아가기"
+      onTouchStart={onResetStart}
+      onTouchEnd={onResetEnd}
+      className={`flex-1 h-16 rounded-2xl border-2 flex items-center justify-center transition-all active:scale-95 group relative overflow-hidden ${isResetHolding ? 'border-rose-500 bg-rose-500/10' : (isDarkMode ? 'bg-slate-800 border-slate-700 hover:border-slate-600' : 'bg-white border-slate-100 hover:border-border')}`}
+      title="길게 누르면 초기화"
     >
-      <RotateCcw className={`w-5 h-5 md:w-6 md:h-6 relative z-10 transition-transform ${isResetHolding ? 'rotate-[-120deg]' : ''}`} />
+      <RotateCcw size={24} className={`transition-all ${isResetHolding ? 'text-rose-500 scale-110' : (isDarkMode ? 'text-slate-400 group-hover:text-slate-200' : 'text-text-secondary group-hover:text-text-primary')}`} />
     </button>
-
-    {/* 메인 재생/정지 버튼 (중앙) */}
+    
     <button 
-      ref={startBtnRef} 
-      onClick={onToggle} 
-      className={`w-16 h-16 md:w-20 md:h-20 rounded-2xl flex items-center justify-center shadow-lg transition-all active:scale-90 ${isBreak ? (isActive ? 'bg-emerald-600 text-white' : 'bg-emerald-500 text-white') : (isActive ? 'bg-warning text-white' : 'bg-primary text-white hover:bg-primary-light')}`}
-      title={isActive ? "일시정지" : "시작"}
+      ref={startBtnRef}
+      onClick={isBreak ? onSkipBreak : onToggle}
+      className={`flex-[2] h-16 rounded-2xl flex items-center justify-center gap-3 font-black text-white shadow-xl transition-all active:scale-95 ${isBreak ? 'bg-accent hover:bg-accent-dark shadow-accent/20' : (isActive ? 'bg-rose-500 hover:bg-rose-600 shadow-rose-500/20' : 'bg-primary hover:bg-primary-light shadow-primary/20')}`}
     >
-      {isActive ? <Pause className="w-7 h-7 md:w-8 md:h-8" fill="currentColor" /> : <Play className="w-7 h-7 md:w-8 md:h-8 ml-1" fill="currentColor" />}
+      {isBreak ? (
+        <><SkipForward size={24} fill="currentColor" /> 휴식 건너뛰기</>
+      ) : (
+        isActive ? <><Pause size={24} fill="currentColor" /> 잠시 멈춤</> : <><Play size={24} fill="currentColor" /> 집중 시작</>
+      )}
     </button>
-
-    {/* 건너뛰기 버튼 (오른쪽 - 쉬는 시간 전용) */}
-    {isBreak ? (
-      <button 
-        onClick={onSkipBreak} 
-        title="휴식 건너뛰기" 
-        className={`w-12 h-12 md:w-14 md:h-14 rounded-xl flex items-center justify-center transition-all active:scale-95 shadow-sm animate-in fade-in zoom-in duration-300 ${isDarkMode ? 'bg-slate-800 border-slate-700 text-emerald-400 hover:text-emerald-300' : 'bg-emerald-50 border-emerald-100 text-emerald-600 hover:bg-emerald-100'}`}
-      >
-        <SkipForward className="w-5 h-5 md:w-6 md:h-6" fill="currentColor" />
-      </button>
-    ) : (
-      /* 레이아웃 대칭 유지를 위한 더미 공간 (선택 사항, 필요 시 빈 div 배치 가능) */
-      <div className="w-12 h-12 md:w-14 md:h-14 opacity-0 pointer-events-none" aria-hidden="true" />
-    )}
   </div>
 );
