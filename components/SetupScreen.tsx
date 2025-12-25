@@ -39,7 +39,7 @@ export const SetupScreen: React.FC<SetupScreenProps> = ({ onComplete }) => {
   const [currentQuizStep, setCurrentQuizStep] = useState<number>(0); 
   const [selectedStyles, setSelectedStyles] = useState<DialogueStyles>({ late: '', gift: '', lazy: '' });
   
-  // 퀴즈 임시 선택 상태 (확정 전 하이라이트용)
+  // 퀴즈 현재 단계에서 표시할 선택값
   const [tempQuizSelection, setTempQuizSelection] = useState<string>('');
 
   // Refs
@@ -50,7 +50,6 @@ export const SetupScreen: React.FC<SetupScreenProps> = ({ onComplete }) => {
   const userNameInputRef = useRef<HTMLInputElement>(null);
   const apiKeyInputRef = useRef<HTMLInputElement>(null);
 
-  // 에러 발생 시 3초 후 자동 삭제
   useEffect(() => {
     if (error) {
       const timer = setTimeout(() => setError(null), 3000);
@@ -58,19 +57,18 @@ export const SetupScreen: React.FC<SetupScreenProps> = ({ onComplete }) => {
     }
   }, [error]);
 
-  // 스텝 또는 퀴즈 소단계 변경 시 스크롤 상단 이동 및 에러 메시지 초기화
   useEffect(() => {
     if (containerRef.current) {
       containerRef.current.scrollTo({ top: 0, behavior: 'smooth' });
     }
     setError(null);
     
-    // 퀴즈 단계 이동 시 이미 선택된 값이 있다면 임시 선택값으로 복구
+    // 퀴즈 단계나 스텝 변경 시 이미 저장된 선택값이 있으면 불러오기
     if (step === 'QUIZ') {
       const quizKeys = (['late', 'gift', 'lazy'] as const);
       setTempQuizSelection(selectedStyles[quizKeys[currentQuizStep]] || '');
     }
-  }, [step, currentQuizStep]);
+  }, [step, currentQuizStep, selectedStyles]);
 
   const togglePersonality = (keyword: string) => {
     setSelectedPersonalities(prev => {
@@ -121,7 +119,6 @@ export const SetupScreen: React.FC<SetupScreenProps> = ({ onComplete }) => {
     return true;
   };
 
-  // 현재 단계가 유효한지 실시간 확인 (버튼 흐림 효과용)
   const isCurrentStepValid = () => {
     if (step === 'STEP1') return !!imageSrc && !!name.trim() && !!charGender;
     if (step === 'STEP2') return !!selectedTone && selectedPersonalities.length > 0;
@@ -183,7 +180,6 @@ export const SetupScreen: React.FC<SetupScreenProps> = ({ onComplete }) => {
       const parsed = JSON.parse(response.text || '{}');
       if (parsed[targetKey]) {
           setQuizData(prev => ({ ...prev!, [targetKey]: parsed[targetKey] }));
-          // 새로고침 시 현재 단계의 선택값을 초기화하여 데이터 무결성 유지
           handleQuizSelect('');
       }
     } catch (e) { setError("새로고침 실패."); } finally { setIsPartialRefreshing(false); }
@@ -218,7 +214,7 @@ export const SetupScreen: React.FC<SetupScreenProps> = ({ onComplete }) => {
 
   return (
     <div className="min-h-screen bg-white flex items-center justify-center p-0 font-sans">
-      <div className="w-full max-w-xl bg-white flex flex-col h-screen md:h-[720px] relative">
+      <div className="w-full max-w-xl bg-white flex flex-col h-screen md:h-[720px] relative overflow-hidden">
         
         {/* 상단 스텝 알림 바 */}
         <div className="absolute top-0 left-0 w-full flex bg-white z-20">
@@ -229,7 +225,8 @@ export const SetupScreen: React.FC<SetupScreenProps> = ({ onComplete }) => {
               if (step === 'STEP2' && i <= 2) isActive = true;
               if (step === 'STEP3' && i <= 3) isActive = true;
             } else {
-              if (currentQuizStep + 1 >= i) isActive = true;
+              // 퀴즈 진행 중에도 3개 바 모두 활성 상태 유지
+              isActive = true;
             }
             return (
               <div 
@@ -240,7 +237,7 @@ export const SetupScreen: React.FC<SetupScreenProps> = ({ onComplete }) => {
           })}
         </div>
 
-        <div ref={containerRef} className="flex-1 overflow-y-auto scroll-smooth">
+        <div ref={containerRef} className="flex-1 overflow-y-auto scroll-smooth pt-4">
           {step === 'STEP1' && <Step1 name={name} setName={setName} imageSrc={imageSrc} setImageSrc={setImageSrc} charGender={charGender} setCharGender={setCharGender} onLoadClick={() => fileInputRef.current?.click()} fileInputRef={fileInputRef} handleFileChange={handleFileChange} nameInputRef={nameInputRef} />}
           <div className="px-10 pb-28">
             {step === 'STEP2' && <Step2 selectedTone={selectedTone} setSelectedTone={setSelectedTone} selectedPersonalities={selectedPersonalities} togglePersonality={togglePersonality} tmi={tmi} setTmi={setTmi} tmiRef={tmiRef} insertPlaceholder={insertPlaceholder} />}
