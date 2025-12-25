@@ -113,11 +113,11 @@ export const OnboardingGuide: React.FC<OnboardingGuideProps> = ({ isDarkMode, ch
            </div>
            
            <div className="text-[13px] font-medium leading-relaxed mb-6 whitespace-pre-line text-black/90">
-              {step === 1 && "설정: 다크모드, API키 등 설정을 자유롭게 변경할 수 있습니다."}
-              {step === 2 && "캐릭터: 최애를 눌러 대화를 나누거나 응원을 받을 수 있습니다."}
-              {step === 3 && `TIP : ${characterName}와 함께하는 100분 동안\n화면이 꺼지지 않도록 잠금 설정을 확인하고 충전기를 미리 연결해 주세요.`}
-              {step === 4 && "되돌아가기:\n짧게 누르면 현재 세션이 초기화되고,\n길게 누르면 전체 사이클이 초기화됩니다."}
-              {step === 5 && "시작: 이제 버튼을 눌러 소중한 집중의 시간을 시작해 보세요."}
+              {step === 1 && "설정: 다크모드, 절전모드, API키 등 설정을 변경할 수 있습니다."}
+              {step === 2 && "<span>캐릭터: 최애를 눌러 <b>응원</b>을 받을 수 있습니다.</span>"}
+              {step === 3 && `<span>TIP : ${characterName}와 함께하는 100분 동안\n화면이 꺼지지 않도록 기기의 디스플레이 <b>잠금 설정</b>을 확인하고 <b>충전기</b>를 미리 연결해 주세요.</span>`}
+              {step === 4 && "되돌아가기:\n짧게 누르면 현재의 25분 집중 시간만 초기화되고,\n길게 누르면 전체가 초기화됩니다."}
+              {step === 5 && "<span>시작: 이제 집중의 시간을 시작해 보세요.</span>"}
            </div>
            
            <div className="flex items-center justify-end">
@@ -140,7 +140,7 @@ export const OnboardingGuide: React.FC<OnboardingGuideProps> = ({ isDarkMode, ch
                     onClick={() => onClose(false)}
                     className="flex-1 py-1.5 bg-black text-white rounded-lg font-bold text-[11px] active:scale-95 transition-all hover:bg-black/80 shadow-md"
                   >
-                    시작하기
+                    닫기
                   </button>
                 </div>
               )}
