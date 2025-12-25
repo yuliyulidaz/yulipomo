@@ -3,6 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { Loader2, PenTool, ArrowRight, Camera } from 'lucide-react';
 import { CharacterProfile } from '../types';
 import { GoogleGenAI, HarmCategory, HarmBlockThreshold } from "@google/genai";
+import { getMoodLabel } from './AIPromptTemplates';
 
 interface ObservationDiaryProps {
   profile: CharacterProfile;
@@ -56,32 +57,45 @@ export const ObservationDiary: React.FC<ObservationDiaryProps> = ({ profile, sta
                            hour >= 17 && hour < 21 ? "짙게 물드는 노을빛" : "고요한 새벽의 정적";
         
         const relationshipTitle = LEVEL_TITLES[profile.level];
-        const intimacyLevel = profile.level <= 3 ? "사무적이고 관찰 위주의 차가운" : 
-                             profile.level <= 7 ? "서로를 알아가는 단계의 다정한" : 
-                             "깊은 애정과 신뢰가 느껴지는 매우 친밀한";
-        
+        const moodLabel = getMoodLabel(profile.level);
         const taskText = profile.todayTask ? `"${profile.todayTask}"에 매진하던` : "무언가에 깊이 몰입하던";
 
-        const prompt = `당신은 '${profile.name}'이라는 캐릭터입니다. 
-          성격: ${profile.personality.join(', ')}. 
-          유저와의 현재 관계: ${relationshipTitle} (호감도 레벨 ${profile.level}/10).
-          
-          방금 유저가 100분간의 집중 세션을 마쳤습니다. 당신은 옆에서 그 모습을 지켜보며 몰래 관찰 일지를 썼습니다.
-          
-          상황 정보:
-          - 유저가 한 일: ${taskText} 모습
-          - 딴짓(이탈) 횟수: ${stats.distractions}번
-          - 당신을 클릭(상호작용)한 횟수: ${stats.clicks}번
-          - 현재 분위기: ${timeContext}
-          
-          요구사항:
-          1. '${profile.name}'의 말투와 성격을 완벽히 유지하세요.
-          2. **중요: 유저와의 호감도(${relationshipTitle}, ${intimacyLevel})를 문장에 적극 반영하세요.** 
-          3. 유저를 관찰하며 느낀 감정을 아주 감성적이고 서정적으로 서술하세요.
-          4. 한국어로 3~4문장 내외로 작성하세요.
-          
-          반드시 다음 JSON 형식으로만 응답하세요:
-          { "content": "작성된 일지 내용" }`;
+        const prompt = `
+[Character Persona]
+- 이름: ${profile.name}
+- 성격: ${profile.personality.join(', ')}
+- 배경 및 TMI: ${profile.speciesTrait || '없음'}
+- 관계 단계: Lv.${profile.level} (${relationshipTitle})
+- 심리 상태: ${moodLabel}
+
+[Input Focus Data]
+- 집중한 일: ${taskText}
+- 딴짓 횟수: ${stats.distractions}회
+- 상호작용(클릭) 횟수: ${stats.clicks}회
+- 현재 분위기: ${timeContext}
+
+[Writing Mission: 비밀 관찰 일지 작성]
+당신은 지난 100분간 유저의 곁을 지키며 이 기록을 작성했습니다. 다음 가이드라인에 따라 '한글'로 일지를 작성하세요.
+
+1. 숫자 언급 지침:
+   - 딴짓 횟수(${stats.distractions})와 클릭 횟수(${stats.clicks})를 문장에 정확히 포함하되, 캐릭터의 말투에 녹여 자연스럽게 언급하세요. (예: "${stats.distractions}번이나 딴짓을 하더군", "나를 ${stats.clicks}번밖에 안 불러주다니")
+
+2. 상호작용(클릭)에 대한 레벨별 해석:
+   - Lv.1~3: "집중에 방해되게 나를 ${stats.clicks}번이나 불러서 귀찮았다"는 뉘앙스.
+   - Lv.4~7: "네가 나를 ${stats.clicks}번이나 찾아줘서 내심 기뻤다"는 친밀한 뉘앙스.
+   - Lv.8~10: "너의 목소리가 더 듣고 싶었다." 만약 클릭이 6회 미만이면 "고작 ${stats.clicks}번이라니, 나를 잊은 건 아닌지 서운하다"는 깊은 애착과 독점욕 표현.
+
+3. 일지 구성 (3~4문장):
+   - [관찰]: 유저가 '${profile.todayTask || '할 일'}'를 할 때의 사소한 습관이나 분위기 묘사 (예: 미간을 찌푸리거나, 숨을 고르거나, 펜을 굴리는 모습 등).
+   - [평가]: 딴짓 횟수와 클릭 횟수에 대한 캐릭터의 주관적 감상.
+   - [약속/응원]: 다음 세션을 위한 구체적인 약속이나 짧고 강렬한 응원.
+
+4. 문체 및 제약:
+   - 유저가 선택한 말투(${profile.personality[0]})와 캐릭터 페르소나를 완벽히 반영할 것.
+   - '랄까', '일까나' 같은 번역투 절대 금지. 한국어 구어체로 서정적이거나 위트 있게 작성.
+
+반드시 다음 JSON 형식으로만 응답하세요:
+{ "content": "작성된 일지 내용" }`;
 
         const response = await ai.models.generateContent({
           model: 'gemini-3-flash-preview',
@@ -129,7 +143,6 @@ export const ObservationDiary: React.FC<ObservationDiaryProps> = ({ profile, sta
   };
 
   const getFontSize = () => {
-    // 폰트 크기를 전체적으로 축소하여 더 많은 글자가 보이게 조정
     if (content.length > 200) return 'text-base';
     if (content.length > 160) return 'text-lg';
     if (content.length > 120) return 'text-xl';
@@ -207,7 +220,6 @@ export const ObservationDiary: React.FC<ObservationDiaryProps> = ({ profile, sta
                       {content}
                    </div>
                    
-                   {/* 서명란을 스크롤 영역 내부 하단으로 이동하여 본문 가용 공간 확보 */}
                    <div className="text-right pt-6 mt-4 border-t border-primary/10 mb-2">
                         <p className="font-diary text-xl md:text-2xl text-primary-dark">
                             <span className="text-[10px] md:text-xs opacity-60 mr-1.5">{LEVEL_TITLES[profile.level]}</span>
