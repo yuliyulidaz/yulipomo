@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Loader2, Check } from 'lucide-react';
 
@@ -47,7 +46,7 @@ export const PersonalityQuiz: React.FC<PersonalityQuizProps> = ({
 
   return (
     <div 
-      className="h-full flex flex-col animate-in fade-in slide-in-from-bottom-4 duration-500 pt-2 cursor-default"
+      className="flex flex-col animate-in fade-in slide-in-from-bottom-4 duration-500 pt-2 cursor-default"
       onClick={() => onTempSelect('')} // 배경 클릭 시 선택 해제
     >
       {/* 상단 영역: 캐릭터 이미지 아이콘 (매우 좁은 간격) */}
@@ -66,7 +65,7 @@ export const PersonalityQuiz: React.FC<PersonalityQuizProps> = ({
         </h2>
       </div>
 
-      {/* 둥근 따옴표 캐릭터 대사 리스트 */}
+      {/* 캐릭터 대사 리스트 */}
       <div className="px-8 space-y-3 flex flex-col">
         {options.map((option, index) => {
           const isSelected = tempSelection === option;
@@ -81,7 +80,7 @@ export const PersonalityQuiz: React.FC<PersonalityQuizProps> = ({
                 }`}
             >
               <p className={`text-sm font-medium leading-relaxed tracking-tight break-keep`}>
-                “{option}”
+                {option}
               </p>
               {isSelected && (
                 <div className="absolute -right-2 -top-2 bg-primary text-white p-1 rounded-full shadow-md animate-in zoom-in duration-300">
@@ -94,7 +93,7 @@ export const PersonalityQuiz: React.FC<PersonalityQuizProps> = ({
       </div>
 
       {/* 리필 버튼: 대사 리스트와 일정한 간격을 두고 바로 아래에 배치 */}
-      <div className="flex justify-center mt-6 pb-10">
+      <div className="flex justify-center mt-6 pb-4">
         <button 
           onClick={handleRefreshClick} 
           disabled={isPartialRefreshing || refreshUsed[currentQuizStep]} 
