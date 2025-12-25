@@ -1,5 +1,6 @@
-import React from 'react';
-import { MessageSquareHeart, Loader2, RefreshCw } from 'lucide-react';
+
+import React, { useState } from 'react';
+import { Loader2, Check } from 'lucide-react';
 
 interface PersonalityQuizProps {
   currentQuizStep: number;
@@ -10,46 +11,99 @@ interface PersonalityQuizProps {
     gift_options: string[];
     lazy_options: string[];
   } | null;
-  onOptionSelect: (option: string) => void;
+  tempSelection: string;
+  onTempSelect: (option: string) => void;
   onRefresh: () => void;
   isPartialRefreshing: boolean;
 }
 
-export const PersonalityQuiz: React.FC<PersonalityQuizProps> = ({ currentQuizStep, name, imageSrc, quizData, onOptionSelect, onRefresh, isPartialRefreshing }) => {
+export const PersonalityQuiz: React.FC<PersonalityQuizProps> = ({ 
+  currentQuizStep, name, imageSrc, quizData, 
+  tempSelection, onTempSelect, 
+  onRefresh, isPartialRefreshing 
+}) => {
+  const [refreshUsed, setRefreshUsed] = useState<Record<number, boolean>>({});
+
   if (!quizData) return null;
   const options = currentQuizStep === 0 ? quizData.late_options : currentQuizStep === 1 ? quizData.gift_options : quizData.lazy_options;
 
+  const handleRefreshClick = (e: React.MouseEvent) => {
+    e.stopPropagation(); // 배경 클릭 이벤트 전파 방지
+    if (refreshUsed[currentQuizStep]) return;
+    setRefreshUsed(prev => ({ ...prev, [currentQuizStep]: true }));
+    onRefresh();
+  };
+
+  const handleOptionClick = (e: React.MouseEvent, option: string) => {
+    e.stopPropagation();
+    // 이미 선택된 것을 다시 누르면 해제, 아니면 선택
+    if (tempSelection === option) {
+      onTempSelect('');
+    } else {
+      onTempSelect(option);
+    }
+  };
+
   return (
-    <div className="space-y-12 animate-in fade-in slide-in-from-bottom-6 duration-700">
-      <div className="text-center space-y-4 px-4">
-        <div className="inline-flex items-center justify-center p-3 bg-primary/5 rounded-2xl border border-primary/10 mb-2"><MessageSquareHeart size={24} className="text-primary" /></div>
-        <h2 className="text-lg font-black text-text-primary tracking-tight leading-tight whitespace-pre-line">
-            {currentQuizStep === 0 && `상황 1. 내가 약속 시간에 늦었을 때.\n${name}은(는)?`}
-            {currentQuizStep === 1 && `상황 2. 선물을 주거나 받을 때.\n${name}은(는)?`}
-            {currentQuizStep === 2 && `상황 3. 휴식 시간.\n${name}은(는)?`}
+    <div 
+      className="h-full flex flex-col animate-in fade-in slide-in-from-bottom-4 duration-500 pt-6 cursor-default"
+      onClick={() => onTempSelect('')} // 배경 클릭 시 선택 해제
+    >
+      {/* 상단 영역: 캐릭터 이미지 아이콘 (간격 축소) */}
+      <div className="flex-shrink-0 flex justify-center mb-4">
+        <div className="w-16 h-16 md:w-20 md:h-20 rounded-full overflow-hidden border-2 border-primary/20 shadow-inner bg-background">
+          <img src={imageSrc || ''} className="w-full h-full object-cover" alt="Character Icon" />
+        </div>
+      </div>
+
+      {/* 상황 설명 문구 (간격 축소) */}
+      <div className="text-center px-6 mb-6">
+        <h2 className="text-sm md:text-base font-black text-text-primary tracking-tight leading-tight whitespace-pre-line">
+            {currentQuizStep === 0 && `상황 1. 내가 약속 시간에 늦었을 때,\n${name}의 반응은?`}
+            {currentQuizStep === 1 && `상황 2. 뜻밖의 선물을 주었을 때,\n${name}의 반응은?`}
+            {currentQuizStep === 2 && `상황 3. 내가 공부 안 하고 딴짓할 때,\n${name}의 반응은?`}
         </h2>
       </div>
-      <div className="space-y-4 px-2">
-        <div className="flex flex-col items-start gap-4">
-          {options.map((option, index) => (
-            <div key={index} className="flex items-start gap-3 w-full group animate-in slide-in-from-left-4 duration-300" style={{ animationDelay: `${index * 100}ms` }}>
-              <div className="w-8 h-8 rounded-lg overflow-hidden border border-border bg-background flex-shrink-0 mt-1">
-                <img src={imageSrc || ''} className="w-full h-full object-cover" alt="Character" />
-              </div>
-              <button onClick={() => onOptionSelect(option)} className="flex-1 max-w-[85%] text-left bg-surface border-2 border-border p-4 rounded-2xl rounded-tl-none hover:border-primary hover:shadow-lg transition-all relative active:scale-[0.98]">
-                <p className="text-sm font-bold text-text-primary leading-relaxed">"{option}"</p>
-                <div className="absolute -left-2 top-0 w-3 h-3 bg-surface rotate-45 border-l-2 border-b-2 border-border group-hover:border-primary transition-colors"></div>
-              </button>
-            </div>
-          ))}
-        </div>
+
+      {/* 둥근 따옴표 안에 캐릭터 대사 리스트 (굵기 완화) */}
+      <div className="flex-1 px-8 space-y-3 flex flex-col justify-start">
+        {options.map((option, index) => {
+          const isSelected = tempSelection === option;
+          return (
+            <button 
+              key={`${currentQuizStep}-${index}`}
+              onClick={(e) => handleOptionClick(e, option)} 
+              className={`w-full py-4 px-6 rounded-xl border-2 transition-all duration-300 relative active:scale-[0.98] flex flex-col items-center justify-center text-center
+                ${isSelected 
+                  ? 'bg-primary/10 border-primary shadow-sm text-primary' 
+                  : (tempSelection ? 'bg-transparent border-transparent text-slate-300 scale-[0.97]' : 'bg-transparent border-transparent text-text-secondary hover:text-primary')
+                }`}
+            >
+              <p className={`text-sm font-medium leading-relaxed tracking-tight break-keep`}>
+                “{option}”
+              </p>
+              {isSelected && (
+                <div className="absolute -right-2 -top-2 bg-primary text-white p-1 rounded-full shadow-md animate-in zoom-in duration-300">
+                  <Check size={10} strokeWidth={4} />
+                </div>
+              )}
+            </button>
+          );
+        })}
       </div>
-      <div className="flex flex-col items-center gap-6 pt-4">
-        <div className="flex gap-3">
-          {[0, 1, 2].map(i => (<div key={i} className={`w-2 h-2 rounded-full transition-all duration-500 ${i === currentQuizStep ? 'bg-primary w-6' : 'bg-border'}`} />))}
-        </div>
-        <button onClick={onRefresh} disabled={isPartialRefreshing} className="inline-flex items-center gap-2 py-2.5 px-5 text-[11px] font-black text-text-secondary hover:text-primary transition-all border-2 border-dashed border-border rounded-xl hover:bg-background">
-          {isPartialRefreshing ? <Loader2 size={12} className="animate-spin"/> : <RefreshCw size={12} />}다른 대사 불러오기
+
+      {/* 하단 보조 텍스트 버튼 */}
+      <div className="flex-shrink-0 flex justify-center pt-4 pb-8">
+        <button 
+          onClick={handleRefreshClick} 
+          disabled={isPartialRefreshing || refreshUsed[currentQuizStep]} 
+          className={`inline-flex items-center gap-1.5 text-[10px] font-bold transition-all uppercase tracking-widest
+            ${refreshUsed[currentQuizStep] 
+              ? 'text-text-secondary/20 cursor-not-allowed' 
+              : 'text-text-secondary/60 hover:text-rose-500 active:scale-95'}`}
+        >
+          {isPartialRefreshing ? <Loader2 size={12} className="animate-spin"/> : null}
+          마음에 드는 대사가 없어요 {refreshUsed[currentQuizStep] ? '(완료)' : '(1회)'}
         </button>
       </div>
     </div>

@@ -3,7 +3,7 @@
 <html lang="ko">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
     <title>최애 뽀모도로</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Nanum+Pen+Script&display=swap" rel="stylesheet">
     <script src="https://cdn.tailwindcss.com"></script>
@@ -47,12 +47,18 @@
         font-family: 'Inter', sans-serif;
         background-color: #F8FAFB;
         overflow: hidden;
+        /* 더블 탭 줌 방지 */
+        touch-action: manipulation;
       }
       .font-diary {
         font-family: 'Nanum Pen Script', cursive;
       }
       ::-webkit-scrollbar {
         display: none;
+      }
+      /* 입력창 포커스 시 자동 확대 방지를 위해 모바일 브라우저 표준에 맞춘 설정 (강제 해제) */
+      input, textarea {
+        font-family: inherit;
       }
     </style>
 <script type="importmap">

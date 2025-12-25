@@ -18,7 +18,8 @@ export interface CharacterProfile {
   name: string;
   honorific: string;
   imageSrc: string | null;
-  gender: 'MALE' | 'FEMALE' | 'NEUTRAL';
+  gender: 'MALE' | 'FEMALE' | 'NEUTRAL'; // 사용자의 성별
+  charGender: 'MALE' | 'FEMALE' | 'NEUTRAL' | ''; // 최애의 성별
   speciesTrait?: string; 
   personality: string[]; 
   selectedDialogueStyles: DialogueStyles; 
