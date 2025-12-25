@@ -1,4 +1,3 @@
-
 import React, { useState, useRef, useEffect } from 'react';
 import { ArrowRight, AlertCircle, Loader2, Sparkles, ArrowLeft } from 'lucide-react';
 import { CharacterProfile, DialogueStyles } from '../types';
@@ -214,10 +213,10 @@ export const SetupScreen: React.FC<SetupScreenProps> = ({ onComplete }) => {
 
   return (
     <div className="min-h-screen bg-white flex items-center justify-center p-0 font-sans">
-      <div className="w-full max-w-xl bg-white flex flex-col h-screen md:h-[720px] relative overflow-hidden">
+      <div className="w-full max-w-xl bg-white flex flex-col h-[100dvh] md:h-[720px] relative overflow-hidden">
         
-        {/* 상단 스텝 알림 바 */}
-        <div className="absolute top-0 left-0 w-full flex bg-white z-20">
+        {/* 상단 스텝 알림 바 (flex-none으로 상단 고정) */}
+        <div className="flex-none w-full flex bg-white z-20">
           {[1, 2, 3].map(i => {
             let isActive = false;
             if (step !== 'QUIZ') {
@@ -225,7 +224,6 @@ export const SetupScreen: React.FC<SetupScreenProps> = ({ onComplete }) => {
               if (step === 'STEP2' && i <= 2) isActive = true;
               if (step === 'STEP3' && i <= 3) isActive = true;
             } else {
-              // 퀴즈 진행 중에도 3개 바 모두 활성 상태 유지
               isActive = true;
             }
             return (
@@ -237,16 +235,18 @@ export const SetupScreen: React.FC<SetupScreenProps> = ({ onComplete }) => {
           })}
         </div>
 
-        <div ref={containerRef} className="flex-1 overflow-y-auto scroll-smooth pt-4">
+        {/* 메인 콘텐츠 영역 (flex-1 overflow-y-auto로 스크롤 가능하게 설정) */}
+        <div ref={containerRef} className="flex-1 overflow-y-auto scroll-smooth pt-4 relative">
           {step === 'STEP1' && <Step1 name={name} setName={setName} imageSrc={imageSrc} setImageSrc={setImageSrc} charGender={charGender} setCharGender={setCharGender} onLoadClick={() => fileInputRef.current?.click()} fileInputRef={fileInputRef} handleFileChange={handleFileChange} nameInputRef={nameInputRef} />}
-          <div className="px-10 pb-28">
+          <div className="px-10 pb-8">
             {step === 'STEP2' && <Step2 selectedTone={selectedTone} setSelectedTone={setSelectedTone} selectedPersonalities={selectedPersonalities} togglePersonality={togglePersonality} tmi={tmi} setTmi={setTmi} tmiRef={tmiRef} insertPlaceholder={insertPlaceholder} />}
             {step === 'STEP3' && <Step3 userName={userName} setUserName={setUserName} honorific={honorific} setHonorific={setHonorific} gender={gender} setGender={setGender} todayTask={todayTask} setTodayTask={setTodayTask} apiKey={apiKey} setApiKey={setApiKey} name={name} userNameInputRef={userNameInputRef} apiKeyInputRef={apiKeyInputRef} />}
           </div>
           {step === 'QUIZ' && <PersonalityQuiz currentQuizStep={currentQuizStep} name={name} imageSrc={imageSrc} quizData={quizData} tempSelection={tempQuizSelection} onTempSelect={handleQuizSelect} onRefresh={refreshCurrentQuizStep} isPartialRefreshing={isPartialRefreshing} />}
         </div>
 
-        <div className="absolute bottom-0 left-0 w-full p-4 bg-white flex flex-col gap-3">
+        {/* 하단 버튼 영역 (flex-none으로 바닥에 물리적으로 고정) */}
+        <div className="flex-none p-4 bg-white flex flex-col gap-3 relative border-t border-slate-50">
           {error && (
             <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-4 w-[90%] max-w-sm px-4 py-3 bg-[#FF7F50] text-white text-[11px] font-bold rounded-xl flex items-center gap-2 shadow-xl animate-in slide-in-from-bottom-2 duration-300">
               <AlertCircle size={14} className="shrink-0" />
