@@ -1,3 +1,4 @@
+
 import React, { useState, useRef, useEffect } from 'react';
 import { ArrowRight, AlertCircle, Loader2, Sparkles, ArrowLeft } from 'lucide-react';
 import { CharacterProfile, DialogueStyles } from '../types';
@@ -151,13 +152,47 @@ export const SetupScreen: React.FC<SetupScreenProps> = ({ onComplete }) => {
     try {
       const ai = new GoogleGenAI({ apiKey });
       const processedTmi = tmi.replace(/{{user}}/g, userName).replace(/{{char}}/g, name);
-      const prompt = `Character Name: ${name}, User: ${userName}, Style: ${selectedTone}, Personality: [${selectedPersonalities.join(', ')}], TMI: ${processedTmi}. Create 3 Korean dialogue options for 3 situations: late_options, gift_options, lazy_options. JSON Format.`;
+      
+      const prompt = `
+[Character Engine: Core Personality Construction]
+1. Identity:
+- Name: ${name} (${charGender})
+- Core Personality: ${selectedPersonalities.join(', ')}
+- Speech Tone: ${selectedTone}
+- Background Quirk (TMI): ${processedTmi}
+
+2. Target User:
+- Name: ${userName} (${gender})
+- Preferred Honorific: ${honorific || '유저'}
+
+3. Mission: Create 9 distinct Korean dialogue options (3 for each situation).
+
+4. Situations & Goals:
+- Situation 1 (Late): The user is late for a promised time. Show how ${name} reacts.
+- Situation 2 (Gift): The user gives a surprise gift. Capture gratitude mixed with traits.
+- Situation 3 (Lazy): The user is procrastinating. Show 'scolding' or 'nagging' style.
+
+5. Creative Guidelines:
+- Length: Strictly under 30 Korean characters per line.
+- Diversity: For each situation, provide 3 options: [Option A: Standard / Option B: Emotional / Option C: TMI-centric].
+- Naturalness: Use realistic, modern Korean. Avoid literal translations or cartoonish cliches.
+- Dynamic: Naturally integrate {honorific} or user's name.
+
+Strictly JSON only.`;
+
       const response = await ai.models.generateContent({
         model: 'gemini-3-flash-preview',
         contents: prompt,
         config: {
           responseMimeType: "application/json",
-          responseSchema: { type: Type.OBJECT, properties: { late_options: { type: Type.ARRAY, items: { type: Type.STRING } }, gift_options: { type: Type.ARRAY, items: { type: Type.STRING } }, lazy_options: { type: Type.ARRAY, items: { type: Type.STRING } } } },
+          responseSchema: { 
+            type: Type.OBJECT, 
+            properties: { 
+              late_options: { type: Type.ARRAY, items: { type: Type.STRING } }, 
+              gift_options: { type: Type.ARRAY, items: { type: Type.STRING } }, 
+              lazy_options: { type: Type.ARRAY, items: { type: Type.STRING } } 
+            } 
+          },
           safetySettings: SAFETY_SETTINGS
         },
       });
@@ -175,7 +210,19 @@ export const SetupScreen: React.FC<SetupScreenProps> = ({ onComplete }) => {
       const situationKeys = ["late_options", "gift_options", "lazy_options"];
       const situations = ["지각했을 때", "선물이나 칭찬을 받았을 때", "딴짓을 할 때"];
       const targetKey = situationKeys[currentQuizStep];
-      const prompt = `NEW 3 Korean options for "${situations[currentQuizStep]}" situation. JSON key: "${targetKey}". Character: ${name}, Style: ${selectedTone}.`;
+      const processedTmi = tmi.replace(/{{user}}/g, userName).replace(/{{char}}/g, name);
+
+      const prompt = `
+Create 3 NEW Korean dialogue options for the situation: "${situations[currentQuizStep]}".
+Character: ${name} (${charGender}), Personality: ${selectedPersonalities.join(', ')}, Style: ${selectedTone}, TMI: ${processedTmi}.
+Target User: ${userName} (${gender}), Honorific: ${honorific || '유저'}.
+
+Guidelines:
+- Strictly under 30 characters.
+- 3 variants: [A: Standard / B: Emotional / C: TMI-centric].
+- Return JSON with key: "${targetKey}".
+`;
+
       const response = await ai.models.generateContent({
         model: 'gemini-3-flash-preview', contents: prompt,
         config: { responseMimeType: "application/json", safetySettings: SAFETY_SETTINGS },
