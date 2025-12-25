@@ -155,7 +155,7 @@ export const TimerScreen: React.FC<TimerScreenProps> = ({
     
     // 3. 설정 메뉴 닫기 및 보안 경고 토스트 대사 (5초간 노출)
     setIsSettingsOpen(false);
-    const warningMsg = "이 저장 파일에는 지금 사용중인 API코드가 포함되어 있습니다. 절대로 타인과 공유하지 마세요.";
+    const warningMsg = "파일에는 API코드가 포함되어 있습니다. 절대로 타인과 공유하지 마세요.";
     setMessage(warningMsg);
     
     // 5초 뒤에 경고 메시지 제거 (사용자가 도중에 클릭해서 메시지가 바뀌지 않은 경우에만)
