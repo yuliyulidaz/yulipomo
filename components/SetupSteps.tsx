@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Camera, FileJson, Heart, ExternalLink, ClipboardPaste, X } from 'lucide-react';
 import { FileUpload } from './FileUpload';
@@ -18,8 +17,8 @@ interface Step1Props {
 }
 
 export const Step1: React.FC<Step1Props> = ({ name, setName, imageSrc, setImageSrc, charGender, setCharGender, onLoadClick, fileInputRef, handleFileChange, nameInputRef }) => (
-  <div className="h-full min-h-[600px] flex flex-col items-center animate-in fade-in duration-700">
-    <div className="flex-1 w-full flex flex-col items-center justify-center pt-10">
+  <div className="flex flex-col items-center animate-in fade-in duration-700">
+    <div className="w-full flex flex-col items-center justify-center pt-10">
       <div className="text-center">
         <div className="flex items-center justify-center gap-2 mb-4">
             <Heart size={14} className="text-accent fill-accent" />
@@ -37,8 +36,8 @@ export const Step1: React.FC<Step1Props> = ({ name, setName, imageSrc, setImageS
       </div>
     </div>
 
-    <div className="flex-1 w-full flex flex-col items-center pt-8">
-      <div className="w-full max-w-xs space-y-10 flex flex-col items-center px-4">
+    <div className="w-full flex flex-col items-center pt-8 pb-12">
+      <div className="w-full max-w-[280px] space-y-10 flex flex-col items-center px-4">
         <div className="relative w-full">
           <label className="absolute -top-6 left-0 text-[10px] font-bold text-text-secondary uppercase tracking-widest">
             최애 이름 <span className="text-rose-500">*</span>
@@ -190,7 +189,7 @@ export const Step3: React.FC<Step3Props> = ({ userName, setUserName, honorific, 
     <div className="animate-in fade-in slide-in-from-right-4 duration-500 pt-16">
       <div className="text-center space-y-3 mb-16">
         <h1 className="text-xl font-black text-text-primary mb-2">우리의 연결</h1>
-        <p className="text-text-secondary text-[11px] font-medium">마지막 관문입니다. 당신을 알려주세요.</p>
+        <h2 className="text-text-secondary text-[11px] font-medium">마지막 관문입니다. 당신을 알려주세요.</h2>
       </div>
 
       <div className="space-y-20 px-2">
