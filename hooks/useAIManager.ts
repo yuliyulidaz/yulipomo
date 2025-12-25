@@ -72,7 +72,10 @@ export const useAIManager = (
         });
       }
     } catch (e: any) {
-      if (e.message?.includes('API_KEY_INVALID') || e.status === 401 || e.status === 403) setPendingExpiryAlert(true);
+      // 401(인증실패), 403(권한부족), 429(할당량초과) 에러 발생 시 경고 플래그 활성화
+      if (e.message?.includes('API_KEY_INVALID') || e.status === 401 || e.status === 403 || e.status === 429) {
+        setPendingExpiryAlert(true);
+      }
     } finally {
       isRefillingRef.current[category] = false;
     }
