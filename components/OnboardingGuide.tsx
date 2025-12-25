@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useMemo } from 'react';
 import { ChevronRight } from 'lucide-react';
 
@@ -17,7 +16,10 @@ interface OnboardingGuideProps {
 
 export const OnboardingGuide: React.FC<OnboardingGuideProps> = ({ isDarkMode, characterName, targets, onClose }) => {
   const [step, setStep] = useState(1);
-  const [spotlight, setSpotlight] = useState<{ cx: number; cy: number; r: number; visible: boolean; extra?: { cx: number; cy: number; r: number } }>({ cx: 0, cy: 0, r: 0, visible: false });
+  const [spotlight, setSpotlight] = useState<{ 
+    cx: number; cy: number; r: number; visible: boolean; 
+    extra?: { cx: number; cy: number; r: number } 
+  }>({ cx: 0, cy: 0, r: 0, visible: false });
 
   const updateSpotlight = useMemo(() => () => {
     let target: HTMLElement | null = null;
@@ -28,8 +30,7 @@ export const OnboardingGuide: React.FC<OnboardingGuideProps> = ({ isDarkMode, ch
     if (step === 2) { 
       target = targets.character.current; 
       radius = 100;
-      
-      // 2단계에서 호감도 단위 표시 스포트라이트 추가
+      // 2단계에서 상단 호감도 표시 배지도 함께 강조
       if (targets.affinity.current) {
         const rect = targets.affinity.current.getBoundingClientRect();
         extraSpotlight = {
@@ -92,7 +93,7 @@ export const OnboardingGuide: React.FC<OnboardingGuideProps> = ({ isDarkMode, ch
 
     // 사용자 요청에 따른 특정 스텝 높이 추가 조정
     if (step === 4) verticalOffset = -220; // 4번은 많이 위로
-    if (step === 5) verticalOffset = -190; // 5번은 너무 멀지 않게
+    if (step === 5) verticalOffset = -190; // 5번은 너무 멀지 않게 위치 조정
 
     const leftPos = Math.max(20, Math.min(window.innerWidth - 300, spotlight.cx - 140));
     
@@ -121,7 +122,7 @@ export const OnboardingGuide: React.FC<OnboardingGuideProps> = ({ isDarkMode, ch
               className="transition-all duration-500 ease-in-out"
             />
             {spotlight.extra && (
-               <circle 
+              <circle 
                 cx={spotlight.extra.cx} 
                 cy={spotlight.extra.cy} 
                 r={spotlight.extra.r} 
