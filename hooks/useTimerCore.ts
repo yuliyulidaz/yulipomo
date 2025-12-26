@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useCallback } from 'react';
 import { CharacterProfile } from '../types';
 
@@ -6,7 +5,8 @@ export const useTimerCore = (
   profile: CharacterProfile,
   onTickXP: (amount: number) => void,
   onSessionComplete: (wasSuccess: boolean) => void,
-  triggerAIResponse: (type: string) => void
+  triggerAIResponse: (type: string) => void,
+  onUpdateProfile: (updates: Partial<CharacterProfile>) => void
 ) => {
   const [timeLeft, setTimeLeft] = useState(profile.savedTimeLeft ?? 25 * 60);
   // 새로고침 시 유저의 여유를 위해 항상 정지(false) 상태로 시작하도록 고정
@@ -22,6 +22,8 @@ export const useTimerCore = (
       setSessionInCycle(nextSessionCount);
       if (nextSessionCount === 4) {
         setIsActive(false);
+        // 누적 사이클 횟수 증가
+        onUpdateProfile({ totalCompletedCycles: (profile.totalCompletedCycles || 0) + 1 });
         setShowReport(true);
       } else {
         triggerAIResponse('FINISH');
@@ -39,7 +41,7 @@ export const useTimerCore = (
         triggerAIResponse('IDLE');
       }
     }
-  }, [isBreak, sessionInCycle, onSessionComplete, triggerAIResponse]);
+  }, [isBreak, sessionInCycle, onSessionComplete, triggerAIResponse, profile.totalCompletedCycles, onUpdateProfile]);
 
   useEffect(() => {
     let interval: any = null;

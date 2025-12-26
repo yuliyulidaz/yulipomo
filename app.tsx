@@ -35,6 +35,7 @@ function App() {
         },
         streak: 0,
         totalFocusMinutes: 0,
+        totalCompletedCycles: 0,
         receivedNotes: [],
         xp: 0,
         level: 1,

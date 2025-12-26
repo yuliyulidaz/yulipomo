@@ -45,7 +45,7 @@ export const TimerScreen: React.FC<TimerScreenProps> = ({
     timeLeft, setTimeLeft, isActive, setIsActive, isBreak, setIsBreak,
     sessionInCycle, setSessionInCycle, showReport, setShowReport,
     toggleActive, skipBreak, resetTimer
-  } = useTimerCore(profile, onTickXP, onSessionComplete, triggerAIResponse);
+  } = useTimerCore(profile, onTickXP, onSessionComplete, triggerAIResponse, onUpdateProfile);
 
   // --- 3. XP & Leveling Logic ---
   const { progressPercent, levelTitle } = useXPManager(profile);
@@ -225,7 +225,7 @@ export const TimerScreen: React.FC<TimerScreenProps> = ({
       <AdminAuthModal isOpen={showAdminAuth} onClose={() => setShowAdminAuth(false)} password={adminPassword} setPassword={setAdminPassword} onVerify={(e) => { e.preventDefault(); if(adminPassword==='PTSD'){ setIsAdminMode(true); setShowAdminPanel(true); setShowAdminAuth(false); setAdminPassword(''); setMessage("관리자 모드 활성화!"); } else { setAdminPassword(''); setShowAdminAuth(false); setMessage("비밀번호 틀림."); } }} />
       <AdminPanel isOpen={isAdminMode && showAdminPanel} onClose={() => setShowAdminPanel(false)} profile={profile} onTimeLeap={() => setTimeLeft(10)} onLevelChange={(lv) => onUpdateProfile({ level: lv, xp: 0 })} clicks={clicks} isApiKeyAlert={pendingExpiryAlert} onToggleApiKeyAlert={() => setPendingExpiryAlert(!pendingExpiryAlert)} />
       {showReport && <ObservationDiary profile={profile} stats={{ distractions, clicks }} onClose={() => { setShowReport(false); setDistractions(0); setClicks(0); setShowChoiceModal(true); }} />}
-      <CycleChoiceModal isOpen={showChoiceModal} isDarkMode={isDarkMode} onChoice={(opt) => { setShowChoiceModal(false); setSessionInCycle(0); setIsBreak(true); setIsActive(true); if(opt==='LONG'){ setTimeLeft(30*60); onTickXP(5); } else { setTimeLeft(5*60); onTickXP(25); } }} onExport={handleExportProfile} />
+      <CycleChoiceModal isOpen={showChoiceModal} isDarkMode={isDarkMode} completedCycles={profile.totalCompletedCycles || 0} onChoice={(opt) => { setShowChoiceModal(false); setSessionInCycle(0); setIsBreak(true); setIsActive(true); if(opt==='LONG'){ setTimeLeft(30*60); onTickXP(5); } else { setTimeLeft(5*60); onTickXP(25); } }} onExport={handleExportProfile} />
       <ApiKeyExpiryModal isOpen={isApiKeyModalOpen} onClose={() => { setIsApiKeyModalOpen(false); setPendingExpiryAlert(false); }} type={apiKeyPopupType} currentApiKey={profile.apiKey || ''} isDarkMode={isDarkMode} onUpdateKey={(key) => onUpdateProfile({ apiKey: key })} />
       <ExitConfirmModal isOpen={showExitModal} onClose={() => setShowExitModal(false)} onConfirmExit={onReset} characterName={profile.name} isDarkMode={isDarkMode} />
       {(isApiKeyModalOpen || showExitModal) && <div className="fixed inset-0 z-[45] bg-transparent" onClick={() => { setIsApiKeyModalOpen(false); setShowExitModal(false); }} />}

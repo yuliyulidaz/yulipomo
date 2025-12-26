@@ -1,4 +1,3 @@
-
 export interface DialogueStyles {
   late: string;
   gift: string;
@@ -30,6 +29,7 @@ export interface CharacterProfile {
   
   streak: number;
   totalFocusMinutes: number;
+  totalCompletedCycles: number; // 누적 사이클 완료 횟수
   receivedNotes: SurpriseNote[];
 
   dialogueCache: {

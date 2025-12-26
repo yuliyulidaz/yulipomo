@@ -119,18 +119,20 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ isOpen, onClose, profile
 interface CycleChoiceModalProps {
   isOpen: boolean;
   isDarkMode: boolean;
+  completedCycles: number; // 완료 횟수 전달 받음
   onChoice: (option: 'LONG' | 'SHORT') => void;
   onExport: () => void;
 }
 
-export const CycleChoiceModal: React.FC<CycleChoiceModalProps> = ({ isOpen, isDarkMode, onChoice, onExport }) => {
+export const CycleChoiceModal: React.FC<CycleChoiceModalProps> = ({ isOpen, isDarkMode, completedCycles, onChoice, onExport }) => {
   if (!isOpen) return null;
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-primary-dark/40 backdrop-blur-md animate-in fade-in duration-300">
       <div className={`w-full max-sm border p-8 rounded-3xl shadow-2xl text-center space-y-6 transform animate-in zoom-in-95 duration-300 ${isDarkMode ? 'bg-[#161B22] border-[#30363D]' : 'bg-surface border-border'}`}>
         <div className="w-20 h-20 bg-primary/10 rounded-3xl flex items-center justify-center mx-auto text-primary"><CheckCircle2 size={48} /></div>
         <div className="space-y-2">
-          <h3 className={`text-xl font-bold ${isDarkMode ? 'text-slate-100' : 'text-text-primary'}`}>1사이클 달성!</h3>
+          {/* n번째 사이클 완료 안내 */}
+          <h3 className={`text-xl font-bold ${isDarkMode ? 'text-slate-100' : 'text-text-primary'}`}>{completedCycles}번째 사이클을 완료했습니다!</h3>
           <p className={`text-sm leading-relaxed ${isDarkMode ? 'text-slate-400' : 'text-text-secondary'}`}>열심히 한 당신을 위해 선택지를 준비했어요.</p>
         </div>
         <div className="grid grid-cols-1 gap-3 pt-2">
