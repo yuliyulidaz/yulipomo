@@ -212,7 +212,8 @@ export const SetupScreen: React.FC<SetupScreenProps> = ({ onComplete }) => {
 
   return (
     <div className="min-h-screen bg-white flex items-center justify-center p-0 font-sans">
-      <div className="w-full max-w-xl bg-white flex flex-col h-[100dvh] md:h-[720px] relative overflow-hidden">
+      {/* h-[100dvh]를 h-screen으로 변경하여 안드로이드 키보드 팝업 시 레이아웃 리사이징(버튼 상승) 방지 */}
+      <div className="w-full max-w-xl bg-white flex flex-col h-screen md:h-[720px] relative overflow-hidden">
         {/* 상단 프로그레스 바 */}
         <div className="flex-none w-full flex bg-white z-20">
           {[1, 2, 3].map(i => {
