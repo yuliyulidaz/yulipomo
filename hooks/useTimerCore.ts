@@ -26,7 +26,6 @@ export const useTimerCore = (
         onUpdateProfile({ totalCompletedCycles: (profile.totalCompletedCycles || 0) + 1 });
         setShowReport(true);
       } else {
-        triggerAIResponse('FINISH');
         setIsBreak(true);
         setTimeLeft(5 * 60);
       }
@@ -38,7 +37,6 @@ export const useTimerCore = (
         triggerAIResponse('START');
       } else {
         setIsActive(false);
-        triggerAIResponse('IDLE');
       }
     }
   }, [isBreak, sessionInCycle, onSessionComplete, triggerAIResponse, profile.totalCompletedCycles, onUpdateProfile]);

@@ -11,9 +11,7 @@ const REFILL_CONFIG: Record<string, { max: number; threshold: number }> = {
   click: { max: 20, threshold: 10 },
   pause: { max: 20, threshold: 10 },
   start: { max: 20, threshold: 10 },
-  scolding: { max: 20, threshold: 10 },
-  idle: { max: 10, threshold: 5 },
-  praising: { max: 10, threshold: 5 }
+  scolding: { max: 20, threshold: 10 }
 };
 
 export const useAIManager = (
@@ -95,7 +93,7 @@ export const useAIManager = (
     if (isBrandNew) {
       isGlobalApiLockedRef.current = true;
       refillCategory('click').finally(() => setTimeout(() => { isGlobalApiLockedRef.current = false; }, 15000));
-      ['pause', 'start', 'scolding', 'idle', 'praising'].forEach(cat => addToRefillQueue(cat as any));
+      ['pause', 'start', 'scolding'].forEach(cat => addToRefillQueue(cat as any));
     } else {
       categories.forEach(cat => addToRefillQueue(cat));
     }
@@ -105,8 +103,8 @@ export const useAIManager = (
 
   const triggerAIResponse = useCallback((type: string) => {
     const cacheKeyMap: Record<string, keyof typeof profile.dialogueCache> = { 
-      'START': 'start', 'FINISH': 'praising', 'DISTRACTION': 'scolding', 
-      'IDLE': 'idle', 'CLICK': 'click', 'PAUSE': 'pause', 
+      'START': 'start', 'DISTRACTION': 'scolding', 
+      'CLICK': 'click', 'PAUSE': 'pause', 
       'READY': 'start', 'RETURN': 'scolding' 
     };
     const userDisplayName = profile.honorific || profile.userName || "너";
