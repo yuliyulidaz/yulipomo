@@ -72,7 +72,6 @@ export const useAIManager = (
         });
       }
     } catch (e: any) {
-      // 401(인증실패), 403(권한부족), 429(할당량초과/Too Many Requests) 에러 발생 시 경고 플래그 활성화
       if (e.message?.includes('API_KEY_INVALID') || e.status === 401 || e.status === 403 || e.status === 429) {
         setPendingExpiryAlert(true);
       }
@@ -130,9 +129,7 @@ export const useAIManager = (
     }
   }, [profile, onUpdateProfile, addToRefillQueue]);
 
-  const handleInteraction = useCallback((isActive: boolean, isBreak: boolean) => {
-    if (isBreak || cooldownRemaining > 0) return true;
-    triggerAIResponse('CLICK');
+  const triggerCooldown = useCallback(() => {
     setCooldownRemaining(COOLDOWN_MS);
     const start = Date.now();
     if (cooldownIntervalRef.current) clearInterval(cooldownIntervalRef.current);
@@ -141,8 +138,14 @@ export const useAIManager = (
       setCooldownRemaining(left);
       if (left <= 0) clearInterval(cooldownIntervalRef.current);
     }, 100);
-    return false;
-  }, [cooldownRemaining, triggerAIResponse]);
+  }, []);
 
-  return { message, setMessage, cooldownRemaining, setCooldownRemaining, triggerAIResponse, handleInteraction, pendingExpiryAlert, setPendingExpiryAlert, COOLDOWN_MS };
+  const handleInteraction = useCallback((isActive: boolean, isBreak: boolean) => {
+    if (isBreak || cooldownRemaining > 0) return true;
+    triggerAIResponse('CLICK');
+    triggerCooldown();
+    return false;
+  }, [cooldownRemaining, triggerAIResponse, triggerCooldown]);
+
+  return { message, setMessage, cooldownRemaining, setCooldownRemaining, triggerAIResponse, triggerCooldown, handleInteraction, pendingExpiryAlert, setPendingExpiryAlert, COOLDOWN_MS };
 };
