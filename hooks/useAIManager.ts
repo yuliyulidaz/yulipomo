@@ -4,13 +4,13 @@ import { CharacterProfile } from '../types';
 import { SAFETY_SETTINGS, FALLBACK_TEMPLATES } from '../components/TimerConfig';
 import { cleanDialogue, getTimePeriod, getSeason } from '../components/TimerUtils';
 import { buildRefillPrompt } from '../components/AIPromptTemplates';
+import { FIXED_DIALOGUES } from '../CharacterDialogues';
 
 const COOLDOWN_MS = 16000;
 
+// start, pause를 리필 설정에서 제거하여 API 호출 보호
 const REFILL_CONFIG: Record<string, { max: number; threshold: number }> = {
   click: { max: 20, threshold: 10 },
-  pause: { max: 20, threshold: 10 },
-  start: { max: 20, threshold: 10 },
   scolding: { max: 20, threshold: 10 }
 };
 
@@ -40,7 +40,8 @@ export const useAIManager = (
   const addToRefillQueue = useCallback((category: keyof typeof profile.dialogueCache) => {
     const currentCache = profileRef.current.dialogueCache[category];
     const config = REFILL_CONFIG[category];
-    if (currentCache.length > config.threshold || isRefillingRef.current[category]) return;
+    // 리필 설정에 없는 카테고리는 큐에 추가하지 않음 (start, pause 보호)
+    if (!config || currentCache.length > config.threshold || isRefillingRef.current[category]) return;
     if (!refillQueueRef.current.includes(category)) refillQueueRef.current.push(category);
     refillQueueRef.current.sort((a, b) => profileRef.current.dialogueCache[a].length - profileRef.current.dialogueCache[b].length);
   }, []);
@@ -93,7 +94,7 @@ export const useAIManager = (
     if (isBrandNew) {
       isGlobalApiLockedRef.current = true;
       refillCategory('click').finally(() => setTimeout(() => { isGlobalApiLockedRef.current = false; }, 15000));
-      ['pause', 'start', 'scolding'].forEach(cat => addToRefillQueue(cat as any));
+      ['scolding'].forEach(cat => addToRefillQueue(cat as any));
     } else {
       categories.forEach(cat => addToRefillQueue(cat));
     }
@@ -102,12 +103,28 @@ export const useAIManager = (
   }, [processRefillQueue, refillCategory, addToRefillQueue]);
 
   const triggerAIResponse = useCallback((type: string) => {
-    const cacheKeyMap: Record<string, keyof typeof profile.dialogueCache> = { 
-      'START': 'start', 'DISTRACTION': 'scolding', 
-      'CLICK': 'click', 'PAUSE': 'pause', 
-      'READY': 'start', 'RETURN': 'scolding' 
-    };
     const userDisplayName = profile.honorific || profile.userName || "너";
+    const toneKey = profile.personality[0] || "존댓말";
+
+    // START와 PAUSE는 고정 대사 파일에서 즉시 반환 (API 호출 차단)
+    if (type === 'START' || type === 'PAUSE' || type === 'READY') {
+      const fixedSituation = type === 'READY' ? 'START' : type;
+      const fixedList = FIXED_DIALOGUES[toneKey]?.[fixedSituation as 'START' | 'PAUSE'];
+      
+      if (fixedList && fixedList.length > 0) {
+        const randomIndex = Math.floor(Math.random() * fixedList.length);
+        setMessage(cleanDialogue(fixedList[randomIndex], userDisplayName));
+        return;
+      }
+    }
+
+    // 그 외 (DISTRACTION, CLICK, RETURN)는 캐시된 대사 사용
+    const cacheKeyMap: Record<string, keyof typeof profile.dialogueCache> = { 
+      'DISTRACTION': 'scolding', 
+      'CLICK': 'click', 
+      'RETURN': 'scolding' 
+    };
+    
     const key = cacheKeyMap[type];
     if (!key) return;
 
@@ -118,10 +135,10 @@ export const useAIManager = (
       const newCacheList = [...cachedList];
       newCacheList.splice(randomIndex, 1);
       onUpdateProfile({ dialogueCache: { ...profile.dialogueCache, [key]: newCacheList } });
-      if (newCacheList.length <= REFILL_CONFIG[key].threshold) addToRefillQueue(key);
+      if (REFILL_CONFIG[key] && newCacheList.length <= REFILL_CONFIG[key].threshold) addToRefillQueue(key);
     } else {
-      const toneKey = profile.personality.find(p => FALLBACK_TEMPLATES[p]) || "존댓말";
-      const rawMsgs = FALLBACK_TEMPLATES[toneKey][type] || ["..."];
+      const fallbackTone = profile.personality.find(p => FALLBACK_TEMPLATES[p]) || "존댓말";
+      const rawMsgs = FALLBACK_TEMPLATES[fallbackTone][type] || ["..."];
       setMessage(cleanDialogue(rawMsgs[Math.floor(Math.random() * rawMsgs.length)], userDisplayName));
       addToRefillQueue(key);
     }
