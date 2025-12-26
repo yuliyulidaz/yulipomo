@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Heart, Settings, Sun, Moon, Save, Key, Terminal, X, Coffee, Timer as TimerIcon, Pause, Play, SkipForward, RotateCcw, Bed, HelpCircle, Zap } from 'lucide-react';
+import { Heart, Settings, Sun, Moon, Save, Key, Terminal, X, Coffee, Timer as TimerIcon, Pause, Play, SkipForward, RotateCcw, Bed, HelpCircle, Zap, Bot } from 'lucide-react';
 import { CharacterProfile } from '../types';
 
 interface TopBadgeProps {
@@ -35,6 +35,7 @@ interface SettingsMenuProps {
   onExport: () => void;
   onApiKeyOpen: () => void;
   onShowGuide: () => void;
+  onPrivacyOpen: () => void;
   isAdminMode: boolean;
   onShowAdminPanel: () => void;
   btnRef: React.RefObject<HTMLDivElement | null>;
@@ -42,7 +43,7 @@ interface SettingsMenuProps {
   isBreak: boolean;
 }
 
-export const SettingsMenu: React.FC<SettingsMenuProps> = ({ isOpen, setIsOpen, isDarkMode, onToggleDarkMode, isBatterySaving, onToggleBatterySaving, onExport, onApiKeyOpen, onShowGuide, isAdminMode, onShowAdminPanel, btnRef, isApiKeyAlert, isBreak }) => {
+export const SettingsMenu: React.FC<SettingsMenuProps> = ({ isOpen, setIsOpen, isDarkMode, onToggleDarkMode, isBatterySaving, onToggleBatterySaving, onExport, onApiKeyOpen, onShowGuide, onPrivacyOpen, isAdminMode, onShowAdminPanel, btnRef, isApiKeyAlert, isBreak }) => {
   const [showTempGlow, setShowTempGlow] = useState(false);
 
   useEffect(() => {
@@ -73,6 +74,7 @@ export const SettingsMenu: React.FC<SettingsMenuProps> = ({ isOpen, setIsOpen, i
           {!isBreak && (
             <div className="flex items-center gap-3 cursor-pointer" onClick={(e) => { e.stopPropagation(); onShowGuide(); setIsOpen(false); }}><div className={`w-12 h-12 rounded-full border shadow-sm flex items-center justify-center transition-all hover:scale-110 ${isDarkMode ? 'bg-slate-800 text-primary-light border-slate-700' : 'bg-white border-slate-200 text-primary'}`}><HelpCircle size={20} /></div><span className={`text-[10px] font-black px-2.5 py-1.5 rounded-lg border shadow-sm whitespace-nowrap min-w-[60px] text-center ${isDarkMode ? 'bg-slate-800 border-slate-700 text-slate-100' : 'bg-surface/90 border-border text-text-primary'}`}>사용법</span></div>
           )}
+          <div className="flex items-center gap-3 cursor-pointer" onClick={(e) => { e.stopPropagation(); onPrivacyOpen(); }}><div className={`w-12 h-12 rounded-full border shadow-sm flex items-center justify-center transition-all hover:scale-110 ${isDarkMode ? 'bg-slate-800 text-indigo-400 border-slate-700' : 'bg-white border-slate-200 text-indigo-500'}`}><Bot size={20} /></div><span className={`text-[10px] font-black px-2.5 py-1.5 rounded-lg border shadow-sm whitespace-nowrap min-w-[60px] text-center ${isDarkMode ? 'bg-slate-800 border-slate-700 text-slate-100' : 'bg-surface/90 border-border text-text-primary'}`}>AI정책</span></div>
           {isAdminMode && (
             <div className="flex items-center gap-3 cursor-pointer" onClick={(e) => { e.stopPropagation(); onShowAdminPanel(); setIsOpen(false); }}><div className={`w-12 h-12 rounded-full border shadow-sm flex items-center justify-center transition-all hover:scale-110 bg-primary text-white border-primary-dark`}><Terminal size={20} /></div><span className={`text-[10px] font-black px-2.5 py-1.5 rounded-lg border shadow-sm bg-primary border-primary-dark text-white whitespace-nowrap min-w-[60px] text-center`}>패널</span></div>
           )}

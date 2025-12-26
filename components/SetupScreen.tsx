@@ -7,6 +7,7 @@ import { GREETING_TEMPLATES, SAFETY_SETTINGS } from './SetupConfig';
 import { Step1, Step2, Step3 } from './SetupSteps';
 import { PersonalityQuiz } from './PersonalityQuiz';
 import { buildQuizPrompt, buildRefreshQuizPrompt } from './AIPromptTemplates';
+import { PrivacyPolicyModal } from './PrivacyPolicyModal';
 
 interface SetupScreenProps {
   onComplete: (profile: CharacterProfile) => void;
@@ -34,6 +35,7 @@ export const SetupScreen: React.FC<SetupScreenProps> = ({ onComplete }) => {
   const [currentQuizStep, setCurrentQuizStep] = useState<number>(0); 
   const [selectedStyles, setSelectedStyles] = useState<DialogueStyles>({ late: '', gift: '', lazy: '' });
   const [tempQuizSelection, setTempQuizSelection] = useState<string>('');
+  const [isPrivacyModalOpen, setIsPrivacyModalOpen] = useState(false);
   
   // 안드로이드 키보드 대응을 위한 고정 높이 상태
   const [containerHeight, setContainerHeight] = useState<string>('100dvh');
@@ -263,6 +265,19 @@ export const SetupScreen: React.FC<SetupScreenProps> = ({ onComplete }) => {
               <span className="flex-1">{error}</span>
             </div>
           )}
+
+          {step === 'STEP1' && (
+            <div className="text-center mb-2 space-y-0.5">
+              <p className="text-[10px] text-text-secondary font-bold tracking-tight">이 서비스는 Google Gemini API키를 필요로 합니다.</p>
+              <button 
+                onClick={() => setIsPrivacyModalOpen(true)}
+                className="text-[10px] text-primary font-black underline underline-offset-2 decoration-primary/30 hover:text-primary-dark transition-colors"
+              >
+                개인정보 및 AI 정책 확인 하기
+              </button>
+            </div>
+          )}
+
           <div className="flex gap-3">
             {step !== 'STEP1' && (
               <button 
@@ -299,6 +314,7 @@ export const SetupScreen: React.FC<SetupScreenProps> = ({ onComplete }) => {
           </div>
         </div>
       </div>
+      <PrivacyPolicyModal isOpen={isPrivacyModalOpen} onClose={() => setIsPrivacyModalOpen(false)} isDarkMode={false} />
     </div>
   );
 };

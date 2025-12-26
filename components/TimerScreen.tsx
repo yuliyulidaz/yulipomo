@@ -6,6 +6,7 @@ import { OnboardingGuide } from './OnboardingGuide';
 import { ApiKeyExpiryModal } from './ApiKeyExpiryModal';
 import { ExitConfirmModal } from './ExitConfirmModal';
 import { EnergySavingOverlay } from './EnergySavingOverlay';
+import { PrivacyPolicyModal } from './PrivacyPolicyModal';
 
 // 설정 및 유틸리티
 import { LEVEL_TITLES } from './TimerConfig';
@@ -71,6 +72,7 @@ export const TimerScreen: React.FC<TimerScreenProps> = ({
   const [apiKeyPopupType, setApiKeyPopupType] = useState<'EXPIRED' | 'MANUAL'>('MANUAL');
   const [showExitModal, setShowExitModal] = useState(false);
   const [showAffinityGuide, setShowAffinityGuide] = useState(false);
+  const [isPrivacyModalOpen, setIsPrivacyModalOpen] = useState(false);
 
   // --- 6. Refs ---
   const resetHoldTimerRef = useRef<any>(null);
@@ -243,7 +245,8 @@ export const TimerScreen: React.FC<TimerScreenProps> = ({
       <ApiKeyExpiryModal isOpen={isApiKeyModalOpen} onClose={() => { setIsApiKeyModalOpen(false); setPendingExpiryAlert(false); }} type={apiKeyPopupType} currentApiKey={profile.apiKey || ''} isDarkMode={isDarkMode} onUpdateKey={(key) => onUpdateProfile({ apiKey: key })} />
       <ExitConfirmModal isOpen={showExitModal} onClose={() => setShowExitModal(false)} onConfirmExit={onReset} characterName={profile.name} isDarkMode={isDarkMode} />
       <AffinityGuideModal isOpen={showAffinityGuide} onClose={() => setShowAffinityGuide(false)} currentLevel={profile.level} isDarkMode={isDarkMode} characterName={profile.name} />
-      {(isApiKeyModalOpen || showExitModal || showAffinityGuide) && <div className="fixed inset-0 z-[45] bg-transparent" onClick={() => { setIsApiKeyModalOpen(false); setShowExitModal(false); setShowAffinityGuide(false); }} />}
+      <PrivacyPolicyModal isOpen={isPrivacyModalOpen} onClose={() => setIsPrivacyModalOpen(false)} isDarkMode={isDarkMode} />
+      {(isApiKeyModalOpen || showExitModal || showAffinityGuide || isPrivacyModalOpen) && <div className="fixed inset-0 z-[45] bg-transparent" onClick={() => { setIsApiKeyModalOpen(false); setShowExitModal(false); setShowAffinityGuide(false); setIsPrivacyModalOpen(false); }} />}
 
       <main className="w-full h-full flex flex-col items-center justify-center relative p-4 md:p-8">
           <TopBadge ref={affinityRef} level={profile.level} title={levelTitle} isAdminMode={isAdminMode} isDarkMode={isDarkMode} onBadgeClick={() => setShowAffinityGuide(true)} />
@@ -251,7 +254,7 @@ export const TimerScreen: React.FC<TimerScreenProps> = ({
             {isSettingsOpen && <div className="fixed inset-0 z-40 bg-black/[0.02] backdrop-blur-[1.2px] cursor-default animate-in fade-in duration-300" onClick={(e) => { e.stopPropagation(); setIsSettingsOpen(false); }} />}
             <div className={`absolute top-2.5 inset-x-8 h-1.5 z-10 ${isDarkMode ? 'bg-slate-700/20' : 'bg-border/20'} rounded-full overflow-hidden`}><div className="h-full bg-gradient-to-r from-primary to-accent transition-all duration-1000 ease-out rounded-full" style={{ width: `${progressPercent}%` }} /></div>
             <div className="w-full flex justify-between items-start mt-2 px-2 relative z-50">
-                <SettingsMenu isOpen={isSettingsOpen} setIsOpen={setIsSettingsOpen} isDarkMode={isDarkMode} onToggleDarkMode={() => setIsDarkMode(!isDarkMode)} isBatterySaving={isBatterySaving} onToggleBatterySaving={() => setIsBatterySaving(!isBatterySaving)} onExport={handleExportProfile} onApiKeyOpen={() => { setApiKeyPopupType('MANUAL'); setIsApiKeyModalOpen(true); setIsSettingsOpen(false); }} onShowGuide={() => { setShowOnboarding(true); setIsSettingsOpen(false); }} isAdminMode={isAdminMode} onShowAdminPanel={() => setShowAdminPanel(!showAdminPanel)} btnRef={settingsBtnRef} isApiKeyAlert={pendingExpiryAlert} isBreak={isBreak} />
+                <SettingsMenu isOpen={isSettingsOpen} setIsOpen={setIsSettingsOpen} isDarkMode={isDarkMode} onToggleDarkMode={() => setIsDarkMode(!isDarkMode)} isBatterySaving={isBatterySaving} onToggleBatterySaving={() => setIsBatterySaving(!isBatterySaving)} onExport={handleExportProfile} onApiKeyOpen={() => { setApiKeyPopupType('MANUAL'); setIsApiKeyModalOpen(true); setIsSettingsOpen(false); }} onShowGuide={() => { setShowOnboarding(true); setIsSettingsOpen(false); }} isAdminMode={isAdminMode} onShowAdminPanel={() => setShowAdminPanel(!showAdminPanel)} btnRef={settingsBtnRef} isApiKeyAlert={pendingExpiryAlert} isBreak={isBreak} onPrivacyOpen={() => { setIsPrivacyModalOpen(true); setIsSettingsOpen(false); }} />
                 <button onClick={() => setShowExitModal(true)} className={`p-2.5 rounded-full transition-all border border-transparent ${isDarkMode ? 'text-slate-400 hover:bg-white/10' : 'text-text-secondary hover:bg-slate-100'}`}><X size={20} /></button>
             </div>
             <CharacterSection profile={profile} isBreak={isBreak} cooldownRemaining={cooldownRemaining} cooldownMs={COOLDOWN_MS} message={message} isApiKeyModalOpen={isApiKeyModalOpen} isDarkMode={isDarkMode} onCharacterClick={handleCharacterClick} characterBoxRef={characterBoxRef} />
