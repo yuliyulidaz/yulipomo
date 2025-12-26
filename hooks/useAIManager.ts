@@ -8,7 +8,7 @@ import { FIXED_DIALOGUES } from '../CharacterDialogues';
 
 const COOLDOWN_MS = 16000;
 
-// start, pause를 리필 설정에서 완전히 제거하여 API 호출 보호
+// start, pause를 리필 설정에서 완전히 제거하여 API 호출 보호 
 const REFILL_CONFIG: Record<string, { max: number; threshold: number }> = {
   click: { max: 20, threshold: 10 },
   scolding: { max: 20, threshold: 10 }
