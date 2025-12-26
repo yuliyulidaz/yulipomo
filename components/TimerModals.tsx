@@ -102,10 +102,8 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ isOpen, onClose, profile
           <div className="bg-black/40 p-2.5 rounded-lg border border-white/5 space-y-1">
              <p className="text-white/30 text-[8px] font-bold uppercase border-b border-white/5 pb-1 mb-1.5">Dialogue Cache Status</p>
              <div className="flex flex-wrap gap-x-3 gap-y-1 text-[9px] font-bold text-white/60">
-                <span>Start: {profile.dialogueCache.start.length}</span>
                 <span>Scold: {profile.dialogueCache.scolding.length}</span>
                 <span>Click: {profile.dialogueCache.click.length}</span>
-                <span>Pause: {profile.dialogueCache.pause.length}</span>
              </div>
           </div>
         </div>
