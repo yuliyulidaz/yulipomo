@@ -13,10 +13,11 @@ interface Step1Props {
   onLoadClick: () => void;
   fileInputRef: React.RefObject<HTMLInputElement | null>;
   handleFileChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
+  onPrivacyOpen: () => void;
   nameInputRef?: React.RefObject<HTMLInputElement | null>;
 }
 
-export const Step1: React.FC<Step1Props> = ({ name, setName, imageSrc, setImageSrc, charGender, setCharGender, onLoadClick, fileInputRef, handleFileChange, nameInputRef }) => (
+export const Step1: React.FC<Step1Props> = ({ name, setName, imageSrc, setImageSrc, charGender, setCharGender, onLoadClick, fileInputRef, handleFileChange, onPrivacyOpen, nameInputRef }) => (
   <div className="flex flex-col items-center animate-in fade-in duration-700">
     <div className="w-full flex flex-col items-center justify-center pt-6">
       <div className="text-center">
@@ -35,6 +36,8 @@ export const Step1: React.FC<Step1Props> = ({ name, setName, imageSrc, setImageS
         </div>
         
         <div className="relative w-32 h-32 md:w-44 md:h-44 mx-auto">
+          {/* 이미지 필수 표시 (*) */}
+          <span className="absolute -top-1 -right-1 text-rose-500 font-black text-xl z-10 select-none animate-pulse">*</span>
           <div className={`w-full h-full rounded-2xl overflow-hidden border-2 transition-all duration-500 ${imageSrc ? 'border-primary shadow-lg shadow-primary/10' : 'border-border bg-background'}`}>
             {imageSrc ? <img src={imageSrc} alt="Preview" className="w-full h-full object-cover" /> : <div className="w-full h-full flex flex-col items-center justify-center text-text-secondary opacity-40"><Camera size={40} strokeWidth={1} /></div>}
           </div>
@@ -76,12 +79,25 @@ export const Step1: React.FC<Step1Props> = ({ name, setName, imageSrc, setImageS
           </div>
         </div>
         
-        <div className="text-center pt-0">
-          <input type="file" ref={fileInputRef} onChange={handleFileChange} accept=".json" className="hidden" />
-          <button onClick={onLoadClick} className="flex items-center gap-2 px-6 py-2.5 text-primary/60 hover:text-primary transition-all group">
-            <FileJson size={14} className="group-hover:scale-110 transition-transform" />
-            <span className="text-xs font-black">계속 이어하기 (불러오기)</span>
-          </button>
+        <div className="text-center pt-0 space-y-4">
+          <div className="flex flex-col items-center">
+            <input type="file" ref={fileInputRef} onChange={handleFileChange} accept=".json" className="hidden" />
+            <button onClick={onLoadClick} className="flex items-center gap-2 px-6 py-2.5 text-primary/60 hover:text-primary transition-all group">
+              <FileJson size={14} className="group-hover:scale-110 transition-transform" />
+              <span className="text-xs font-black">계속 이어하기 (불러오기)</span>
+            </button>
+          </div>
+
+          {/* 정책 안내 문구 이동 (스크롤 안쪽) */}
+          <div className="text-center space-y-1 pt-2 border-t border-slate-50">
+            <p className="text-[9px] text-text-secondary font-bold tracking-tight">이 서비스는 Google Gemini API키를 필요로 합니다.</p>
+            <button 
+              onClick={onPrivacyOpen}
+              className="text-[10px] text-primary font-black underline underline-offset-2 decoration-primary/30 hover:text-primary-dark transition-colors"
+            >
+              개인정보 및 AI 정책 확인 하기
+            </button>
+          </div>
         </div>
       </div>
     </div>
