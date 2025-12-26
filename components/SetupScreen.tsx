@@ -213,12 +213,15 @@ export const SetupScreen: React.FC<SetupScreenProps> = ({ onComplete }) => {
   return (
     <div className="min-h-screen bg-white flex items-center justify-center p-0 font-sans">
       <div className="w-full max-w-xl bg-white flex flex-col h-[100dvh] md:h-[720px] relative overflow-hidden">
+        {/* 상단 프로그레스 바 */}
         <div className="flex-none w-full flex bg-white z-20">
           {[1, 2, 3].map(i => {
             let isActive = step === 'QUIZ' || (step === 'STEP1' && i === 1) || (step === 'STEP2' && i <= 2) || (step === 'STEP3' && i <= 3);
             return <div key={i} className={`h-1 flex-1 transition-all duration-700 ${isActive ? 'bg-primary' : 'bg-slate-100'} ${i < 3 ? 'border-r-2 border-white' : ''}`} />;
           })}
         </div>
+
+        {/* 중앙 스크롤 영역 */}
         <div ref={containerRef} className="flex-1 overflow-y-auto scroll-smooth pt-4 relative">
           {step === 'STEP1' && <Step1 name={name} setName={setName} imageSrc={imageSrc} setImageSrc={setImageSrc} charGender={charGender} setCharGender={setCharGender} onLoadClick={() => fileInputRef.current?.click()} fileInputRef={fileInputRef} handleFileChange={handleFileChange} nameInputRef={nameInputRef} />}
           {(step === 'STEP2' || step === 'STEP3') && <div className="px-10 pb-4">
@@ -226,14 +229,49 @@ export const SetupScreen: React.FC<SetupScreenProps> = ({ onComplete }) => {
             {step === 'STEP3' && <Step3 userName={userName} setUserName={setUserName} honorific={honorific} setHonorific={setHonorific} gender={gender} setGender={setGender} todayTask={todayTask} setTodayTask={setTodayTask} apiKey={apiKey} setApiKey={setApiKey} name={name} userNameInputRef={userNameInputRef} apiKeyInputRef={apiKeyInputRef} />}
           </div>}
           {step === 'QUIZ' && <PersonalityQuiz currentQuizStep={currentQuizStep} name={name} imageSrc={imageSrc} quizData={quizData} tempSelection={tempQuizSelection} onTempSelect={handleQuizSelect} onRefresh={refreshCurrentQuizStep} isPartialRefreshing={isPartialRefreshing} />}
-          <div className={`px-10 ${step === 'STEP1' ? 'pb-20 pt-3' : 'pb-24 pt-4'} bg-white flex flex-col gap-3 relative`}>
-            {error && <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-4 w-[90%] max-w-sm px-4 py-3 bg-[#FF7F50] text-white text-[11px] font-bold rounded-xl flex items-center gap-2 shadow-xl animate-in slide-in-from-bottom-2 duration-300"><AlertCircle size={14} className="shrink-0" /><span className="flex-1">{error}</span></div>}
-            <div className="flex gap-3">
-              {step !== 'STEP1' && <button onClick={handleBackStep} className="px-5 bg-white hover:bg-slate-50 text-text-secondary rounded-xl border border-slate-100 flex items-center justify-center transition-all active:scale-95 h-14"><ArrowLeft size={20}/></button>}
-              {step === 'QUIZ' ? <button onClick={handleQuizConfirm} disabled={!tempQuizSelection} className={`flex-1 font-black rounded-xl flex justify-center items-center gap-2 shadow-lg transition-all h-14 ${tempQuizSelection ? 'bg-primary text-white shadow-primary/20' : 'bg-slate-100 text-slate-400 cursor-not-allowed opacity-40'}`}>{currentQuizStep === 2 ? '최종 선택 완료' : '선택하기'} <ArrowRight size={18}/></button>
-              : step === 'STEP3' ? <button onClick={generatePersonalityOptions} disabled={isGenerating} className={`flex-1 bg-primary hover:bg-primary-light text-white font-black rounded-xl flex justify-center items-center gap-2 shadow-lg shadow-primary/20 transition-all h-14 ${isValid ? 'opacity-100' : 'opacity-40'}`}>{isGenerating ? <><Loader2 className="animate-spin" size={20}/> AI 분석 중</> : <>소환하기 <Sparkles size={16} className="text-accent-soft fill-accent"/></>}</button>
-              : <button onClick={handleNextStep} className={`flex-1 bg-primary hover:bg-primary-light text-white font-black rounded-xl flex justify-center items-center gap-2 shadow-lg h-14 transition-all ${isValid ? 'opacity-100' : 'opacity-40'}`}>계속하기 <ArrowRight size={18}/></button>}
+        </div>
+
+        {/* 하단 버튼 영역 (고정) */}
+        <div className={`flex-none px-10 pb-8 pt-4 bg-white flex flex-col gap-3 relative z-30`}>
+          {error && (
+            <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-4 w-[90%] max-w-sm px-4 py-3 bg-[#FF7F50] text-white text-[11px] font-bold rounded-xl flex items-center gap-2 shadow-xl animate-in slide-in-from-bottom-2 duration-300">
+              <AlertCircle size={14} className="shrink-0" />
+              <span className="flex-1">{error}</span>
             </div>
+          )}
+          <div className="flex gap-3">
+            {step !== 'STEP1' && (
+              <button 
+                onClick={handleBackStep} 
+                className="px-5 bg-white hover:bg-slate-50 text-text-secondary rounded-xl border border-slate-100 flex items-center justify-center transition-all active:scale-95 h-14"
+              >
+                <ArrowLeft size={20}/>
+              </button>
+            )}
+            {step === 'QUIZ' ? (
+              <button 
+                onClick={handleQuizConfirm} 
+                disabled={!tempQuizSelection} 
+                className={`flex-1 font-black rounded-xl flex justify-center items-center gap-2 shadow-lg transition-all h-14 ${tempQuizSelection ? 'bg-primary text-white shadow-primary/20' : 'bg-slate-100 text-slate-400 cursor-not-allowed opacity-40'}`}
+              >
+                {currentQuizStep === 2 ? '최종 선택 완료' : '선택하기'} <ArrowRight size={18}/>
+              </button>
+            ) : step === 'STEP3' ? (
+              <button 
+                onClick={generatePersonalityOptions} 
+                disabled={isGenerating} 
+                className={`flex-1 bg-primary hover:bg-primary-light text-white font-black rounded-xl flex justify-center items-center gap-2 shadow-lg shadow-primary/20 transition-all h-14 ${isValid ? 'opacity-100' : 'opacity-40'}`}
+              >
+                {isGenerating ? <><Loader2 className="animate-spin" size={20}/> AI 분석 중</> : <>소환하기 <Sparkles size={16} className="text-accent-soft fill-accent"/></>}
+              </button>
+            ) : (
+              <button 
+                onClick={handleNextStep} 
+                className={`flex-1 bg-primary hover:bg-primary-light text-white font-black rounded-xl flex justify-center items-center gap-2 shadow-lg h-14 transition-all ${isValid ? 'opacity-100' : 'opacity-40'}`}
+              >
+                계속하기 <ArrowRight size={18}/>
+              </button>
+            )}
           </div>
         </div>
       </div>
