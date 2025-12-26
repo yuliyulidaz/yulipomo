@@ -8,16 +8,15 @@ interface TopBadgeProps {
   isAdminMode: boolean;
   isDarkMode: boolean;
   onBadgeClick: () => void;
-  badgeClicks: number;
 }
 
-export const TopBadge = React.forwardRef<HTMLDivElement, TopBadgeProps>(({ level, title, isAdminMode, isDarkMode, onBadgeClick, badgeClicks }, ref) => (
+export const TopBadge = React.forwardRef<HTMLDivElement, TopBadgeProps>(({ level, title, isAdminMode, isDarkMode, onBadgeClick }, ref) => (
   <div ref={ref} className="mb-[-1px] z-20 animate-in slide-in-from-top-4 duration-700">
     <div 
       onClick={onBadgeClick}
-      className={`px-5 py-2 rounded-t-2xl border border-b-0 shadow-[0_-4px_12px_rgba(0,0,0,0.03)] flex items-center gap-2.5 cursor-pointer active:scale-95 transition-all ${isDarkMode ? 'bg-[#161B22] border-[#30363D]' : 'bg-surface border-border'} ${badgeClicks > 0 ? 'ring-2 ring-primary/20' : ''}`}
+      className={`px-5 py-2 rounded-t-2xl border border-b-0 shadow-[0_-4px_12px_rgba(0,0,0,0.03)] flex items-center gap-2.5 cursor-pointer active:scale-95 transition-all ${isDarkMode ? 'bg-[#161B22] border-[#30363D]' : 'bg-surface border-border'}`}
     >
-        <Heart size={12} className={`text-accent fill-accent ${badgeClicks > 0 ? 'animate-bounce' : 'animate-pulse'}`} />
+        <Heart size={12} className={`text-accent fill-accent animate-pulse`} />
         <span className={`text-[11px] font-black tracking-tight ${isDarkMode ? 'text-slate-100' : 'text-text-primary'}`}>
           Lv.{level} <span className="ml-1 text-primary">{title}</span>
         </span>
@@ -149,11 +148,21 @@ interface TimerDisplayProps {
   isDarkMode: boolean;
   timeLeft: number;
   formatTime: (sec: number) => string;
+  onModeClick?: () => void;
 }
 
-export const TimerDisplay: React.FC<TimerDisplayProps> = ({ isBreak, isDarkMode, timeLeft, formatTime }) => (
+export const TimerDisplay: React.FC<TimerDisplayProps> = ({ isBreak, isDarkMode, timeLeft, formatTime, onModeClick }) => (
   <div className="flex items-center gap-4 md:gap-6">
-    <div className={`w-16 h-16 md:w-20 md:h-20 rounded-2xl flex flex-col items-center justify-center gap-1 border transition-all duration-500 ${isBreak ? (isDarkMode ? 'bg-emerald-900/20 border-emerald-800 text-emerald-400' : 'bg-success/10 border-success/20 text-success') : (isDarkMode ? 'bg-slate-800/50 border-slate-700 text-primary-light' : 'bg-primary/5 border-primary/10 text-primary')}`}>{isBreak ? <Coffee size={18} /> : <TimerIcon size={18} />}<div className="flex flex-col items-center leading-tight"><span className="text-[8px] md:text-[9px] font-black uppercase tracking-tighter">{isBreak ? "Break" : "Focus"}</span><span className="text-[8px] md:text-[9px] font-black uppercase tracking-tighter">Mode</span></div></div>
+    <div 
+      onClick={onModeClick}
+      className={`w-16 h-16 md:w-20 md:h-20 rounded-2xl flex flex-col items-center justify-center gap-1 border transition-all duration-500 cursor-pointer active:scale-95 ${isBreak ? (isDarkMode ? 'bg-emerald-900/20 border-emerald-800 text-emerald-400' : 'bg-success/10 border-success/20 text-success') : (isDarkMode ? 'bg-slate-800/50 border-slate-700 text-primary-light' : 'bg-primary/5 border-primary/10 text-primary')}`}
+    >
+      {isBreak ? <Coffee size={18} /> : <TimerIcon size={18} />}
+      <div className="flex flex-col items-center leading-tight">
+        <span className="text-[8px] md:text-[9px] font-black uppercase tracking-tighter">{isBreak ? "Break" : "Focus"}</span>
+        <span className="text-[8px] md:text-[9px] font-black uppercase tracking-tighter">Mode</span>
+      </div>
+    </div>
     <div className={`text-6xl md:text-7xl font-bold tracking-tighter tabular-nums ${isDarkMode ? 'text-slate-100' : 'text-text-primary'}`}>{formatTime(timeLeft)}</div>
   </div>
 );
@@ -210,7 +219,6 @@ interface ControlButtonsProps {
 
 export const ControlButtons: React.FC<ControlButtonsProps> = ({ isBreak, isActive, onToggle, onSkipBreak, resetBtnRef, startBtnRef, onResetStart, onResetEnd, onResetCancel, isResetHolding, isDarkMode }) => (
   <div className="flex items-center justify-center gap-6 md:gap-8 mt-4 w-full">
-    {/* 리셋 버튼 (왼쪽) */}
     <button 
       ref={resetBtnRef}
       onMouseDown={(e) => { e.preventDefault(); onResetStart(e); }}
@@ -225,7 +233,6 @@ export const ControlButtons: React.FC<ControlButtonsProps> = ({ isBreak, isActiv
       <RotateCcw className={`w-5 h-5 md:w-6 md:h-6 relative z-10 transition-transform ${isResetHolding ? 'rotate-[-120deg]' : ''}`} />
     </button>
 
-    {/* 메인 재생/정지 버튼 (중앙) */}
     <button 
       ref={startBtnRef} 
       onClick={onToggle} 
@@ -235,7 +242,6 @@ export const ControlButtons: React.FC<ControlButtonsProps> = ({ isBreak, isActiv
       {isActive ? <Pause className="w-7 h-7 md:w-8 md:h-8" fill="currentColor" /> : <Play className="w-7 h-7 md:w-8 md:h-8 ml-1" fill="currentColor" />}
     </button>
 
-    {/* 건너뛰기 버튼 (오른쪽 - 쉬는 시간 전용) */}
     {isBreak ? (
       <button 
         onClick={onSkipBreak} 
@@ -245,7 +251,6 @@ export const ControlButtons: React.FC<ControlButtonsProps> = ({ isBreak, isActiv
         <SkipForward className="w-5 h-5 md:w-6 md:h-6" fill="currentColor" />
       </button>
     ) : (
-      /* 레이아웃 대칭 유지를 위한 더미 공간 (선택 사항, 필요 시 빈 div 배치 가능) */
       <div className="w-12 h-12 md:w-14 md:h-14 opacity-0 pointer-events-none" aria-hidden="true" />
     )}
   </div>
