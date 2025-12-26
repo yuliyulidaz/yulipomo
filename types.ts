@@ -34,8 +34,6 @@ export interface CharacterProfile {
 
   dialogueCache: {
     scolding: string[];
-    praising: string[];
-    idle: string[];
     click: string[];
     pause: string[];
     start: string[];

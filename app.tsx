@@ -11,9 +11,7 @@ const CACHE_LIMITS: Record<string, number> = {
   click: 20,
   pause: 20,
   start: 20,
-  scolding: 20,
-  idle: 10,
-  praising: 10
+  scolding: 20
 };
 
 function App() {
@@ -27,8 +25,6 @@ function App() {
         userName: "유저",
         dialogueCache: { 
           scolding: [], 
-          praising: [], 
-          idle: [],
           click: [],
           pause: [],
           start: []
@@ -96,7 +92,7 @@ function App() {
       } else {
         const extraSlimProfile = { 
           ...profile, 
-          dialogueCache: { scolding: [], praising: [], idle: [], click: [], pause: [], start: [] } 
+          dialogueCache: { scolding: [], click: [], pause: [], start: [] } 
         };
         if (saveToStorage(extraSlimProfile)) {
           setProfile(extraSlimProfile);
@@ -131,7 +127,6 @@ function App() {
       if (updates.dialogueCache) {
         const currentCache = { ...newProfile.dialogueCache };
         (Object.keys(currentCache) as Array<keyof typeof currentCache>).forEach(key => {
-          // @google/genai senior engineer fix: explicitly cast 'key' to string to avoid index type errors with symbol-friendly keyof arrays.
           const limit = CACHE_LIMITS[key as string] || 20;
           if (Array.isArray(currentCache[key]) && currentCache[key].length > limit) {
             currentCache[key] = currentCache[key].slice(-limit);
