@@ -249,7 +249,21 @@ export const SetupScreen: React.FC<SetupScreenProps> = ({ onComplete }) => {
 
         {/* 중앙 스크롤 영역 */}
         <div ref={containerRef} className="flex-1 overflow-y-auto scroll-smooth pt-4 relative">
-          {step === 'STEP1' && <Step1 name={name} setName={setName} imageSrc={imageSrc} setImageSrc={setImageSrc} charGender={charGender} setCharGender={setCharGender} onLoadClick={() => fileInputRef.current?.click()} fileInputRef={fileInputRef} handleFileChange={handleFileChange} nameInputRef={nameInputRef} />}
+          {step === 'STEP1' && (
+            <Step1 
+              name={name} 
+              setName={setName} 
+              imageSrc={imageSrc} 
+              setImageSrc={setImageSrc} 
+              charGender={charGender} 
+              setCharGender={setCharGender} 
+              onLoadClick={() => fileInputRef.current?.click()} 
+              fileInputRef={fileInputRef} 
+              handleFileChange={handleFileChange} 
+              onPrivacyOpen={() => setIsPrivacyModalOpen(true)}
+              nameInputRef={nameInputRef} 
+            />
+          )}
           {(step === 'STEP2' || step === 'STEP3') && <div className="px-10 pb-4">
             {step === 'STEP2' && <Step2 selectedTone={selectedTone} setSelectedTone={setSelectedTone} selectedPersonalities={selectedPersonalities} togglePersonality={togglePersonality} tmi={tmi} setTmi={setTmi} tmiRef={tmiRef} insertPlaceholder={insertPlaceholder} />}
             {step === 'STEP3' && <Step3 userName={userName} setUserName={setUserName} honorific={honorific} setHonorific={setHonorific} gender={gender} setGender={setGender} todayTask={todayTask} setTodayTask={setTodayTask} apiKey={apiKey} setApiKey={setApiKey} name={name} userNameInputRef={userNameInputRef} apiKeyInputRef={apiKeyInputRef} />}
@@ -263,18 +277,6 @@ export const SetupScreen: React.FC<SetupScreenProps> = ({ onComplete }) => {
             <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-4 w-[90%] max-w-sm px-4 py-3 bg-[#FF7F50] text-white text-[11px] font-bold rounded-xl flex items-center gap-2 shadow-xl animate-in slide-in-from-bottom-2 duration-300">
               <AlertCircle size={14} className="shrink-0" />
               <span className="flex-1">{error}</span>
-            </div>
-          )}
-
-          {step === 'STEP1' && (
-            <div className="text-center mb-2 space-y-0.5">
-              <p className="text-[10px] text-text-secondary font-bold tracking-tight">이 서비스는 Google Gemini API키를 필요로 합니다.</p>
-              <button 
-                onClick={() => setIsPrivacyModalOpen(true)}
-                className="text-[10px] text-primary font-black underline underline-offset-2 decoration-primary/30 hover:text-primary-dark transition-colors"
-              >
-                개인정보 및 AI 정책 확인 하기
-              </button>
             </div>
           )}
 
