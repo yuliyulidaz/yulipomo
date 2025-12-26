@@ -1,5 +1,5 @@
 import React from 'react';
-import { Camera, FileJson, Heart, ExternalLink, ClipboardPaste, X } from 'lucide-react';
+import { Camera, FileJson, Heart, ExternalLink, ClipboardPaste, X, Timer, Coffee } from 'lucide-react';
 import { FileUpload } from './FileUpload';
 import { TONE_KEYWORDS, PERSONALITY_KEYWORDS } from './SetupConfig';
 
@@ -25,7 +25,14 @@ export const Step1: React.FC<Step1Props> = ({ name, setName, imageSrc, setImageS
             <span className="text-[11px] font-black text-primary tracking-widest uppercase">최애와 딱 100분 집중하기</span>
         </div>
         <h1 className="text-xl font-black text-text-primary mb-2">최애 뽀모도로</h1>
-        <p className="text-text-secondary text-[11px] font-medium mb-8">당신과 함께 할 상대는 누구인가요?</p>
+        
+        {/* 뽀모도로 사이클 설명 추가 */}
+        <div className="flex flex-col items-center gap-1.5 mb-8">
+          <div className="flex items-center gap-1.5 text-[10px] font-black text-slate-400 bg-slate-50 px-3 py-1 rounded-full border border-slate-100">
+            (<Timer size={11} className="text-slate-400" /> 25분 집중 + <Coffee size={11} className="text-slate-400" /> 5분 휴식) x 4회
+          </div>
+          <p className="text-[11px] font-black text-primary/70 mt-1">최애를 여기에 불러 당신을 응원하게 하세요!</p>
+        </div>
         
         <div className="relative w-32 h-32 md:w-44 md:h-44 mx-auto">
           <div className={`w-full h-full rounded-2xl overflow-hidden border-2 transition-all duration-500 ${imageSrc ? 'border-primary shadow-lg shadow-primary/10' : 'border-border bg-background'}`}>
@@ -36,7 +43,8 @@ export const Step1: React.FC<Step1Props> = ({ name, setName, imageSrc, setImageS
       </div>
     </div>
 
-    <div className="w-full flex flex-col items-center pt-6">
+    {/* 사진과 이름 사이 간격을 띄우기 위해 pt-6에서 pt-14로 조정 */}
+    <div className="w-full flex flex-col items-center pt-14">
       <div className="w-full max-w-xs space-y-8 flex flex-col items-center px-4">
         <div className="relative w-full">
           <label className="absolute -top-6 left-0 text-[10px] font-bold text-text-secondary uppercase tracking-widest">
@@ -110,7 +118,7 @@ export const Step2: React.FC<Step2Props> = ({ selectedTone, setSelectedTone, sel
               className={`py-1.5 px-3 text-xs rounded-md border transition-all ${
                 selectedTone === k 
                   ? 'bg-primary/10 border-primary text-primary shadow-sm' 
-                  : (selectedTone ? 'bg-transparent border-transparent text-slate-300' : 'bg-transparent border-transparent text-text-secondary hover:text-primary')
+                  : (selectedTone ? 'border-transparent text-slate-300' : 'bg-transparent border-transparent text-text-secondary hover:text-primary')
               }`}
             >
               {k}
@@ -176,7 +184,6 @@ export const Step3: React.FC<Step3Props> = ({ userName, setUserName, honorific, 
     try {
       const text = await navigator.clipboard.readText();
       const cleanText = text.trim();
-      // 기존 내용을 지우고 새로운 키로 완전히 대체
       if (cleanText) {
         setApiKey(cleanText);
       }
