@@ -34,6 +34,9 @@ export const SetupScreen: React.FC<SetupScreenProps> = ({ onComplete }) => {
   const [currentQuizStep, setCurrentQuizStep] = useState<number>(0); 
   const [selectedStyles, setSelectedStyles] = useState<DialogueStyles>({ late: '', gift: '', lazy: '' });
   const [tempQuizSelection, setTempQuizSelection] = useState<string>('');
+  
+  // 안드로이드 키보드 대응을 위한 고정 높이 상태
+  const [containerHeight, setContainerHeight] = useState<string>('100dvh');
 
   const containerRef = useRef<HTMLDivElement>(null);
   const tmiRef = useRef<HTMLTextAreaElement>(null);
@@ -41,6 +44,23 @@ export const SetupScreen: React.FC<SetupScreenProps> = ({ onComplete }) => {
   const nameInputRef = useRef<HTMLInputElement>(null);
   const userNameInputRef = useRef<HTMLInputElement>(null);
   const apiKeyInputRef = useRef<HTMLInputElement>(null);
+
+  // 컴포넌트 마운트 시 실제 뷰포트 높이를 측정하여 고정 (안드로이드 리사이징 방지)
+  useEffect(() => {
+    const handleResize = () => {
+      // 모바일 환경에서만 픽셀 단위로 고정
+      if (window.innerWidth < 768) {
+        setContainerHeight(`${window.innerHeight}px`);
+      } else {
+        setContainerHeight('720px');
+      }
+    };
+    
+    handleResize();
+    // 초기 로드 직후 한 번 더 측정 (일부 브라우저 대응)
+    const timer = setTimeout(handleResize, 100);
+    return () => clearTimeout(timer);
+  }, []);
 
   useEffect(() => {
     if (error) {
@@ -212,8 +232,11 @@ export const SetupScreen: React.FC<SetupScreenProps> = ({ onComplete }) => {
 
   return (
     <div className="min-h-screen bg-white flex items-center justify-center p-0 font-sans">
-      {/* h-[100dvh]를 h-screen으로 변경하여 안드로이드 키보드 팝업 시 레이아웃 리사이징(버튼 상승) 방지 */}
-      <div className="w-full max-w-xl bg-white flex flex-col h-screen md:h-[720px] relative overflow-hidden">
+      {/* 고정된 px 높이를 적용하여 안드로이드 키보드 리사이징 방지 */}
+      <div 
+        className="w-full max-w-xl bg-white flex flex-col relative overflow-hidden" 
+        style={{ height: containerHeight }}
+      >
         {/* 상단 프로그레스 바 */}
         <div className="flex-none w-full flex bg-white z-20">
           {[1, 2, 3].map(i => {
@@ -232,8 +255,8 @@ export const SetupScreen: React.FC<SetupScreenProps> = ({ onComplete }) => {
           {step === 'QUIZ' && <PersonalityQuiz currentQuizStep={currentQuizStep} name={name} imageSrc={imageSrc} quizData={quizData} tempSelection={tempQuizSelection} onTempSelect={handleQuizSelect} onRefresh={refreshCurrentQuizStep} isPartialRefreshing={isPartialRefreshing} />}
         </div>
 
-        {/* 하단 버튼 영역 (고정) - 안드로이드 환경 가려짐 방지를 위해 pb-28로 상향 조정 */}
-        <div className={`flex-none px-10 pb-28 pt-4 bg-white flex flex-col gap-3 relative z-30`}>
+        {/* 하단 버튼 영역 (고정) - 버튼 가시성을 위해 pb-40으로 충분히 상향 조정 */}
+        <div className={`flex-none px-10 pb-40 pt-4 bg-white flex flex-col gap-3 relative z-30`}>
           {error && (
             <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-4 w-[90%] max-w-sm px-4 py-3 bg-[#FF7F50] text-white text-[11px] font-bold rounded-xl flex items-center gap-2 shadow-xl animate-in slide-in-from-bottom-2 duration-300">
               <AlertCircle size={14} className="shrink-0" />
