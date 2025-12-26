@@ -37,6 +37,10 @@ export const SetupScreen: React.FC<SetupScreenProps> = ({ onComplete }) => {
   const [tempQuizSelection, setTempQuizSelection] = useState<string>('');
   const [isPrivacyModalOpen, setIsPrivacyModalOpen] = useState(false);
   
+  // 불러온 데이터인지 여부를 추적 (퀴즈 스킵용)
+  const [isImportedProfile, setIsImportedProfile] = useState(false);
+  const [importedBaseProfile, setImportedBaseProfile] = useState<Partial<CharacterProfile> | null>(null);
+
   // 안드로이드 키보드 대응을 위한 고정 높이 상태
   const [containerHeight, setContainerHeight] = useState<string>('100dvh');
 
@@ -106,8 +110,35 @@ export const SetupScreen: React.FC<SetupScreenProps> = ({ onComplete }) => {
     reader.onload = (event) => {
       try {
         const loadedProfile = JSON.parse(event.target?.result as string) as CharacterProfile;
-        if (loadedProfile.name && loadedProfile.level !== undefined) onComplete(loadedProfile);
-        else setError("올바른 캐릭터 파일이 아닙니다.");
+        
+        // 퀴즈 결과가 포함된 성숙한 프로필인지 확인
+        if (loadedProfile.name && loadedProfile.selectedDialogueStyles?.late) {
+          // 데이터 매핑
+          setName(loadedProfile.name);
+          setUserName(loadedProfile.userName || "");
+          setHonorific(loadedProfile.honorific || "");
+          setImageSrc(loadedProfile.imageSrc);
+          setCharGender(loadedProfile.charGender);
+          setGender(loadedProfile.gender || 'FEMALE');
+          setTmi(loadedProfile.speciesTrait || "");
+          setSelectedStyles(loadedProfile.selectedDialogueStyles);
+          
+          if (loadedProfile.personality) {
+            setSelectedTone(loadedProfile.personality[0]);
+            setSelectedPersonalities(loadedProfile.personality.slice(1));
+          }
+
+          // 불러오기 모드 활성화 및 Step 3로 이동
+          setIsImportedProfile(true);
+          setImportedBaseProfile(loadedProfile);
+          setStep('STEP3');
+          setError(null);
+        } else if (loadedProfile.name && loadedProfile.level !== undefined) {
+          // 퀴즈 결과는 없지만 프로필 데이터만 있는 경우 (기존 로직 유지)
+          onComplete(loadedProfile);
+        } else {
+          setError("올바른 캐릭터 파일이 아닙니다.");
+        }
       } catch (err) { setError("파일을 읽는 도중 오류가 발생했습니다."); }
     };
     reader.readAsText(file);
@@ -149,12 +180,38 @@ export const SetupScreen: React.FC<SetupScreenProps> = ({ onComplete }) => {
     if (step === 'QUIZ') {
       if (currentQuizStep > 0) setCurrentQuizStep(prev => prev - 1);
       else setStep('STEP3');
-    } else if (step === 'STEP3') setStep('STEP2');
+    } else if (step === 'STEP3') {
+      if (isImportedProfile) {
+        // 불러오기 모드일 때 뒤로 가면 초기 상태로 리셋
+        setIsImportedProfile(false);
+        setImportedBaseProfile(null);
+        setStep('STEP1');
+      } else {
+        setStep('STEP2');
+      }
+    }
     else if (step === 'STEP2') setStep('STEP1');
   };
 
   const generatePersonalityOptions = async () => {
     if (!validateStep()) return;
+
+    // 만약 불러오기 모드라면 퀴즈를 생략하고 바로 완료 처리
+    if (isImportedProfile && importedBaseProfile) {
+      const targetName = honorific || userName || "당신";
+      const initialGreeting = GREETING_TEMPLATES[selectedTone].replace("{honorific}", targetName);
+      
+      onComplete({
+        ...importedBaseProfile as CharacterProfile,
+        apiKey,
+        userName,
+        honorific: targetName,
+        todayTask: todayTask.trim() || importedBaseProfile.todayTask,
+        initialGreeting: importedBaseProfile.initialGreeting || initialGreeting
+      });
+      return;
+    }
+
     setIsGenerating(true);
     try {
       const ai = new GoogleGenAI({ apiKey });
@@ -303,7 +360,7 @@ export const SetupScreen: React.FC<SetupScreenProps> = ({ onComplete }) => {
                 disabled={isGenerating} 
                 className={`flex-1 bg-primary hover:bg-primary-light text-white font-black rounded-xl flex justify-center items-center gap-2 shadow-lg shadow-primary/20 transition-all h-14 ${isValid ? 'opacity-100' : 'opacity-40'}`}
               >
-                {isGenerating ? <><Loader2 className="animate-spin" size={20}/> AI 분석 중</> : <>소환하기 <Sparkles size={16} className="text-accent-soft fill-accent"/></>}
+                {isGenerating ? <><Loader2 className="animate-spin" size={20}/> AI 분석 중</> : (isImportedProfile ? <>기존 데이터로 시작하기 <Sparkles size={16} className="text-accent-soft fill-accent"/></> : <>소환하기 <Sparkles size={16} className="text-accent-soft fill-accent"/></>)}
               </button>
             ) : (
               <button 
