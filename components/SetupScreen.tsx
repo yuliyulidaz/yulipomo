@@ -223,7 +223,7 @@ export const SetupScreen: React.FC<SetupScreenProps> = ({ onComplete }) => {
         apiKey, userName, name, honorific: targetName, imageSrc, gender, charGender,
         speciesTrait: tmi, personality: [selectedTone, ...selectedPersonalities],
         selectedDialogueStyles: selectedStyles,
-        dialogueCache: { scolding: [], praising: [], idle: [], click: [], pause: [], start: [] },
+        dialogueCache: { scolding: [], click: [], pause: [], start: [] },
         xp: 0, level: 1, maxXpForNextLevel: 10, streak: 0, totalFocusMinutes: 0, totalCompletedCycles: 0, receivedNotes: [], initialGreeting,
         todayTask: todayTask.trim() || undefined
       });

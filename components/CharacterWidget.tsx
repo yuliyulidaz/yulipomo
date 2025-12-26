@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useRef } from 'react';
 import { Maximize2, Minimize2, Play, Pause, X, Coffee, MessageSquareHeart } from 'lucide-react';
 import { CharacterProfile } from '../types';
@@ -69,10 +68,8 @@ export const CharacterWidget: React.FC<CharacterWidgetProps> = ({ profile, simul
     if (mode === 'BREAK' && !preFetchIntervalRef.current) {
         preFetchIntervalRef.current = window.setInterval(() => {
             if (!profile?.dialogueCache) return;
-            if (profile.dialogueCache.idle.length < 3) {
-                backgroundFetchDialogue('idle');
-            } else if (profile.dialogueCache.praising.length < 3) {
-                backgroundFetchDialogue('praising');
+            if (profile.dialogueCache.scolding.length < 3) {
+                backgroundFetchDialogue('scolding');
             } else {
                 if (preFetchIntervalRef.current) clearInterval(preFetchIntervalRef.current);
                 preFetchIntervalRef.current = null;
@@ -85,7 +82,7 @@ export const CharacterWidget: React.FC<CharacterWidgetProps> = ({ profile, simul
     };
   }, [mode, profile?.dialogueCache]);
 
-  const backgroundFetchDialogue = async (type: 'scolding' | 'praising' | 'idle') => {
+  const backgroundFetchDialogue = async (type: 'scolding' | 'click' | 'pause' | 'start') => {
     if (isCallingAPI.current) return;
     isCallingAPI.current = true;
     try {
@@ -97,6 +94,7 @@ export const CharacterWidget: React.FC<CharacterWidgetProps> = ({ profile, simul
         const response = await ai.models.generateContent({ model: 'gemini-3-flash-preview', contents: prompt });
         if (response.text) {
             const newCache = { ...profile.dialogueCache };
+            // @ts-ignore
             newCache[type] = [...newCache[type], response.text.trim()];
             onUpdateProfile({ dialogueCache: newCache });
         }
@@ -124,10 +122,6 @@ export const CharacterWidget: React.FC<CharacterWidgetProps> = ({ profile, simul
       interval = window.setInterval(() => {
         setTimeLeft(prev => {
             if (prev <= 0) return 0;
-            if (proactiveTriggerTimeRef.current && prev === proactiveTriggerTimeRef.current) {
-                triggerAIResponse('PROACTIVE');
-                proactiveTriggerTimeRef.current = null;
-            }
             if (mode === 'WORK' && !isDisappointed) {
                 onTickXP(15 / (25 * 60));
             }
@@ -164,27 +158,18 @@ export const CharacterWidget: React.FC<CharacterWidgetProps> = ({ profile, simul
   }, [simulatedWindow, timerActive, mode]);
 
   const triggerAIResponse = async (triggerType: TriggerType, extraInfo?: string) => {
-    if (triggerType === 'PROACTIVE' && profile?.dialogueCache?.idle?.length > 0) {
-        const cached = profile.dialogueCache.idle[0];
-        const remaining = profile.dialogueCache.idle.slice(1);
-        onUpdateProfile({ dialogueCache: { ...profile.dialogueCache, idle: remaining } });
-        setTimedMessage(cached);
-        return;
-    }
-
     if (isCallingAPI.current) return;
     
     let scenario = "";
     switch(triggerType) {
         case 'DISTRACTION': scenario = `User is using ${extraInfo} instead of working.`; break;
         case 'LEVEL_UP': scenario = `Level up to ${profile.level}.`; break;
-        case 'PROACTIVE': scenario = `Posture, hydration, or encouragement.`; break;
-        case 'TIMER_FINISHED': scenario = `Session success! Heartfelt praise.`; break;
         case 'APP_START': scenario = `User returned to focus.`; break;
+        case 'CLICK': scenario = `Daily interaction.`; break;
         default: scenario = `Interaction state.`; break;
     }
 
-    fetchNewDialogue(triggerType, scenario);
+    if (scenario) fetchNewDialogue(triggerType, scenario);
   };
 
   const fetchNewDialogue = async (triggerType: TriggerType, scenario: string) => {
@@ -213,7 +198,6 @@ export const CharacterWidget: React.FC<CharacterWidgetProps> = ({ profile, simul
             setTimeLeft(5 * 60);
             setIsCharacterAway(true);
             onSessionComplete(true);
-            triggerAIResponse("TIMER_FINISHED");
         } else {
             setMode('WORK');
             onModeChange(false);

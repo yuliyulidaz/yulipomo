@@ -38,8 +38,6 @@ const getPersonalityActingGuide = (keywords: string[]) => {
 
 export const DIALOGUE_SITUATIONS: Record<string, string> = { 
   scolding: '유저가 딴짓을 하거나 주의가 산만해진 상황 (꾸짖음/잔소리)', 
-  praising: '집중 세션을 성공적으로 마친 상황 (칭찬/보상)', 
-  idle: '집중 중간에 유저를 격려하거나 조용히 지켜보는 상황 (응원/관찰)', 
   click: '유저가 캐릭터를 클릭하여 말을 거는 상황 (일상적 상호작용)', 
   pause: '유저가 잠시 타이머를 멈춘 상황 (의문/기다림)', 
   start: '집중을 시작하거나 다시 재개하는 상황 (각오/다짐)' 
