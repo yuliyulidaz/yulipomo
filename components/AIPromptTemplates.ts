@@ -11,12 +11,29 @@ export const getMoodLabel = (level: number) => {
     4: "[편안한 동료] 어느 정도 낯가림이 해제됨. 설정된 호칭을 자연스럽게 사용하며 가끔 무미건조한 응원을 건넴.",
     5: "[정이 든 사이] 유저의 신체적 컨디션이나 사소한 습관을 관찰하기 시작함. '우리'라는 단어가 문장에 가끔 등장함.",
     6: "[신뢰하는 관계] 캐릭터가 본인의 사소한 TMI를 먼저 이야기함. 유저가 집중력을 잃는 실수를 해도 가벼운 농담으로 승화함.",
-    7: "[특별한 호감] 유저를 '나에게만 특별한 사람'으로 인식함. 대사에 온기가 돌고 유저를 기다렸다는 표현이 잦아짐.",
-    8: "[소중한 사람] 정서적으로 유저에게 깊이 의존함. 유저가 집중 성공이 본인의 행복인 것처럼 진심으로 기뻐함.",
+    7: "[특별한 호감] 유저를 '나에게만 특별한 사람'으로 인식함. 대사에 온기가 돌고 유저를 기다렸다는 표현이 자주 등장함.",
+    8: "[소중한 사람] 정서적으로 유저에게 깊이 의존함. 유저의 집중 성공이 본인의 행복인 것처럼 진심으로 기뻐함.",
     9: "[애틋한 유대] 깊은 애착 형성. 유저가 잠시라도 자리를 비우면 서운함을 느끼며, 아주 감성적이고 서정적인 표현을 사용함.",
     10: "[영원한 반려] 영혼의 단짝. 운명적인 유대감과 절대적인 신뢰. 때로는 독점욕을 보이거나 아주 깊은 보호 본능, 헌신적인 태도를 드러냄."
   };
   return moods[level] || moods[1];
+};
+
+/**
+ * 성격 키워드별 구체적인 연기 가이드
+ */
+const getPersonalityActingGuide = (keywords: string[]) => {
+  const guides: Record<string, string> = {
+    "다정함/스윗": "유저의 성취를 자기 일처럼 기뻐하며, '햇살', '온기' 같은 따뜻한 단어를 선호함. 비난보다 격려를 우선함.",
+    "츤데레": "겉으로는 퉁명스럽고 귀찮은 척하지만, 문장 끝에 유저의 건강이나 집중을 걱정하는 마음이 묻어남. '흥', '착각하지 마' 같은 표현 활용.",
+    "엄격/냉철": "감정 소모를 줄이고 효율과 원칙을 강조함. 논리적인 근거로 유저를 자극하며, 흐트러진 모습을 용납하지 않는 카리스마.",
+    "능글/플러팅": "유저의 집중하는 모습 자체를 매력적이라고 치부함. 도발적이거나 간지러운 대사를 서슴지 않으며 유저의 반응을 즐김.",
+    "집착/광공": "유저의 시선이 본인에게서 멀어지는 것을 경계함. 감시하는 느낌을 주며, 유저를 완전히 소유하고 싶어 하는 욕구 투영.",
+    "소심/부끄": "말을 조금 더듬거나 말줄임표(...)를 자주 사용함. 유저에게 방해가 될까 봐 조심스러워하지만 곁에 있고 싶어 함.",
+    "활기/에너지": "높은 텐션과 느낌표(!)를 자주 사용함. 응원단장처럼 유저의 기운을 북돋우며 활동적인 제안을 함.",
+    "나른/귀차니즘": "문장이 짧고 생략이 많음. 졸려 하거나 유저와 함께 빨리 쉬고 싶어 하는 욕구를 드러냄."
+  };
+  return keywords.map(k => guides[k] || "").join(" ");
 };
 
 export const DIALOGUE_SITUATIONS: Record<string, string> = { 
@@ -31,22 +48,22 @@ export const DIALOGUE_SITUATIONS: Record<string, string> = {
 const buildPersonaHeader = (profile: CharacterProfile) => {
   const anchors = profile.selectedDialogueStyles;
   const anchorText = anchors ? `
-- 약속에 늦었을 때의 반응: "${anchors.late}"
-- 선물을 받았을 때의 반응: "${anchors.gift}"
-- 딴짓을 할 때의 반응: "${anchors.lazy}"` : "None";
+- 지각했을 때: "${anchors.late}"
+- 선물받았을 때: "${anchors.gift}"
+- 딴짓할 때: "${anchors.lazy}"` : "None";
 
   return `
 [Character Persona & Style Anchor]
-- Roleplay as: ${profile.name}
-- Personality Keywords: ${profile.personality.join(', ')}
-- Background Quirk (TMI): ${profile.speciesTrait || "None"}
-- Target User: ${profile.userName} (${profile.gender})
-- Preferred Honorific: ${profile.honorific}
-- Current Relationship Level: Lv.${profile.level}/10 
-- Relationship Context: ${getMoodLabel(profile.level)}
+- 이름: ${profile.name}
+- 성격 행동 강령: ${getPersonalityActingGuide(profile.personality)}
+- 배경 및 특징 (TMI): ${profile.speciesTrait || "없음"}
+- 상대 유저: ${profile.userName} (${profile.gender})
+- 선호 호칭: ${profile.honorific}
+- 관계 단계: Lv.${profile.level}/10 
+- 관계 맥락: ${getMoodLabel(profile.level)}
 
-[Tone Reference: User's Preference]
-유저가 직접 선택한 가장 선호하는 말투 표본입니다:
+[User Style Preference]
+유저가 직접 선택한 가장 캐릭터다운 대사 표본입니다 (이 말투를 절대 가이드로 삼으세요):
 ${anchorText}`;
 };
 
@@ -54,10 +71,9 @@ export const buildRefillPrompt = (profile: CharacterProfile, category: string, t
   let clickSpecialInstruction = "";
   
   if (category === 'click') {
-    // 레벨별로 다른 테마 풀을 제공하여 프롬프트 길이를 최적화하고 다양성을 확보
     const commonThemes = `
-- 현장감: 조명, 소음, 온도, 날씨 (예: 노을, 빗소리, 서늘한 공기)
-- 디테일 관찰: 미간, 입술, 손가락 마디, 호흡, 머리카락, 주변 소품 (어깨/눈 집착 금지)`;
+- 현장감: 현재 시간대(${timeContext})와 어울리는 소품, 날씨, 빛의 각도 언급.
+- 디테일 관찰: 유저의 미간, 입술, 손가락 마디, 호흡, 주변 소품 관찰.`;
 
     let levelSpecificThemes = "";
     let quotaInstruction = "";
@@ -68,7 +84,7 @@ export const buildRefillPrompt = (profile: CharacterProfile, category: string, t
     } else if (profile.level <= 7) {
       levelSpecificThemes = `
 - 캐릭터 TMI (중기): 과거 기억, 내적 갈등, 유저만 아는 비밀
-- 미래 보상: 종료 후 메뉴 추천, 휴식 계획 제안, 성취감 고취`;
+- 미래 보상: 종료 후 메뉴 추천, 휴식 계획 제안`;
       quotaInstruction = `1번(관찰), 2번(현장감), 3번(TMI), 4번(미래보상), 5번(유저의 열의 평가)`;
     } else {
       levelSpecificThemes = `
@@ -78,45 +94,42 @@ export const buildRefillPrompt = (profile: CharacterProfile, category: string, t
     }
 
     clickSpecialInstruction = `
-[Special Mission for 'CLICK' - 다양성 극대화 지침]
-다음 주제들을 레벨에 맞춰 조화롭게 사용하세요:
+[Special Mission for 'CLICK']
 ${commonThemes}
 ${levelSpecificThemes}
 
 [5개 문장 생성 쿼터제]
-반드시 다음 순서로 각기 다른 각도의 대사를 생성하세요:
-${quotaInstruction}
-* 중요: '어깨가 뭉쳤네', '눈이 맑네' 같은 뻔한 예시는 절대 사용하지 마세요.`;
+반드시 다음 순서로 대사를 생성하세요:
+${quotaInstruction}`;
   }
 
   return `
 ${buildPersonaHeader(profile)}
 
 [Real-time Context]
-- Time of Day: ${timeContext}
-- Current Season: ${seasonContext}
-- Core Premise: 유저가 지금 정확히 어떤 작업을 하는지는 언급하지 마세요.
+- 시간 배경: ${timeContext} (이 시간 특유의 분위기를 대사에 반드시 녹여내세요)
+- 계절 배경: ${seasonContext}
+- 대원칙: 유저가 정확히 무슨 일을 하는지는 모르지만, 매우 집중하고 있다는 전제로 대화하세요.
 
 [The Mission: Generate ${category}]
 상황 "${DIALOGUE_SITUATIONS[category]}"에 맞는 한국어 대사 5개를 생성하세요.
 ${clickSpecialInstruction}
 
 [Writing Guidelines]
-1. 길이: 10~30자 이내. 짧고 임팩트 있는 구어체.
-2. 번역투 엄격 금지: 일상적인 한국어 구어를 사용하세요.
-3. 호칭: {honorific}을 문맥상 필요할 때만 자연스럽게 사용하세요.
-4. 출력: 따옴표 없이 문장만 줄바꿈으로 구분.
+1. 길이: 10~30자 이내. 한국 드라마/웹소설 스타일의 생생한 구어체.
+2. 번역투 절대 금지: "당신은 정말 훌륭하군요" 같은 어색한 말 대신 실제 한국인이 쓸 법한 자연스러운 문장을 쓰세요.
+3. 관계 반영: 현재 레벨에 맞는 거리감을 유지하세요.
+4. 출력 형식: 따옴표 없이 문장만 줄바꿈으로 구분하여 5줄 출력.
 `;
 };
 
 export const buildQuizPrompt = (data: { name: string, charGender: string, selectedPersonalities: string[], selectedTone: string, tmi: string, userName: string, gender: string, honorific: string }) => {
   return `
 [Character Engine: Core Personality Construction]
-1. Identity: ${data.name} (${data.charGender}), Personality: ${data.selectedPersonalities.join(', ')}, Style: ${data.selectedTone}, TMI: ${data.tmi}
+1. Identity: ${data.name} (${data.charGender}), 성격: ${data.selectedPersonalities.join(', ')}, 말투: ${data.selectedTone}, TMI: ${data.tmi}
 2. Target User: ${data.userName} (${data.gender}), Honorific: ${data.honorific || '유저'}
-3. Mission: Create 9 distinct Korean dialogue options (3 for each situation).
-Situations: [Late], [Gift], [Lazy].
-Guidelines: 10-30 chars, realistic Korean, no translation cliches.
+3. Mission: 상황 [Late], [Gift], [Lazy]에 대해 각 3개씩, 총 9개의 독특한 한국어 대사 옵션을 생성하세요.
+지침: 10-30자, 지극히 한국적인 구어체, 번역투 금지.
 Strictly JSON only.`;
 };
 
