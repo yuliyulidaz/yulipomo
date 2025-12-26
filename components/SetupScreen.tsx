@@ -232,8 +232,8 @@ export const SetupScreen: React.FC<SetupScreenProps> = ({ onComplete }) => {
           {step === 'QUIZ' && <PersonalityQuiz currentQuizStep={currentQuizStep} name={name} imageSrc={imageSrc} quizData={quizData} tempSelection={tempQuizSelection} onTempSelect={handleQuizSelect} onRefresh={refreshCurrentQuizStep} isPartialRefreshing={isPartialRefreshing} />}
         </div>
 
-        {/* 하단 버튼 영역 (고정) */}
-        <div className={`flex-none px-10 pb-14 pt-4 bg-white flex flex-col gap-3 relative z-30`}>
+        {/* 하단 버튼 영역 (고정) - 안드로이드 환경 가려짐 방지를 위해 pb-28로 상향 조정 */}
+        <div className={`flex-none px-10 pb-28 pt-4 bg-white flex flex-col gap-3 relative z-30`}>
           {error && (
             <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-4 w-[90%] max-w-sm px-4 py-3 bg-[#FF7F50] text-white text-[11px] font-bold rounded-xl flex items-center gap-2 shadow-xl animate-in slide-in-from-bottom-2 duration-300">
               <AlertCircle size={14} className="shrink-0" />
