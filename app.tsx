@@ -1,4 +1,3 @@
-
 import './index.css'
 import React, { useState, useEffect, useCallback } from 'react';
 import { SetupScreen } from './components/SetupScreen';
@@ -47,6 +46,18 @@ function App() {
 
       const dialogueCache = { ...defaults.dialogueCache, ...parsed.dialogueCache };
       let restoredProfile = { ...defaults, ...parsed, dialogueCache };
+
+      // 4세션 완료 상태(100%)로 저장되어 있다면 캐릭터 성장은 보존하되 타이머 상태만 0으로 초기화하여 불러옴
+      // 이는 완료 후 새로고침이나 재진입 시 유저가 "할 게 없는" 완료 화면에 갇히는 것을 방지함
+      if (restoredProfile.savedSessionInCycle === 4) {
+        restoredProfile.savedSessionInCycle = 0;
+        restoredProfile.savedTimeLeft = 25 * 60;
+        restoredProfile.savedIsBreak = false;
+        restoredProfile.savedIsActive = false;
+        // 보고서용 통계도 다음 세션을 위해 초기화
+        restoredProfile.cycleStats = { distractions: 0, clicks: 0 };
+      }
+
       return restoredProfile;
     } catch (e) {
       return null;
