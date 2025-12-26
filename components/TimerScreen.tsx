@@ -168,14 +168,19 @@ export const TimerScreen: React.FC<TimerScreenProps> = ({
     const dateStr = now.getFullYear() + String(now.getMonth() + 1).padStart(2, '0') + String(now.getDate()).padStart(2, '0');
     const timeStr = String(now.getHours()).padStart(2, '0') + String(now.getMinutes()).padStart(2, '0') + String(now.getSeconds()).padStart(2, '0');
     const filename = `${profile.name}_${dateStr}_${timeStr}.json`;
-    const dataStr = JSON.stringify(profile, null, 2);
+    
+    // 보안을 위해 API 키 제외 처리
+    const { apiKey, ...profileWithoutKey } = profile;
+    const dataStr = JSON.stringify(profileWithoutKey, null, 2);
+    
     const dataUri = 'data:application/json;charset=utf-8,' + encodeURIComponent(dataStr);
     const linkElement = document.createElement('a');
     linkElement.setAttribute('href', dataUri);
     linkElement.setAttribute('download', filename);
     linkElement.click();
     setIsSettingsOpen(false);
-    const warningMsg = "파일에는 API코드가 포함되어 있습니다. 절대로 타인과 공유하지 마세요.";
+    
+    const warningMsg = "보안을 위해 API 키를 제외하고 저장했습니다. 나중에 다시 불러올 때 키를 입력해 주세요.";
     setMessage(warningMsg);
     setTimeout(() => { setMessage(current => current === warningMsg ? "" : current); }, 5000);
   };
