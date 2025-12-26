@@ -131,7 +131,8 @@ function App() {
       if (updates.dialogueCache) {
         const currentCache = { ...newProfile.dialogueCache };
         (Object.keys(currentCache) as Array<keyof typeof currentCache>).forEach(key => {
-          const limit = CACHE_LIMITS[key] || 20;
+          // @google/genai senior engineer fix: explicitly cast 'key' to string to avoid index type errors with symbol-friendly keyof arrays.
+          const limit = CACHE_LIMITS[key as string] || 20;
           if (Array.isArray(currentCache[key]) && currentCache[key].length > limit) {
             currentCache[key] = currentCache[key].slice(-limit);
           }
