@@ -107,6 +107,7 @@ export const useAIManager = (
     const toneKey = profile.personality[0] || "존댓말";
 
     // START와 PAUSE는 고정 대사 파일에서 즉시 반환 (API 호출 차단)
+    // READY(재개 준비) 상황도 START의 고정 대사를 활용하여 일관성 유지
     if (type === 'START' || type === 'PAUSE' || type === 'READY') {
       const fixedSituation = type === 'READY' ? 'START' : type;
       const fixedList = FIXED_DIALOGUES[toneKey]?.[fixedSituation as 'START' | 'PAUSE'];
