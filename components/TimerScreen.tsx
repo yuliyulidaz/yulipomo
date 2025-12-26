@@ -180,7 +180,7 @@ export const TimerScreen: React.FC<TimerScreenProps> = ({
     linkElement.click();
     setIsSettingsOpen(false);
     
-    const warningMsg = "보안을 위해 API 키를 제외하고 저장했습니다. 나중에 다시 불러올 때 키를 입력해 주세요.";
+    const warningMsg = "API는 저장되지 않습니다. 나중에 다시 불러올 때 키를 입력해 주세요.";
     setMessage(warningMsg);
     setTimeout(() => { setMessage(current => current === warningMsg ? "" : current); }, 5000);
   };
