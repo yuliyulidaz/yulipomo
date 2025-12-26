@@ -105,7 +105,6 @@ export const useAIManager = (
     const userDisplayName = profile.honorific || profile.userName || "너";
     const toneKey = profile.personality[0] || "존댓말";
 
-    // START와 PAUSE, READY(재개) 상황은 고정 대사 데이터에서만 추출 (API 보호)
     if (type === 'START' || type === 'PAUSE' || type === 'READY') {
       const situation = type === 'READY' ? 'START' : type;
       const list = FIXED_DIALOGUES[toneKey]?.[situation as 'START' | 'PAUSE'];
