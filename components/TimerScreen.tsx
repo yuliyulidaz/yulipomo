@@ -37,7 +37,7 @@ export const TimerScreen: React.FC<TimerScreenProps> = ({
   // --- 1. AI & Dialogue Logic ---
   const {
     message, setMessage, cooldownRemaining, setCooldownRemaining,
-    triggerAIResponse, handleInteraction, pendingExpiryAlert, setPendingExpiryAlert, COOLDOWN_MS
+    triggerAIResponse, triggerCooldown, handleInteraction, pendingExpiryAlert, setPendingExpiryAlert, COOLDOWN_MS
   } = useAIManager(profile, onUpdateProfile);
 
   // --- 2. Core Timer Logic ---
@@ -73,12 +73,13 @@ export const TimerScreen: React.FC<TimerScreenProps> = ({
 
   // --- 6. Refs ---
   const resetHoldTimerRef = useRef<any>(null);
-  const resetStartTimeRef = useRef<number | null>(null);
+  const resetStartTimeRef = useRef<number | null>(0);
   const settingsBtnRef = useRef<HTMLDivElement>(null);
   const characterBoxRef = useRef<HTMLDivElement>(null);
   const resetBtnRef = useRef<HTMLButtonElement>(null);
   const startBtnRef = useRef<HTMLButtonElement>(null);
   const affinityRef = useRef<HTMLDivElement>(null);
+  const hasTriggeredInitialCooldown = useRef(false);
 
   // --- 7. Effects & Sync ---
   useEffect(() => {
@@ -93,11 +94,10 @@ export const TimerScreen: React.FC<TimerScreenProps> = ({
     }
   }, [isBreak, pendingExpiryAlert, isApiKeyModalOpen]);
 
-  // 브라우저 탭 전환(이탈) 감지 로직: 다른 창에 갔다가 돌아오면 꾸짖기
+  // 브라우저 탭 전환(이탈) 감지 로직
   useEffect(() => {
     const handleVisibility = () => {
       if (document.visibilityState === 'visible' && isActive && !isBreak) {
-        // 돌아왔을 때 세션 중이라면 꾸짖는 대사 트리거
         triggerAIResponse('RETURN');
         setDistractions(prev => prev + 1);
       }
@@ -125,7 +125,23 @@ export const TimerScreen: React.FC<TimerScreenProps> = ({
     });
   }, [timeLeft, isActive, isBreak, sessionInCycle, distractions, clicks, onUpdateProfile]);
 
+  // 세션이 바뀌거나 리셋되면 오프닝 트리거 초기화
+  useEffect(() => {
+    if (sessionInCycle !== 0 || isBreak) {
+      hasTriggeredInitialCooldown.current = false;
+    }
+  }, [sessionInCycle, isBreak]);
+
   // --- 8. Event Handlers ---
+  const handleStartToggle = () => {
+    // 1세션(sessionInCycle 0) 시작 시점에만 16초 오프닝 쿨다운 발생
+    if (!isActive && !isBreak && sessionInCycle === 0 && !hasTriggeredInitialCooldown.current) {
+      triggerCooldown();
+      hasTriggeredInitialCooldown.current = true;
+    }
+    toggleActive();
+  };
+
   const handleCharacterClick = () => {
     const wasBlocked = handleInteraction(isActive, isBreak);
     if (!wasBlocked && isActive && !isBreak) {
@@ -134,33 +150,20 @@ export const TimerScreen: React.FC<TimerScreenProps> = ({
   };
 
   const handleExportProfile = () => {
-    // 1. 파일명 생성 (캐릭터이름_YYYYMMDD_HHMMSS.json)
     const now = new Date();
-    const dateStr = now.getFullYear() + 
-                    String(now.getMonth() + 1).padStart(2, '0') + 
-                    String(now.getDate()).padStart(2, '0');
-    const timeStr = String(now.getHours()).padStart(2, '0') + 
-                    String(now.getMinutes()).padStart(2, '0') + 
-                    String(now.getSeconds()).padStart(2, '0');
+    const dateStr = now.getFullYear() + String(now.getMonth() + 1).padStart(2, '0') + String(now.getDate()).padStart(2, '0');
+    const timeStr = String(now.getHours()).padStart(2, '0') + String(now.getMinutes()).padStart(2, '0') + String(now.getSeconds()).padStart(2, '0');
     const filename = `${profile.name}_${dateStr}_${timeStr}.json`;
-
-    // 2. 파일 다운로드 실행
     const dataStr = JSON.stringify(profile, null, 2);
     const dataUri = 'data:application/json;charset=utf-8,' + encodeURIComponent(dataStr);
     const linkElement = document.createElement('a');
     linkElement.setAttribute('href', dataUri);
     linkElement.setAttribute('download', filename);
     linkElement.click();
-    
-    // 3. 설정 메뉴 닫기 및 보안 경고 토스트 대사 (5초간 노출)
     setIsSettingsOpen(false);
     const warningMsg = "파일에는 API코드가 포함되어 있습니다. 절대로 타인과 공유하지 마세요.";
     setMessage(warningMsg);
-    
-    // 5초 뒤에 경고 메시지 제거 (사용자가 도중에 클릭해서 메시지가 바뀌지 않은 경우에만)
-    setTimeout(() => {
-      setMessage(current => current === warningMsg ? "" : current);
-    }, 5000);
+    setTimeout(() => { setMessage(current => current === warningMsg ? "" : current); }, 5000);
   };
 
   const handleResetStart = (e: React.MouseEvent | React.TouchEvent) => {
@@ -177,7 +180,6 @@ export const TimerScreen: React.FC<TimerScreenProps> = ({
     setIsResetHolding(false);
     setResetHoldProgress(0);
     if (resetHoldTimerRef.current) clearTimeout(resetHoldTimerRef.current);
-
     if (duration >= RESET_HOLD_MS) {
       resetTimer(true);
       setDistractions(0);
@@ -247,7 +249,7 @@ export const TimerScreen: React.FC<TimerScreenProps> = ({
             <div className="w-full flex flex-col items-center gap-6 mt-4 pb-4">
               <TimerDisplay isBreak={isBreak} isDarkMode={isDarkMode} timeLeft={timeLeft} formatTime={formatTime} />
               <CycleProgressBar overallProgressPercent={overallProgressPercent} isResetHolding={isResetHolding} resetHoldProgress={resetHoldProgress} isBreak={isBreak} sessionInCycle={sessionInCycle} isDarkMode={isDarkMode} />
-              <ControlButtons isBreak={isBreak} isActive={isActive} onToggle={toggleActive} onSkipBreak={skipBreak} resetBtnRef={resetBtnRef} startBtnRef={startBtnRef} onResetStart={handleResetStart} onResetEnd={handleResetEnd} onResetCancel={handleResetCancel} isResetHolding={isResetHolding} isDarkMode={isDarkMode} />
+              <ControlButtons isBreak={isBreak} isActive={isActive} onToggle={handleStartToggle} onSkipBreak={skipBreak} resetBtnRef={resetBtnRef} startBtnRef={startBtnRef} onResetStart={handleResetStart} onResetEnd={handleResetEnd} onResetCancel={handleResetCancel} isResetHolding={isResetHolding} isDarkMode={isDarkMode} />
             </div>
           </div>
       </main>
