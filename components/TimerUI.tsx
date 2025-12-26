@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Heart, Settings, Sun, Moon, Save, Key, Terminal, X, Coffee, Timer as TimerIcon, Pause, Play, SkipForward, RotateCcw, Bed, HelpCircle, Zap, Bot } from 'lucide-react';
+import { Heart, Settings, Sun, Moon, Save, Key, Terminal, X, Coffee, Timer as TimerIcon, Pause, Play, SkipForward, RotateCcw, Bed, HelpCircle, Zap, ShieldCheck } from 'lucide-react';
 import { CharacterProfile } from '../types';
 
 interface TopBadgeProps {
@@ -56,6 +56,10 @@ export const SettingsMenu: React.FC<SettingsMenuProps> = ({ isOpen, setIsOpen, i
     }
   }, [isApiKeyAlert]);
 
+  // Unified base icon colors
+  const lightIconColor = 'text-slate-600';
+  const darkIconColor = 'text-slate-300';
+
   return (
     <div className={`relative ${isOpen ? 'z-50' : 'z-30'}`} ref={btnRef}>
       <button 
@@ -66,17 +70,58 @@ export const SettingsMenu: React.FC<SettingsMenuProps> = ({ isOpen, setIsOpen, i
         <Settings size={20} />
       </button>
       
-      <div className={`absolute top-full left-0 mt-3.5 flex flex-col gap-3.5 transition-all duration-500 origin-top z-50 ${isOpen ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-4 pointer-events-none'}`}>
-          <div className="flex items-center gap-3 cursor-pointer" onClick={(e) => { e.stopPropagation(); onToggleDarkMode(); }}><div className={`w-12 h-12 rounded-full border shadow-sm flex items-center justify-center transition-all hover:scale-110 ${isDarkMode ? 'bg-slate-800 text-yellow-400 border-slate-700' : 'bg-white border-slate-200 text-text-primary'}`}>{isDarkMode ? <Sun size={20} /> : <Moon size={20} />}</div><span className={`text-[10px] font-black px-2.5 py-1.5 rounded-lg border shadow-sm whitespace-nowrap min-w-[60px] text-center ${isDarkMode ? 'bg-slate-800 border-slate-700 text-slate-100' : 'bg-surface/90 border-border text-text-primary'}`}>{isDarkMode ? '라이트' : '다크'}</span></div>
-          <div className="flex items-center gap-3 cursor-pointer" onClick={(e) => { e.stopPropagation(); onToggleBatterySaving(); }}><div className={`w-12 h-12 rounded-full border shadow-sm flex items-center justify-center transition-all hover:scale-110 ${isBatterySaving ? 'bg-primary text-white border-primary-dark shadow-lg shadow-primary/20' : (isDarkMode ? 'bg-slate-800 text-slate-400 border-slate-700' : 'bg-white border-slate-200 text-text-secondary')}`}><Zap size={20} className={isBatterySaving ? "fill-white" : ""} /></div><span className={`text-[10px] font-black px-2.5 py-1.5 rounded-lg border shadow-sm whitespace-nowrap min-w-[60px] text-center ${isBatterySaving ? 'bg-primary border-primary-dark text-white' : (isDarkMode ? 'bg-slate-800 border-slate-700 text-slate-100' : 'bg-surface/90 border-border text-text-primary')}`}>{isBatterySaving ? '절전 끔' : '절전 켬'}</span></div>
-          <div className="flex items-center gap-3 cursor-pointer" onClick={(e) => { e.stopPropagation(); onExport(); }}><div className={`w-12 h-12 rounded-full border shadow-sm flex items-center justify-center transition-all hover:scale-110 ${isDarkMode ? 'bg-slate-800 text-slate-100 border-slate-700' : 'bg-white border-slate-200 text-text-primary'}`}><Save size={20} /></div><span className={`text-[10px] font-black px-2.5 py-1.5 rounded-lg border shadow-sm whitespace-nowrap min-w-[60px] text-center ${isDarkMode ? 'bg-slate-800 border-slate-700 text-slate-100' : 'bg-surface/90 border-border text-text-primary'}`}>저장</span></div>
-          <div className="flex items-center gap-3 cursor-pointer" onClick={(e) => { e.stopPropagation(); onApiKeyOpen(); }}><div className={`w-12 h-12 rounded-full border shadow-sm flex items-center justify-center transition-all hover:scale-110 ${isApiKeyAlert ? 'bg-rose-500/20 text-rose-500 border-rose-500/40 animate-pulse' : (isDarkMode ? 'bg-slate-800 text-slate-400 border-slate-700' : 'bg-white border-slate-200 text-text-primary')}`}><Key size={20} /></div><span className={`text-[10px] font-black px-2.5 py-1.5 rounded-lg border shadow-sm whitespace-nowrap min-w-[60px] text-center ${isApiKeyAlert ? 'bg-rose-500/10 border-rose-500/20 text-rose-500' : (isDarkMode ? 'bg-slate-800 border-slate-700 text-slate-100' : 'bg-surface/90 border-border text-text-primary')}`}>API키</span></div>
+      <div className={`absolute top-full left-0 mt-3.5 flex flex-col gap-3 transition-all duration-500 origin-top z-50 ${isOpen ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-4 pointer-events-none'}`}>
+          {/* 다크/라이트 모드 (다크모드일 때 해 아이콘은 노란색 유지) */}
+          <div className="cursor-pointer" onClick={(e) => { e.stopPropagation(); onToggleDarkMode(); }}>
+            <div className={`w-12 h-12 rounded-full border shadow-sm flex items-center justify-center transition-all hover:scale-110 ${isDarkMode ? 'bg-slate-800 text-yellow-400 border-slate-700' : `bg-white border-slate-200 ${lightIconColor}`}`}>
+              {isDarkMode ? <Sun size={20} /> : <Moon size={20} />}
+            </div>
+          </div>
+
+          {/* 절전 모드 */}
+          <div className="cursor-pointer" onClick={(e) => { e.stopPropagation(); onToggleBatterySaving(); }}>
+            <div className={`w-12 h-12 rounded-full border shadow-sm flex items-center justify-center transition-all hover:scale-110 ${isBatterySaving ? 'bg-primary text-white border-primary-dark shadow-lg shadow-primary/20' : (isDarkMode ? `bg-slate-800 ${darkIconColor} border-slate-700` : `bg-white border-slate-200 ${lightIconColor}`)}`}>
+              <Zap size={20} className={isBatterySaving ? "fill-white" : ""} />
+            </div>
+          </div>
+
+          {/* 저장 */}
+          <div className="cursor-pointer" onClick={(e) => { e.stopPropagation(); onExport(); }}>
+            <div className={`w-12 h-12 rounded-full border shadow-sm flex items-center justify-center transition-all hover:scale-110 ${isDarkMode ? `bg-slate-800 ${darkIconColor} border-slate-700` : `bg-white border-slate-200 ${lightIconColor}`}`}>
+              <Save size={20} />
+            </div>
+          </div>
+
+          {/* API 키 */}
+          <div className="cursor-pointer" onClick={(e) => { e.stopPropagation(); onApiKeyOpen(); }}>
+            <div className={`w-12 h-12 rounded-full border shadow-sm flex items-center justify-center transition-all hover:scale-110 ${isApiKeyAlert ? 'bg-rose-500/20 text-rose-500 border-rose-500/40 animate-pulse' : (isDarkMode ? `bg-slate-800 ${darkIconColor} border-slate-700` : `bg-white border-slate-200 ${lightIconColor}`)}`}>
+              <Key size={20} />
+            </div>
+          </div>
+
+          {/* 사용법 가이드 */}
           {!isBreak && (
-            <div className="flex items-center gap-3 cursor-pointer" onClick={(e) => { e.stopPropagation(); onShowGuide(); setIsOpen(false); }}><div className={`w-12 h-12 rounded-full border shadow-sm flex items-center justify-center transition-all hover:scale-110 ${isDarkMode ? 'bg-slate-800 text-primary-light border-slate-700' : 'bg-white border-slate-200 text-primary'}`}><HelpCircle size={20} /></div><span className={`text-[10px] font-black px-2.5 py-1.5 rounded-lg border shadow-sm whitespace-nowrap min-w-[60px] text-center ${isDarkMode ? 'bg-slate-800 border-slate-700 text-slate-100' : 'bg-surface/90 border-border text-text-primary'}`}>사용법</span></div>
+            <div className="cursor-pointer" onClick={(e) => { e.stopPropagation(); onShowGuide(); setIsOpen(false); }}>
+              <div className={`w-12 h-12 rounded-full border shadow-sm flex items-center justify-center transition-all hover:scale-110 ${isDarkMode ? `bg-slate-800 ${darkIconColor} border-slate-700` : `bg-white border-slate-200 ${lightIconColor}`}`}>
+                <HelpCircle size={20} />
+              </div>
+            </div>
           )}
-          <div className="flex items-center gap-3 cursor-pointer" onClick={(e) => { e.stopPropagation(); onPrivacyOpen(); }}><div className={`w-12 h-12 rounded-full border shadow-sm flex items-center justify-center transition-all hover:scale-110 ${isDarkMode ? 'bg-slate-800 text-indigo-400 border-slate-700' : 'bg-white border-slate-200 text-indigo-500'}`}><Bot size={20} /></div><span className={`text-[10px] font-black px-2.5 py-1.5 rounded-lg border shadow-sm whitespace-nowrap min-w-[60px] text-center ${isDarkMode ? 'bg-slate-800 border-slate-700 text-slate-100' : 'bg-surface/90 border-border text-text-primary'}`}>AI정책</span></div>
+
+          {/* AI 정책 (방패 모양 ShieldCheck로 변경) */}
+          <div className="cursor-pointer" onClick={(e) => { e.stopPropagation(); onPrivacyOpen(); }}>
+            <div className={`w-12 h-12 rounded-full border shadow-sm flex items-center justify-center transition-all hover:scale-110 ${isDarkMode ? `bg-slate-800 ${darkIconColor} border-slate-700` : `bg-white border-slate-200 ${lightIconColor}`}`}>
+              <ShieldCheck size={20} />
+            </div>
+          </div>
+
+          {/* 관리자 패널 */}
           {isAdminMode && (
-            <div className="flex items-center gap-3 cursor-pointer" onClick={(e) => { e.stopPropagation(); onShowAdminPanel(); setIsOpen(false); }}><div className={`w-12 h-12 rounded-full border shadow-sm flex items-center justify-center transition-all hover:scale-110 bg-primary text-white border-primary-dark`}><Terminal size={20} /></div><span className={`text-[10px] font-black px-2.5 py-1.5 rounded-lg border shadow-sm bg-primary border-primary-dark text-white whitespace-nowrap min-w-[60px] text-center`}>패널</span></div>
+            <div className="cursor-pointer" onClick={(e) => { e.stopPropagation(); onShowAdminPanel(); setIsOpen(false); }}>
+              <div className={`w-12 h-12 rounded-full border shadow-sm flex items-center justify-center transition-all hover:scale-110 bg-primary text-white border-primary-dark`}>
+                <Terminal size={20} />
+              </div>
+            </div>
           )}
       </div>
     </div>
