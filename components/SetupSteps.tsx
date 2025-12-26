@@ -36,8 +36,9 @@ export const Step1: React.FC<Step1Props> = ({ name, setName, imageSrc, setImageS
         </div>
         
         <div className="relative w-32 h-32 md:w-44 md:h-44 mx-auto">
-          {/* 이미지 필수 표시 (*) */}
+          {/* 사진 필수 요소 붉은색 별표 표시 */}
           <span className="absolute -top-1 -right-1 text-rose-500 font-black text-xl z-10 select-none animate-pulse">*</span>
+          
           <div className={`w-full h-full rounded-2xl overflow-hidden border-2 transition-all duration-500 ${imageSrc ? 'border-primary shadow-lg shadow-primary/10' : 'border-border bg-background'}`}>
             {imageSrc ? <img src={imageSrc} alt="Preview" className="w-full h-full object-cover" /> : <div className="w-full h-full flex flex-col items-center justify-center text-text-secondary opacity-40"><Camera size={40} strokeWidth={1} /></div>}
           </div>
@@ -46,7 +47,6 @@ export const Step1: React.FC<Step1Props> = ({ name, setName, imageSrc, setImageS
       </div>
     </div>
 
-    {/* 사진과 이름 사이 간격을 띄우기 위해 pt-6에서 pt-14로 조정 */}
     <div className="w-full flex flex-col items-center pt-14">
       <div className="w-full max-w-xs space-y-8 flex flex-col items-center px-4">
         <div className="relative w-full">
@@ -88,8 +88,8 @@ export const Step1: React.FC<Step1Props> = ({ name, setName, imageSrc, setImageS
             </button>
           </div>
 
-          {/* 정책 안내 문구 이동 (스크롤 안쪽) */}
-          <div className="text-center space-y-1 pt-2 border-t border-slate-50">
+          {/* 정책 안내 문구 이동: 계속 이어하기 버튼 아래로 */}
+          <div className="text-center space-y-1 pt-2 border-t border-slate-50 w-full">
             <p className="text-[9px] text-text-secondary font-bold tracking-tight">이 서비스는 Google Gemini API키를 필요로 합니다.</p>
             <button 
               onClick={onPrivacyOpen}
