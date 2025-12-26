@@ -12,7 +12,7 @@ import { LEVEL_TITLES } from './TimerConfig';
 import { formatTime, calculateOverallProgress, cleanDialogue } from './TimerUtils';
 
 // 모달 및 UI 컴포넌트
-import { AdminAuthModal, AdminPanel, CycleChoiceModal } from './TimerModals';
+import { AdminAuthModal, AdminPanel, CycleChoiceModal, AffinityGuideModal } from './TimerModals';
 import { TopBadge, SettingsMenu, CharacterSection, TimerDisplay, CycleProgressBar, ControlButtons } from './TimerUI';
 
 // 커스텀 훅
@@ -56,7 +56,7 @@ export const TimerScreen: React.FC<TimerScreenProps> = ({
   // --- 5. Local UI State ---
   const [distractions, setDistractions] = useState(profile.cycleStats?.distractions ?? 0);
   const [clicks, setClicks] = useState(profile.cycleStats?.clicks ?? 0);
-  const [badgeClicks, setBadgeClicks] = useState(0);
+  const [adminClicks, setAdminClicks] = useState(0);
   const [showAdminAuth, setShowAdminAuth] = useState(false);
   const [adminPassword, setAdminPassword] = useState('');
   const [isAdminMode, setIsAdminMode] = useState(false);
@@ -70,6 +70,7 @@ export const TimerScreen: React.FC<TimerScreenProps> = ({
   const [isApiKeyModalOpen, setIsApiKeyModalOpen] = useState(false);
   const [apiKeyPopupType, setApiKeyPopupType] = useState<'EXPIRED' | 'MANUAL'>('MANUAL');
   const [showExitModal, setShowExitModal] = useState(false);
+  const [showAffinityGuide, setShowAffinityGuide] = useState(false);
 
   // --- 6. Refs ---
   const resetHoldTimerRef = useRef<any>(null);
@@ -134,7 +135,6 @@ export const TimerScreen: React.FC<TimerScreenProps> = ({
 
   // --- 8. Event Handlers ---
   const handleStartToggle = () => {
-    // 1세션(sessionInCycle 0) 시작 시점에만 16초 오프닝 쿨다운 발생
     if (!isActive && !isBreak && sessionInCycle === 0 && !hasTriggeredInitialCooldown.current) {
       triggerCooldown();
       hasTriggeredInitialCooldown.current = true;
@@ -147,6 +147,18 @@ export const TimerScreen: React.FC<TimerScreenProps> = ({
     if (!wasBlocked && isActive && !isBreak) {
       setClicks(prev => prev + 1);
     }
+  };
+
+  const handleModeIconClick = () => {
+    const newCount = adminClicks + 1;
+    setAdminClicks(newCount);
+    if (newCount >= 5) {
+      setAdminClicks(0);
+      setShowAdminAuth(true);
+    }
+    // 2초 내에 연타하지 않으면 카운트 초기화
+    const timer = setTimeout(() => setAdminClicks(0), 2000);
+    return () => clearTimeout(timer);
   };
 
   const handleExportProfile = () => {
@@ -230,10 +242,11 @@ export const TimerScreen: React.FC<TimerScreenProps> = ({
       <CycleChoiceModal isOpen={showChoiceModal} isDarkMode={isDarkMode} completedCycles={profile.totalCompletedCycles || 0} onChoice={(opt) => { setShowChoiceModal(false); setSessionInCycle(0); setIsBreak(true); setIsActive(true); if(opt==='LONG'){ setTimeLeft(30*60); onTickXP(5); } else { setTimeLeft(5*60); onTickXP(25); } }} onExport={handleExportProfile} />
       <ApiKeyExpiryModal isOpen={isApiKeyModalOpen} onClose={() => { setIsApiKeyModalOpen(false); setPendingExpiryAlert(false); }} type={apiKeyPopupType} currentApiKey={profile.apiKey || ''} isDarkMode={isDarkMode} onUpdateKey={(key) => onUpdateProfile({ apiKey: key })} />
       <ExitConfirmModal isOpen={showExitModal} onClose={() => setShowExitModal(false)} onConfirmExit={onReset} characterName={profile.name} isDarkMode={isDarkMode} />
-      {(isApiKeyModalOpen || showExitModal) && <div className="fixed inset-0 z-[45] bg-transparent" onClick={() => { setIsApiKeyModalOpen(false); setShowExitModal(false); }} />}
+      <AffinityGuideModal isOpen={showAffinityGuide} onClose={() => setShowAffinityGuide(false)} currentLevel={profile.level} isDarkMode={isDarkMode} characterName={profile.name} />
+      {(isApiKeyModalOpen || showExitModal || showAffinityGuide) && <div className="fixed inset-0 z-[45] bg-transparent" onClick={() => { setIsApiKeyModalOpen(false); setShowExitModal(false); setShowAffinityGuide(false); }} />}
 
       <main className="w-full h-full flex flex-col items-center justify-center relative p-4 md:p-8">
-          <TopBadge ref={affinityRef} level={profile.level} title={levelTitle} isAdminMode={isAdminMode} isDarkMode={isDarkMode} onBadgeClick={() => { const nc = badgeClicks+1; setBadgeClicks(nc); if(nc>=5){ setBadgeClicks(0); setShowAdminAuth(true); } setTimeout(()=>setBadgeClicks(0),2000); }} badgeClicks={badgeClicks} />
+          <TopBadge ref={affinityRef} level={profile.level} title={levelTitle} isAdminMode={isAdminMode} isDarkMode={isDarkMode} onBadgeClick={() => setShowAffinityGuide(true)} />
           <div className={`w-full max-w-[450px] backdrop-blur-xl border p-6 md:p-8 rounded-[40px] shadow-[0_20px_50px_rgba(74,95,122,0.1)] flex flex-col items-center gap-6 md:gap-8 animate-in fade-in zoom-in duration-500 relative transition-colors duration-700 ${isDarkMode ? 'bg-[#161B22]/90 border-[#30363D]' : 'bg-surface/90 border-border'} ${isApiKeyModalOpen || isSettingsOpen ? 'overflow-visible z-50' : 'overflow-hidden'}`}>
             {isSettingsOpen && <div className="fixed inset-0 z-40 bg-black/[0.02] backdrop-blur-[1.2px] cursor-default animate-in fade-in duration-300" onClick={(e) => { e.stopPropagation(); setIsSettingsOpen(false); }} />}
             <div className={`absolute top-2.5 inset-x-8 h-1.5 z-10 ${isDarkMode ? 'bg-slate-700/20' : 'bg-border/20'} rounded-full overflow-hidden`}><div className="h-full bg-gradient-to-r from-primary to-accent transition-all duration-1000 ease-out rounded-full" style={{ width: `${progressPercent}%` }} /></div>
@@ -247,7 +260,7 @@ export const TimerScreen: React.FC<TimerScreenProps> = ({
                 <p className={`text-[10px] font-bold tracking-widest uppercase ${isDarkMode ? 'text-slate-400' : 'text-text-secondary'}`}>To. {profile.honorific || profile.userName}</p>
             </div>
             <div className="w-full flex flex-col items-center gap-6 mt-4 pb-4">
-              <TimerDisplay isBreak={isBreak} isDarkMode={isDarkMode} timeLeft={timeLeft} formatTime={formatTime} />
+              <TimerDisplay isBreak={isBreak} isDarkMode={isDarkMode} timeLeft={timeLeft} formatTime={formatTime} onModeClick={handleModeIconClick} />
               <CycleProgressBar overallProgressPercent={overallProgressPercent} isResetHolding={isResetHolding} resetHoldProgress={resetHoldProgress} isBreak={isBreak} sessionInCycle={sessionInCycle} isDarkMode={isDarkMode} />
               <ControlButtons isBreak={isBreak} isActive={isActive} onToggle={handleStartToggle} onSkipBreak={skipBreak} resetBtnRef={resetBtnRef} startBtnRef={startBtnRef} onResetStart={handleResetStart} onResetEnd={handleResetEnd} onResetCancel={handleResetCancel} isResetHolding={isResetHolding} isDarkMode={isDarkMode} />
             </div>
