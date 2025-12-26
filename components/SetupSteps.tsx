@@ -36,8 +36,10 @@ export const Step1: React.FC<Step1Props> = ({ name, setName, imageSrc, setImageS
         </div>
         
         <div className="relative w-32 h-32 md:w-44 md:h-44 mx-auto">
-          {/* 사진 필수 요소 붉은색 별표 표시 */}
-          <span className="absolute -top-1 -right-1 text-rose-500 font-black text-xl z-10 select-none animate-pulse">*</span>
+          {/* 사진 필수 요소 표시: 붉은 원 안에 하얀 별표 (테두리 제거 및 투명도 조절) */}
+          <div className="absolute -top-2 -right-2 w-7 h-7 bg-rose-500/80 rounded-full flex items-center justify-center shadow-md z-10 animate-bounce select-none">
+            <span className="text-white font-black text-lg leading-none mt-1">*</span>
+          </div>
           
           <div className={`w-full h-full rounded-2xl overflow-hidden border-2 transition-all duration-500 ${imageSrc ? 'border-primary shadow-lg shadow-primary/10' : 'border-border bg-background'}`}>
             {imageSrc ? <img src={imageSrc} alt="Preview" className="w-full h-full object-cover" /> : <div className="w-full h-full flex flex-col items-center justify-center text-text-secondary opacity-40"><Camera size={40} strokeWidth={1} /></div>}
@@ -221,6 +223,7 @@ export const Step3: React.FC<Step3Props> = ({ userName, setUserName, honorific, 
             <label className="absolute -top-6 left-0 text-[10px] font-bold text-text-secondary uppercase tracking-widest">
               내 이름 <span className="text-rose-500">*</span>
             </label>
+            {/* Fix: removed nested setUserName call that returned void and caused a type error */}
             <input ref={userNameInputRef} type="text" value={userName} onChange={e => setUserName(e.target.value)} placeholder="당신의 이름" className="w-full py-2 bg-transparent border-b border-border outline-none focus:border-primary transition-all font-semibold text-sm text-text-primary" />
           </div>
           <div className="relative group">
