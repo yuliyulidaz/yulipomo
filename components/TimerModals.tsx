@@ -166,44 +166,30 @@ export const AffinityGuideModal: React.FC<AffinityGuideModalProps> = ({ isOpen, 
   return (
     <div className="fixed inset-0 z-[600] flex items-center justify-center p-6 bg-black/40 backdrop-blur-sm animate-in fade-in duration-300" onClick={onClose}>
       <div 
-        className={`w-full max-w-sm rounded-[2.5rem] shadow-2xl border p-8 space-y-6 transform animate-in zoom-in-95 duration-300 relative ${isDarkMode ? 'bg-[#161B22] border-white/10' : 'bg-surface border-border'}`}
+        className={`w-full max-w-[280px] rounded-[2rem] shadow-2xl border p-8 space-y-6 transform animate-in zoom-in-95 duration-300 relative ${isDarkMode ? 'bg-[#161B22] border-white/10' : 'bg-surface border-border'}`}
         onClick={e => e.stopPropagation()}
       >
-        <button onClick={onClose} className="absolute top-6 right-6 p-2 rounded-full hover:bg-black/5 transition-colors opacity-40"><X size={20}/></button>
-        
-        <div className="text-center space-y-1.5 pt-2">
-          <div className="flex justify-center gap-1 mb-2">
-            <Heart size={20} className="text-rose-500 fill-rose-500 animate-pulse" />
-          </div>
-          <h3 className={`text-xl font-black ${isDarkMode ? 'text-slate-100' : 'text-slate-800'}`}>{characterName}와의 관계도</h3>
-          <p className={`text-xs font-bold ${isDarkMode ? 'text-slate-400' : 'text-slate-500'}`}>집중할수록 최애와 더 가까워집니다.</p>
+        <div className="text-center space-y-1">
+          <Heart size={16} className="text-rose-500 fill-rose-500 mx-auto mb-2 opacity-80" />
+          <h3 className={`text-base font-black ${isDarkMode ? 'text-slate-100' : 'text-slate-800'}`}>{characterName}와의 관계</h3>
         </div>
 
-        <div className="grid grid-cols-1 gap-2 max-h-[360px] overflow-y-auto pr-1 custom-diary-scroll">
+        <div className="flex flex-col gap-1.5 py-2">
           {Object.entries(LEVEL_TITLES).map(([lv, title]) => {
             const levelNum = parseInt(lv);
             const isCurrent = levelNum === currentLevel;
-            const isLocked = levelNum > currentLevel;
 
             return (
-              <div 
-                key={lv} 
-                className={`flex items-center gap-4 p-4 rounded-2xl border-2 transition-all
-                  ${isCurrent 
-                    ? 'bg-primary/10 border-primary ring-4 ring-primary/5 scale-[1.02]' 
-                    : (isLocked ? 'bg-transparent border-transparent opacity-40' : 'bg-transparent border-border/40 border-dashed opacity-80')}`}
-              >
-                <div className={`w-10 h-10 rounded-full flex items-center justify-center font-black text-sm shrink-0
-                  ${isCurrent ? 'bg-primary text-white shadow-lg' : (isDarkMode ? 'bg-slate-800 text-slate-500' : 'bg-slate-100 text-slate-400')}`}>
-                  {lv}
+              <div key={lv} className="flex justify-start items-center h-8">
+                <div 
+                  className={`text-[13px] font-bold transition-all inline-flex items-center
+                    ${isCurrent 
+                      ? 'px-2 py-0.5 border-2 border-primary rounded-lg bg-primary/5 text-primary scale-[1.05]' 
+                      : (isDarkMode ? 'text-slate-500' : 'text-slate-400')}`}
+                >
+                  Lv{lv}. {title}
+                  {isCurrent && <Star size={10} className="ml-1.5 text-primary fill-primary animate-pulse" />}
                 </div>
-                <div className="flex-1 min-w-0">
-                  <p className={`text-[13px] font-black truncate ${isCurrent ? 'text-primary' : (isDarkMode ? 'text-slate-200' : 'text-slate-700')}`}>
-                    {title}
-                  </p>
-                  {isCurrent && <span className="text-[9px] font-bold text-primary/60 uppercase tracking-widest">현재 관계 단계</span>}
-                </div>
-                {isCurrent && <Star size={16} className="text-primary fill-primary animate-spin-slow" style={{ animationDuration: '6s' }} />}
               </div>
             );
           })}
@@ -211,7 +197,8 @@ export const AffinityGuideModal: React.FC<AffinityGuideModalProps> = ({ isOpen, 
 
         <button 
           onClick={onClose}
-          className="w-full py-4 bg-slate-900 text-white dark:bg-white dark:text-slate-900 rounded-2xl font-black text-sm shadow-xl active:scale-95 transition-all"
+          className={`w-full py-3 rounded-xl font-black text-xs transition-all active:scale-95 shadow-lg
+            ${isDarkMode ? 'bg-slate-800 text-white hover:bg-slate-700' : 'bg-slate-900 text-white hover:bg-black'}`}
         >
           확인
         </button>
