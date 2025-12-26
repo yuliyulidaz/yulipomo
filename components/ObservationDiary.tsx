@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Loader2, PenTool, ArrowRight, Camera } from 'lucide-react';
 import { CharacterProfile } from '../types';
@@ -90,6 +89,9 @@ export const ObservationDiary: React.FC<ObservationDiaryProps> = ({ profile, sta
   });
 
   useEffect(() => {
+    // 이미 생성된 내용이 있다면 재실행 방지 (이중 안전장치)
+    if (content) return;
+
     const generateDiaryFlow = async () => {
       const minDuration = new Promise(resolve => setTimeout(resolve, 2200));
       const relationshipTitle = LEVEL_TITLES[profile.level];
@@ -151,7 +153,11 @@ export const ObservationDiary: React.FC<ObservationDiaryProps> = ({ profile, sta
     };
 
     generateDiaryFlow();
-  }, [profile, stats]);
+    // 의존성 배열을 비워둠으로써 profile이나 stats가 백그라운드에서 업데이트되어도 
+    // 일지가 다시 쓰여지는(재호출되는) 현상을 근본적으로 차단합니다.
+    // ObservationDiary 컴포넌트는 보고서가 열릴 때마다 새롭게 마운트되므로 
+    // 마운트 시점의 데이터만으로 한 번만 생성하면 충분합니다.
+  }, []); 
 
   const enterScreenshotMode = () => {
     setIsScreenshotMode(true);
