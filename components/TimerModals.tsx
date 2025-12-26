@@ -1,6 +1,7 @@
 import React from 'react';
-import { X, Terminal, FastForward, FileSearch, CheckCircle2, Save, Key, AlertCircle } from 'lucide-react';
+import { X, Terminal, FastForward, FileSearch, CheckCircle2, Save, Key, AlertCircle, Heart, Star } from 'lucide-react';
 import { CharacterProfile } from '../types';
+import { LEVEL_TITLES } from './TimerConfig';
 
 interface AdminAuthModalProps {
   isOpen: boolean;
@@ -76,7 +77,6 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ isOpen, onClose, profile
           />
         </div>
         
-        {/* Test Simulation Section */}
         <div className="space-y-2">
           <p className="text-[9px] font-black text-white/40 uppercase tracking-widest">Test Simulation</p>
           <button 
@@ -119,7 +119,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ isOpen, onClose, profile
 interface CycleChoiceModalProps {
   isOpen: boolean;
   isDarkMode: boolean;
-  completedCycles: number; // 완료 횟수 전달 받음
+  completedCycles: number;
   onChoice: (option: 'LONG' | 'SHORT') => void;
   onExport: () => void;
 }
@@ -131,7 +131,6 @@ export const CycleChoiceModal: React.FC<CycleChoiceModalProps> = ({ isOpen, isDa
       <div className={`w-full max-sm border p-8 rounded-3xl shadow-2xl text-center space-y-6 transform animate-in zoom-in-95 duration-300 ${isDarkMode ? 'bg-[#161B22] border-[#30363D]' : 'bg-surface border-border'}`}>
         <div className="w-20 h-20 bg-primary/10 rounded-3xl flex items-center justify-center mx-auto text-primary"><CheckCircle2 size={48} /></div>
         <div className="space-y-2">
-          {/* n번째 사이클 완료 안내 */}
           <h3 className={`text-xl font-bold ${isDarkMode ? 'text-slate-100' : 'text-text-primary'}`}>{completedCycles}번째 사이클을 완료했습니다!</h3>
           <p className={`text-sm leading-relaxed ${isDarkMode ? 'text-slate-400' : 'text-text-secondary'}`}>열심히 한 당신을 위해 선택지를 준비했어요.</p>
         </div>
@@ -149,6 +148,73 @@ export const CycleChoiceModal: React.FC<CycleChoiceModalProps> = ({ isOpen, isDa
             <span className="text-[10px] text-primary-light font-black uppercase tracking-widest opacity-60">백업 파일 다운로드</span>
           </button>
         </div>
+      </div>
+    </div>
+  );
+};
+
+interface AffinityGuideModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  currentLevel: number;
+  isDarkMode: boolean;
+  characterName: string;
+}
+
+export const AffinityGuideModal: React.FC<AffinityGuideModalProps> = ({ isOpen, onClose, currentLevel, isDarkMode, characterName }) => {
+  if (!isOpen) return null;
+  return (
+    <div className="fixed inset-0 z-[600] flex items-center justify-center p-6 bg-black/40 backdrop-blur-sm animate-in fade-in duration-300" onClick={onClose}>
+      <div 
+        className={`w-full max-w-sm rounded-[2.5rem] shadow-2xl border p-8 space-y-6 transform animate-in zoom-in-95 duration-300 relative ${isDarkMode ? 'bg-[#161B22] border-white/10' : 'bg-surface border-border'}`}
+        onClick={e => e.stopPropagation()}
+      >
+        <button onClick={onClose} className="absolute top-6 right-6 p-2 rounded-full hover:bg-black/5 transition-colors opacity-40"><X size={20}/></button>
+        
+        <div className="text-center space-y-1.5 pt-2">
+          <div className="flex justify-center gap-1 mb-2">
+            <Heart size={20} className="text-rose-500 fill-rose-500 animate-pulse" />
+          </div>
+          <h3 className={`text-xl font-black ${isDarkMode ? 'text-slate-100' : 'text-slate-800'}`}>{characterName}와의 관계도</h3>
+          <p className={`text-xs font-bold ${isDarkMode ? 'text-slate-400' : 'text-slate-500'}`}>집중할수록 최애와 더 가까워집니다.</p>
+        </div>
+
+        <div className="grid grid-cols-1 gap-2 max-h-[360px] overflow-y-auto pr-1 custom-diary-scroll">
+          {Object.entries(LEVEL_TITLES).map(([lv, title]) => {
+            const levelNum = parseInt(lv);
+            const isCurrent = levelNum === currentLevel;
+            const isLocked = levelNum > currentLevel;
+
+            return (
+              <div 
+                key={lv} 
+                className={`flex items-center gap-4 p-4 rounded-2xl border-2 transition-all
+                  ${isCurrent 
+                    ? 'bg-primary/10 border-primary ring-4 ring-primary/5 scale-[1.02]' 
+                    : (isLocked ? 'bg-transparent border-transparent opacity-40' : 'bg-transparent border-border/40 border-dashed opacity-80')}`}
+              >
+                <div className={`w-10 h-10 rounded-full flex items-center justify-center font-black text-sm shrink-0
+                  ${isCurrent ? 'bg-primary text-white shadow-lg' : (isDarkMode ? 'bg-slate-800 text-slate-500' : 'bg-slate-100 text-slate-400')}`}>
+                  {lv}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className={`text-[13px] font-black truncate ${isCurrent ? 'text-primary' : (isDarkMode ? 'text-slate-200' : 'text-slate-700')}`}>
+                    {title}
+                  </p>
+                  {isCurrent && <span className="text-[9px] font-bold text-primary/60 uppercase tracking-widest">현재 관계 단계</span>}
+                </div>
+                {isCurrent && <Star size={16} className="text-primary fill-primary animate-spin-slow" style={{ animationDuration: '6s' }} />}
+              </div>
+            );
+          })}
+        </div>
+
+        <button 
+          onClick={onClose}
+          className="w-full py-4 bg-slate-900 text-white dark:bg-white dark:text-slate-900 rounded-2xl font-black text-sm shadow-xl active:scale-95 transition-all"
+        >
+          확인
+        </button>
       </div>
     </div>
   );
