@@ -1,5 +1,4 @@
-
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Loader2, PenTool, ArrowRight, Camera } from 'lucide-react';
 import { CharacterProfile } from '../types';
 import { GoogleGenAI, HarmCategory, HarmBlockThreshold } from "@google/genai";
@@ -62,7 +61,7 @@ const HARD_FALLBACK_DIARY: Record<string, any> = {
   "사극/하오체": {
     intro: ["그대 곁에서 정진의 시간을 기록하였소.", "말없이 지켜보며 오늘의 흐름을 담았소.", "그대의 정성이 내 붓끝에 고스란히 맺혔구려."],
     focusZero: ["마음의 흔들림이 한 치도 없으니 참으로 장하구려.", "그대의 깊은 몰입에 내 깊이 감탄하였소."],
-    focusSome: ["집중의 기개가 자못 훌륭하였소.", "잠시 마음이 흔들려도 다시 뜻을 세우는 모습이 좋았소.", "끝까지 자리를 지키니 그 기상이 대단하오."],
+    focusSome: ["집중의 기개가 자못 훌륭하였소.", "잠시 마음의 흔들림이어도 다시 뜻을 세우는 모습이 좋았소.", "끝까지 자리를 지키니 그 기상이 대단하오."],
     interaction: {
       low: ["정진하느라 나를 찾지 않았으니, 그 몰입이 귀하구려.", "스스로 일어서는 그대의 독립적인 모습도 보기 좋소."],
       mid: ["적절한 상호작용이 수양의 즐거움을 더했구려.", "함께 숨 쉬는 감각이 딱 적당하였소."],
@@ -89,12 +88,12 @@ const HARD_FALLBACK_DIARY: Record<string, any> = {
   }
 };
 
-// Fixed incorrect HarmCategory enum members (added HARM_CATEGORY_ prefix)
+// AI 검열 방지를 위해 세이프티 설정을 BLOCK_NONE으로 완화 (보고서 작성 전용)
 const SAFETY_SETTINGS = [
-  { category: HarmCategory.HARM_CATEGORY_HARASSMENT, threshold: HarmBlockThreshold.BLOCK_ONLY_HIGH },
-  { category: HarmCategory.HARM_CATEGORY_HATE_SPEECH, threshold: HarmBlockThreshold.BLOCK_ONLY_HIGH },
-  { category: HarmCategory.HARM_CATEGORY_SEXUALLY_EXPLICIT, threshold: HarmBlockThreshold.BLOCK_ONLY_HIGH },
-  { category: HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT, threshold: HarmBlockThreshold.BLOCK_ONLY_HIGH },
+  { category: HarmCategory.HARM_CATEGORY_HARASSMENT, threshold: HarmBlockThreshold.BLOCK_NONE },
+  { category: HarmCategory.HARM_CATEGORY_HATE_SPEECH, threshold: HarmBlockThreshold.BLOCK_NONE },
+  { category: HarmCategory.HARM_CATEGORY_SEXUALLY_EXPLICIT, threshold: HarmBlockThreshold.BLOCK_NONE },
+  { category: HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT, threshold: HarmBlockThreshold.BLOCK_NONE },
 ];
 
 export const ObservationDiary: React.FC<ObservationDiaryProps> = ({ profile, stats, onClose }) => {
@@ -102,6 +101,10 @@ export const ObservationDiary: React.FC<ObservationDiaryProps> = ({ profile, sta
   const [isGenerating, setIsGenerating] = useState(true);
   const [isScreenshotMode, setIsScreenshotMode] = useState(false);
   const [showToast, setShowToast] = useState(false);
+  
+  // React Strict Mode 이중 호출 방지를 위한 ref
+  const hasRequestedRef = useRef(false);
+
   const [dateStr] = useState(() => {
     const now = new Date();
     const d = now.toLocaleDateString('ko-KR', { year: 'numeric', month: '2-digit', day: '2-digit' }).replace(/\. /g, '.').replace(/\.$/, '');
@@ -110,7 +113,9 @@ export const ObservationDiary: React.FC<ObservationDiaryProps> = ({ profile, sta
   });
 
   useEffect(() => {
-    if (content) return;
+    // 이미 생성되었거나 요청 중이면 무시
+    if (content || hasRequestedRef.current) return;
+    hasRequestedRef.current = true;
 
     const generateDiaryFlow = async () => {
       const minDuration = new Promise(resolve => setTimeout(resolve, 2200));
@@ -145,8 +150,15 @@ export const ObservationDiary: React.FC<ObservationDiaryProps> = ({ profile, sta
           config: { responseMimeType: "application/json", safetySettings: SAFETY_SETTINGS, temperature: 0.8 }
         });
         
-        const data = JSON.parse(response.text || '{}');
-        if (!data.content) throw new Error("Format mismatch");
+        // 유연한 JSON 파싱: 마크다운 기호나 헛소리가 섞여도 { } 사이의 내용만 추출
+        const rawText = response.text || '';
+        const jsonMatch = rawText.match(/\{[\s\S]*\}/);
+        
+        if (!jsonMatch) throw new Error("JSON format not found");
+        
+        const data = JSON.parse(jsonMatch[0]);
+        if (!data.content) throw new Error("Content field missing");
+        
         finalContent = data.content;
       } catch (e) {
         isFallbackNeeded = true;
