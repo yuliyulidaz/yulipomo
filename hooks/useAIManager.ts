@@ -25,7 +25,7 @@ export const useAIManager = (
   const [pendingExpiryAlert, setPendingExpiryAlert] = useState(false);
   
   const cooldownIntervalRef = useRef<any>(null);
-  const isRefillingRef.current = useRef<Record<string, boolean>>({});
+  const isRefillingRef = useRef<Record<string, boolean>>({});
   const isGlobalApiLockedRef = useRef<boolean>(false);
   const refillQueueRef = useRef<Array<keyof typeof profile.dialogueCache>>([]);
   const profileRef = useRef(profile);
