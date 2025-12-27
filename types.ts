@@ -11,14 +11,24 @@ export interface SurpriseNote {
   date: string;
 }
 
+export type ToneTag = "sweet" | "cold" | "tsundere" | "playful" | "energetic" | "lazy" | "intense" | "neutral" | "soft";
+export type DialogueRole = "AMBIENT" | "REACTION";
+
+export interface DialogueLine {
+  text: string;
+  tones: ToneTag[];         // 성격 태그 (중복 가능)
+  levelRange: [number, number]; // [최소 레벨, 최대 레벨]
+  role: DialogueRole;       // AMBIENT(공기) vs REACTION(반응)
+}
+
 export interface CharacterProfile {
-  apiKey: string; // 사용자가 입력한 Gemini API 키
-  userName: string; // 사용자 본명
+  apiKey: string; 
+  userName: string; 
   name: string;
   honorific: string;
   imageSrc: string | null;
-  gender: 'MALE' | 'FEMALE' | 'NEUTRAL'; // 사용자의 성별
-  charGender: 'MALE' | 'FEMALE' | 'NEUTRAL' | ''; // 최애의 성별
+  gender: 'MALE' | 'FEMALE' | 'NEUTRAL'; 
+  charGender: 'MALE' | 'FEMALE' | 'NEUTRAL' | ''; 
   speciesTrait?: string; 
   personality: string[]; 
   selectedDialogueStyles: DialogueStyles; 
@@ -29,7 +39,7 @@ export interface CharacterProfile {
   
   streak: number;
   totalFocusMinutes: number;
-  totalCompletedCycles: number; // 누적 사이클 완료 횟수
+  totalCompletedCycles: number; 
   receivedNotes: SurpriseNote[];
 
   dialogueCache: {
@@ -40,15 +50,13 @@ export interface CharacterProfile {
   };
 
   initialGreeting: string;
-  todayTask?: string; // 오늘 집중해야 할 일
+  todayTask?: string; 
 
-  // 사이클 통계 기록용 (보고서용)
   cycleStats?: {
     distractions: number;
     clicks: number;
   };
 
-  // 새로고침 유지를 위한 필드
   lastActive?: number;
   savedTimeLeft?: number;
   savedIsBreak?: boolean;
