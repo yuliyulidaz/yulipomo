@@ -1,8 +1,8 @@
+
 import React, { useState, useEffect } from 'react';
 import { Loader2, PenTool, ArrowRight, Camera } from 'lucide-react';
 import { CharacterProfile } from '../types';
 import { GoogleGenAI, HarmCategory, HarmBlockThreshold } from "@google/genai";
-import { getMoodLabel } from './AIPromptTemplates';
 
 interface ObservationDiaryProps {
   profile: CharacterProfile;
@@ -89,7 +89,6 @@ export const ObservationDiary: React.FC<ObservationDiaryProps> = ({ profile, sta
   });
 
   useEffect(() => {
-    // 이미 생성된 내용이 있다면 재실행 방지 (이중 안전장치)
     if (content) return;
 
     const generateDiaryFlow = async () => {
@@ -97,6 +96,7 @@ export const ObservationDiary: React.FC<ObservationDiaryProps> = ({ profile, sta
       const relationshipTitle = LEVEL_TITLES[profile.level];
       const taskText = profile.todayTask ? `"${profile.todayTask}"` : "오늘의 할 일";
       let finalContent = "";
+      let isFallbackNeeded = false;
 
       try {
         const ai = new GoogleGenAI({ apiKey: profile.apiKey || process.env.API_KEY });
@@ -126,8 +126,30 @@ export const ObservationDiary: React.FC<ObservationDiaryProps> = ({ profile, sta
         });
         
         const data = JSON.parse(response.text || '{}');
-        finalContent = data.content || "기록 실패";
+        if (!data.content) throw new Error("Format mismatch");
+        finalContent = data.content;
       } catch (e) {
+        isFallbackNeeded = true;
+      }
+
+      await minDuration;
+
+      // 만약 실패했다면 "자동 복구 연출" 시퀀스 시작
+      if (isFallbackNeeded) {
+        // 1. 당황한 문구 출력 (펜이 안 나와!)
+        setContent("'펜이 갑자기 안나오네... 왜 이러지.....?'");
+        setIsGenerating(false);
+        
+        // 2. 잠시 대기 (유저가 읽을 시간)
+        await new Promise(r => setTimeout(r, 2500));
+        
+        // 3. 다시 작성 중 애니메이션
+        setIsGenerating(true);
+        
+        // 4. 다시 작성하는 시간 시뮬레이션
+        await new Promise(r => setTimeout(r, 3000));
+        
+        // 5. 로컬에서 조합된 튼튼한 대사(Fallback) 생성
         const toneKey = profile.personality[0] || "존댓말";
         const t = MODULAR_FALLBACK[toneKey] || MODULAR_FALLBACK["존댓말"];
         const h = profile.honorific || profile.userName || "당신";
@@ -144,19 +166,17 @@ export const ObservationDiary: React.FC<ObservationDiaryProps> = ({ profile, sta
           else msg += t.clickHigh.replace("{clicks}", String(stats.clicks)) + " ";
         }
         msg += t.outro;
-        finalContent = msg;
+        
+        setContent(msg);
+        setIsGenerating(false);
+      } else {
+        // 성공했다면 바로 출력
+        setContent(finalContent);
+        setIsGenerating(false);
       }
-
-      await minDuration;
-      setContent(finalContent);
-      setIsGenerating(false);
     };
 
     generateDiaryFlow();
-    // 의존성 배열을 비워둠으로써 profile이나 stats가 백그라운드에서 업데이트되어도 
-    // 일지가 다시 쓰여지는(재호출되는) 현상을 근본적으로 차단합니다.
-    // ObservationDiary 컴포넌트는 보고서가 열릴 때마다 새롭게 마운트되므로 
-    // 마운트 시점의 데이터만으로 한 번만 생성하면 충분합니다.
   }, []); 
 
   const enterScreenshotMode = () => {
@@ -189,7 +209,6 @@ export const ObservationDiary: React.FC<ObservationDiaryProps> = ({ profile, sta
         <div className="absolute inset-0 pointer-events-none opacity-40 mix-blend-multiply bg-[url('https://www.transparenttextures.com/patterns/handmade-paper.png')]"></div>
         
         <div className="flex-1 p-8 pb-4 space-y-5 flex flex-col relative overflow-hidden">
-            {/* 상단 라벨 (한국어화) */}
             <div className="flex justify-between items-start border-b-2 border-primary/10 pb-4">
               <div className="space-y-1">
                 <h3 className="font-sans font-black text-xs text-primary-dark opacity-90">{profile.name}의 {profile.userName} 관찰일지</h3>
@@ -198,7 +217,6 @@ export const ObservationDiary: React.FC<ObservationDiaryProps> = ({ profile, sta
               <div className="bg-primary/10 px-2 py-1 rounded text-[9px] font-black text-primary-dark uppercase">Classified</div>
             </div>
 
-            {/* 통계 그리드 (상단으로 이동) */}
             <div className="grid grid-cols-3 gap-2 py-1 bg-primary/5 rounded-xl border border-primary/5">
                 <div className="flex flex-col items-center justify-center py-1">
                     <span className="text-[8px] font-black text-primary/60 uppercase">집중시간</span>
@@ -214,7 +232,6 @@ export const ObservationDiary: React.FC<ObservationDiaryProps> = ({ profile, sta
                 </div>
             </div>
 
-            {/* 폴라로이드 사진 영역 */}
             <div className="relative mx-auto flex-shrink-0">
                 <div className="w-28 h-28 bg-white p-2 shadow-xl border border-primary/5 rotate-1 relative transition-transform hover:rotate-0 duration-500">
                     <img src={profile.imageSrc || ''} className="w-full h-full object-cover grayscale-[0.1] sepia-[0.15] contrast-110" alt="Character" />
@@ -222,7 +239,6 @@ export const ObservationDiary: React.FC<ObservationDiaryProps> = ({ profile, sta
                 </div>
             </div>
 
-            {/* 본문 영역: 스크롤 가능하도록 수정 */}
             <div className="flex-1 relative overflow-hidden flex flex-col">
                {isGenerating ? (
                  <div className="flex-1 flex flex-col items-center justify-center gap-4 text-primary-light/60">
@@ -236,33 +252,31 @@ export const ObservationDiary: React.FC<ObservationDiaryProps> = ({ profile, sta
                  </div>
                ) : (
                  <div className="flex-1 relative flex flex-col overflow-hidden">
-                    {/* 줄노트 배경 가로줄 (전체 영역에 고정) */}
                     <div className="absolute inset-0 pointer-events-none opacity-20" 
                          style={{ backgroundImage: 'linear-gradient(#4A5F7A 1px, transparent 1px)', backgroundSize: '100% 2.2rem' }}>
                     </div>
                     
-                    {/* 실제 텍스트가 스크롤되는 영역 */}
                     <div className="flex-1 overflow-y-auto pr-2 custom-diary-scroll relative z-10">
                         <div className={`font-diary leading-[2.2rem] text-[#3D382E] whitespace-pre-wrap animate-in fade-in slide-in-from-bottom-4 duration-1000 fill-mode-both pb-20 ${getFontSize()}`}>
                             {content}
                         </div>
                     </div>
 
-                    {/* 캐릭터 인장 (텍스트 위에 떠있도록) */}
-                    <div className="absolute bottom-4 right-0 transform rotate-[-15deg] animate-in zoom-in fade-in duration-700 delay-1000 fill-mode-both pointer-events-none z-20">
-                        <div className="w-24 h-24 rounded-full border-[3px] border-rose-600/50 flex flex-col items-center justify-center text-rose-600/50 p-1 bg-[#FCFAF2]/40 backdrop-blur-[1px]">
-                            <div className="absolute inset-0 rounded-full border border-rose-600/20 m-0.5"></div>
-                            <span className="font-diary text-xs font-bold leading-none mb-1 opacity-90">{LEVEL_TITLES[profile.level]}</span>
-                            <span className="font-diary text-2xl font-bold leading-none">{profile.name}</span>
-                            <span className="text-[8px] font-black mt-1 border-t border-rose-600/40 pt-0.5 px-2 tracking-tighter">APPROVED</span>
-                        </div>
-                    </div>
+                    {content !== "'펜이 갑자기 안나오네... 왜 이러지.....?'" && (
+                      <div className="absolute bottom-4 right-0 transform rotate-[-15deg] animate-in zoom-in fade-in duration-700 delay-1000 fill-mode-both pointer-events-none z-20">
+                          <div className="w-24 h-24 rounded-full border-[3px] border-rose-600/50 flex flex-col items-center justify-center text-rose-600/50 p-1 bg-[#FCFAF2]/40 backdrop-blur-[1px]">
+                              <div className="absolute inset-0 rounded-full border border-rose-600/20 m-0.5"></div>
+                              <span className="font-diary text-xs font-bold leading-none mb-1 opacity-90">{LEVEL_TITLES[profile.level]}</span>
+                              <span className="font-diary text-2xl font-bold leading-none">{profile.name}</span>
+                              <span className="text-[8px] font-black mt-1 border-t border-rose-600/40 pt-0.5 px-2 tracking-tighter">APPROVED</span>
+                          </div>
+                      </div>
+                    )}
                  </div>
                )}
             </div>
         </div>
 
-        {/* 하단 버튼 영역 개편 */}
         {!isScreenshotMode && (
           <div className="p-6 pt-0 flex gap-3 z-40 bg-gradient-to-t from-[#FCFAF2] via-[#FCFAF2] to-transparent">
               <button 
@@ -281,7 +295,6 @@ export const ObservationDiary: React.FC<ObservationDiaryProps> = ({ profile, sta
           </div>
         )}
 
-        {/* 스크롤바 커스텀 스타일 */}
         <style dangerouslySetInnerHTML={{ __html: `
           .custom-diary-scroll::-webkit-scrollbar {
             width: 4px;
