@@ -30,7 +30,7 @@ export const useAIManager = (
   const refillQueueRef = useRef<Array<keyof typeof profile.dialogueCache>>([]);
   const profileRef = useRef(profile);
 
-  // 상황 연속 중복 방지를 위한 추적 (최근 사용된 10개 상황 ID 보관)
+  // 최근에 사용된 상황 ID 보관 (중복 방지용)
   const usedSituationIdsRef = useRef<string[]>([]);
 
   useEffect(() => { 
@@ -61,18 +61,20 @@ export const useAIManager = (
   }, []);
 
   const selectSituationsForRefill = useCallback((level: number): ActionSituation[] => {
-    // 현재 레벨 이하의 가능한 모든 상황들
+    // 1. 현재 레벨 이하의 모든 상황 필터링
     const available = CLICK_SITUATIONS.filter(s => s.level <= level);
     
-    // 최근에 사용되지 않은 상황 우선
+    // 2. 최근 사용된 상황(최대 15개) 제외
     const fresh = available.filter(s => !usedSituationIdsRef.current.includes(s.id));
+    
+    // 3. 만약 남은 상황이 너무 적으면 사용 이력을 초기화하거나 기존 풀에서 랜덤 추출
     const pool = fresh.length >= 5 ? fresh : available;
 
-    // 무작위로 5개 선택
+    // 4. 무작위 셔플 후 5개 선택
     const shuffled = [...pool].sort(() => 0.5 - Math.random());
     const selected = shuffled.slice(0, 5);
 
-    // 사용 이력 업데이트
+    // 5. 사용 이력 업데이트
     const newUsedIds = [...selected.map(s => s.id), ...usedSituationIdsRef.current].slice(0, 15);
     usedSituationIdsRef.current = newUsedIds;
 
@@ -85,6 +87,8 @@ export const useAIManager = (
     
     try {
       const currentProfile = profileRef.current;
+      
+      // 'click' 카테고리일 때만 지문 기반 리필 수행
       const situations = category === 'click' ? selectSituationsForRefill(currentProfile.level) : undefined;
       
       const ai = new GoogleGenAI({ apiKey: currentProfile.apiKey || process.env.API_KEY });
