@@ -1,7 +1,7 @@
 
 import React from 'react';
 // Added missing icon imports: ExternalLink, ClipboardPaste, X to fix build errors in Step3
-import { Camera, Heart, Timer, Coffee, ExternalLink, ClipboardPaste, X } from 'lucide-react';
+import { Camera, Heart, Timer, Coffee, ExternalLink, ClipboardPaste, X, HelpCircle } from 'lucide-react';
 import { FileUpload } from './FileUpload';
 import { TONE_KEYWORDS, PERSONALITY_KEYWORDS } from './SetupConfig';
 
@@ -185,9 +185,10 @@ interface Step3Props {
   name: string;
   userNameInputRef?: React.RefObject<HTMLInputElement | null>;
   apiKeyInputRef?: React.RefObject<HTMLInputElement | null>;
+  onHelpOpen: () => void;
 }
 
-export const Step3: React.FC<Step3Props> = ({ userName, setUserName, honorific, setHonorific, gender, setGender, todayTask, setTodayTask, apiKey, setApiKey, name, userNameInputRef, apiKeyInputRef }) => {
+export const Step3: React.FC<Step3Props> = ({ userName, setUserName, honorific, setHonorific, gender, setGender, todayTask, setTodayTask, apiKey, setApiKey, name, userNameInputRef, apiKeyInputRef, onHelpOpen }) => {
   const handlePaste = async () => {
     try {
       const text = await navigator.clipboard.readText();
@@ -248,8 +249,15 @@ export const Step3: React.FC<Step3Props> = ({ userName, setUserName, honorific, 
         </div>
 
         <div className="relative group">
-          <label className="absolute -top-6 left-0 flex items-center gap-2 text-[10px] font-bold text-slate-500 uppercase tracking-widest">
+          <label className="absolute -top-6 left-0 flex items-center gap-1.5 text-[10px] font-bold text-slate-500 uppercase tracking-widest">
             Gemini API Key <span className="text-rose-500">*</span>
+            <button 
+              type="button" 
+              onClick={onHelpOpen}
+              className="text-slate-400 hover:text-primary transition-colors p-0.5"
+            >
+              <HelpCircle size={13} />
+            </button>
           </label>
           <div className="pt-1">
             <div className="flex gap-6 mb-2">
