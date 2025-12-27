@@ -25,7 +25,6 @@ export const useAIManager = (
   const [pendingExpiryAlert, setPendingExpiryAlert] = useState(false);
   
   const cooldownIntervalRef = useRef<any>(null);
-  // Fix: Declare isRefillingRef properly before any usage and remove the invalid/duplicate assignment line.
   const isRefillingRef = useRef<Record<string, boolean>>({});
   const isGlobalApiLockedRef = useRef<boolean>(false);
   const refillQueueRef = useRef<Array<keyof typeof profile.dialogueCache>>([]);
@@ -81,7 +80,6 @@ export const useAIManager = (
       const ai = new GoogleGenAI({ apiKey: currentProfile.apiKey || process.env.API_KEY });
       const prompt = buildRefillPrompt(currentProfile, category, getTimePeriod(), getSeason(), situations);
       
-      // 타임아웃 래퍼 적용
       const fetchPromise = ai.models.generateContent({ 
         model: 'gemini-3-flash-preview', 
         contents: prompt, 
@@ -128,7 +126,6 @@ export const useAIManager = (
     try {
       await refillCategory(category);
     } finally {
-      // 성공/실패 여부와 상관없이 15초(쿨다운) 뒤에는 무조건 잠금 해제
       setTimeout(() => { 
         isGlobalApiLockedRef.current = false; 
       }, 15000);
