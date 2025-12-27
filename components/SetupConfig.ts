@@ -1,4 +1,5 @@
 import { HarmCategory, HarmBlockThreshold } from "@google/genai";
+import { ToneTag } from "../types";
 
 export const GREETING_TEMPLATES: Record<string, string> = {
   "반말": "{honorific}, 시작 버튼 눌러. 기다리고 있어.",
@@ -17,3 +18,15 @@ export const SAFETY_SETTINGS = [
 
 export const TONE_KEYWORDS = ["반말", "존댓말", "반존대", "사극/하오체", "다나까"];
 export const PERSONALITY_KEYWORDS = ["다정함/스윗", "츤데레", "엄격/냉철", "능글/플러팅", "집착/광공", "소심/부끄", "활기/에너지", "나른/귀차니즘"];
+
+// 유저가 고른 성격 키워드를 시스템 태그로 변환
+export const KEYWORD_TO_TAGS: Record<string, ToneTag[]> = {
+  "다정함/스윗": ["sweet", "soft"],
+  "츤데레": ["tsundere", "neutral"],
+  "엄격/냉철": ["cold", "intense"],
+  "능글/플러팅": ["playful", "sweet"],
+  "집착/광공": ["intense", "cold"],
+  "소심/부끄": ["soft", "neutral"],
+  "활기/에너지": ["energetic", "playful"],
+  "나른/귀차니즘": ["lazy", "neutral"]
+};
