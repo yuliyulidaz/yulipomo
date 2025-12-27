@@ -315,7 +315,7 @@ export const SetupScreen: React.FC<SetupScreenProps> = ({ onComplete }) => {
           {step === 'QUIZ' && <PersonalityQuiz currentQuizStep={currentQuizStep} name={name} imageSrc={imageSrc} quizData={quizData} tempSelection={tempQuizSelection} onTempSelect={handleQuizSelect} onRefresh={refreshCurrentQuizStep} isPartialRefreshing={isPartialRefreshing} />}
         </div>
 
-        <div className={`flex-none px-10 pt-4 bg-white flex flex-col gap-3 relative z-30 pb-[max(1.5rem,calc(env(safe-area-inset-bottom)+1.2rem))]`}>
+        <div className={`flex-none px-10 pt-4 bg-white flex flex-col gap-3 relative z-30 pb-[max(3rem,calc(env(safe-area-inset-bottom)+1.2rem))]`}>
           {error && (
             <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-4 w-[90%] max-w-sm px-4 py-3 bg-[#FF7F50] text-white text-[11px] font-bold rounded-xl flex items-center gap-2 shadow-xl animate-in slide-in-from-bottom-2 duration-300">
               <AlertCircle size={14} className="shrink-0" />
