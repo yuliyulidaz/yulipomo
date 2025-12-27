@@ -1,3 +1,4 @@
+
 import { useState, useCallback, useRef, useEffect } from 'react';
 import { GoogleGenAI } from "@google/genai";
 import { CharacterProfile, DialogueLine, ToneTag } from '../types';
@@ -6,6 +7,7 @@ import { cleanDialogue, getTimePeriod, getSeason } from '../components/TimerUtil
 import { buildRefillPrompt } from '../components/AIPromptTemplates';
 import { FIXED_DIALOGUES } from '../CharacterDialogues';
 import { KEYWORD_TO_TAGS } from '../components/SetupConfig';
+import { CLICK_SITUATIONS, ActionSituation } from '../CharacterSituations';
 
 const COOLDOWN_MS = 30000;
 
@@ -27,6 +29,9 @@ export const useAIManager = (
   const isGlobalApiLockedRef = useRef<boolean>(false);
   const refillQueueRef = useRef<Array<keyof typeof profile.dialogueCache>>([]);
   const profileRef = useRef(profile);
+
+  // 상황 연속 중복 방지를 위한 추적 (최근 사용된 10개 상황 ID 보관)
+  const usedSituationIdsRef = useRef<string[]>([]);
 
   useEffect(() => { 
     profileRef.current = profile; 
@@ -51,10 +56,27 @@ export const useAIManager = (
       const lenA = profileRef.current.dialogueCache[a].length;
       const lenB = profileRef.current.dialogueCache[b].length;
       if (lenA !== lenB) return lenA - lenB;
-      if (a === 'click') return -1;
-      if (b === 'click') return 1;
-      return 0;
+      return a === 'click' ? -1 : 1;
     });
+  }, []);
+
+  const selectSituationsForRefill = useCallback((level: number): ActionSituation[] => {
+    // 현재 레벨 이하의 가능한 모든 상황들
+    const available = CLICK_SITUATIONS.filter(s => s.level <= level);
+    
+    // 최근에 사용되지 않은 상황 우선
+    const fresh = available.filter(s => !usedSituationIdsRef.current.includes(s.id));
+    const pool = fresh.length >= 5 ? fresh : available;
+
+    // 무작위로 5개 선택
+    const shuffled = [...pool].sort(() => 0.5 - Math.random());
+    const selected = shuffled.slice(0, 5);
+
+    // 사용 이력 업데이트
+    const newUsedIds = [...selected.map(s => s.id), ...usedSituationIdsRef.current].slice(0, 15);
+    usedSituationIdsRef.current = newUsedIds;
+
+    return selected;
   }, []);
 
   const refillCategory = useCallback(async (category: keyof typeof profile.dialogueCache) => {
@@ -63,19 +85,21 @@ export const useAIManager = (
     
     try {
       const currentProfile = profileRef.current;
+      const situations = category === 'click' ? selectSituationsForRefill(currentProfile.level) : undefined;
+      
       const ai = new GoogleGenAI({ apiKey: currentProfile.apiKey || process.env.API_KEY });
-      const prompt = buildRefillPrompt(currentProfile, category, getTimePeriod(), getSeason());
+      const prompt = buildRefillPrompt(currentProfile, category, getTimePeriod(), getSeason(), situations);
       
       const result = await ai.models.generateContent({ 
         model: 'gemini-3-flash-preview', 
         contents: prompt, 
-        config: { safetySettings: SAFETY_SETTINGS, temperature: 0.8 } 
+        config: { safetySettings: SAFETY_SETTINGS, temperature: 0.85 } 
       });
 
       if (result.text) {
         const newLines = result.text
           .split('\n')
-          .map(l => l.replace(/["']/g, '').trim())
+          .map(l => l.replace(/^[0-9]\.\s*/, '').replace(/["']/g, '').trim())
           .filter(l => l.length >= 5)
           .slice(0, 5); 
 
@@ -88,19 +112,18 @@ export const useAIManager = (
       }
     } catch (e: any) {
       console.error(`Refill failed for ${category}:`, e);
-      if (e.message?.includes('API_KEY_INVALID') || e.status === 401 || e.status === 403 || e.status === 429) {
+      if (e.message?.includes('API_KEY_INVALID') || [401, 403, 429].includes(e.status)) {
         setPendingExpiryAlert(true);
       }
     } finally {
       isRefillingRef.current[category] = false;
     }
-  }, [onUpdateProfile]);
+  }, [onUpdateProfile, selectSituationsForRefill]);
 
   const processRefillQueue = useCallback(async () => {
     if (isGlobalApiLockedRef.current || refillQueueRef.current.length === 0) return;
     const category = refillQueueRef.current.shift()!;
-    const currentLen = profileRef.current.dialogueCache[category].length;
-    if (currentLen > REFILL_CONFIG[category].threshold) return;
+    if (profileRef.current.dialogueCache[category].length > REFILL_CONFIG[category].threshold) return;
 
     isGlobalApiLockedRef.current = true;
     await refillCategory(category);
@@ -110,70 +133,45 @@ export const useAIManager = (
   useEffect(() => {
     const categories = Object.keys(REFILL_CONFIG) as Array<keyof typeof profile.dialogueCache>;
     categories.forEach(cat => {
-      if (profileRef.current.dialogueCache[cat].length <= REFILL_CONFIG[cat].threshold) {
-        addToRefillQueue(cat);
-      }
+      if (profileRef.current.dialogueCache[cat].length <= REFILL_CONFIG[cat].threshold) addToRefillQueue(cat);
     });
     const queueTimer = setInterval(processRefillQueue, 5000);
     return () => clearInterval(queueTimer);
   }, [processRefillQueue, addToRefillQueue]);
 
-  // 새로운 대사 선택 엔진
   const triggerAIResponse = useCallback((type: string) => {
     const userDisplayName = profile.honorific || profile.userName || "너";
     const toneKey = profile.personality[0] || "존댓말";
     const currentLevel = profile.level || 1;
+    const allowedTags: ToneTag[] = profile.personality.slice(1).flatMap(k => KEYWORD_TO_TAGS[k] || []);
 
-    // 성격 키워드들로부터 허용된 태그들 추출 (예: ["sweet", "soft", "tsundere"])
-    const selectedKeywords = profile.personality.slice(1);
-    const allowedTags: ToneTag[] = selectedKeywords.flatMap(k => KEYWORD_TO_TAGS[k] || []);
-
-    if (type === 'START' || type === 'PAUSE' || type === 'READY') {
+    if (['START', 'PAUSE', 'READY'].includes(type)) {
       const situation = type === 'READY' ? 'START' : type;
-      const allPossibleLines: DialogueLine[] = FIXED_DIALOGUES[toneKey]?.[situation as 'START' | 'PAUSE'] || [];
-      
-      // 1. 레벨 필터링
-      const levelFiltered = allPossibleLines.filter(line => 
-        currentLevel >= line.levelRange[0] && currentLevel <= line.levelRange[1]
-      );
+      const allLines = FIXED_DIALOGUES[toneKey]?.[situation as 'START' | 'PAUSE'] || [];
+      const lvLines = allLines.filter(l => currentLevel >= l.levelRange[0] && currentLevel <= l.levelRange[1]);
+      const tagLines = lvLines.filter(l => l.tones.some(t => allowedTags.includes(t)));
+      const pool = tagLines.length > 0 ? tagLines : (lvLines.length > 0 ? lvLines : allLines);
 
-      // 2. 성격 태그 필터링
-      const tagFiltered = levelFiltered.filter(line => 
-        line.tones.some(t => allowedTags.includes(t))
-      );
-
-      // 3. 우선순위 결정: 성격 일치 > 레벨 일치 > 전체 랜덤
-      const finalPool = tagFiltered.length > 0 
-        ? tagFiltered 
-        : (levelFiltered.length > 0 ? levelFiltered : allPossibleLines);
-
-      if (finalPool.length > 0) {
-        const picked = finalPool[Math.floor(Math.random() * finalPool.length)];
-        setMessage(cleanDialogue(picked.text, userDisplayName));
+      if (pool.length > 0) {
+        setMessage(cleanDialogue(pool[Math.floor(Math.random() * pool.length)].text, userDisplayName));
         return;
       }
     }
 
-    const cacheKeyMap: Record<string, keyof typeof profile.dialogueCache> = { 
-      'DISTRACTION': 'scolding', 
-      'CLICK': 'click', 
-      'RETURN': 'scolding' 
-    };
-    const key = cacheKeyMap[type];
+    const key = ({ 'DISTRACTION': 'scolding', 'CLICK': 'click', 'RETURN': 'scolding' } as any)[type];
     if (!key) return;
 
     const cachedList = profile.dialogueCache[key];
     if (cachedList?.length > 0) {
-      const randomIndex = Math.floor(Math.random() * cachedList.length);
-      setMessage(cleanDialogue(cachedList[randomIndex], userDisplayName));
-      const newCacheList = [...cachedList];
-      newCacheList.splice(randomIndex, 1);
-      onUpdateProfile({ dialogueCache: { ...profile.dialogueCache, [key]: newCacheList } });
-      if (newCacheList.length <= REFILL_CONFIG[key].threshold) addToRefillQueue(key);
+      const idx = Math.floor(Math.random() * cachedList.length);
+      setMessage(cleanDialogue(cachedList[idx], userDisplayName));
+      const newList = [...cachedList];
+      newList.splice(idx, 1);
+      onUpdateProfile({ dialogueCache: { ...profile.dialogueCache, [key]: newList } });
     } else {
-      const fallbackTone = profile.personality.find(p => FALLBACK_TEMPLATES[p]) || "존댓말";
-      const rawMsgs = FALLBACK_TEMPLATES[fallbackTone][type] || ["..."];
-      setMessage(cleanDialogue(rawMsgs[Math.floor(Math.random() * rawMsgs.length)], userDisplayName));
+      const fallback = profile.personality.find(p => FALLBACK_TEMPLATES[p]) || "존댓말";
+      const raw = FALLBACK_TEMPLATES[fallback][type] || ["..."];
+      setMessage(cleanDialogue(raw[Math.floor(Math.random() * raw.length)], userDisplayName));
       addToRefillQueue(key);
     }
   }, [profile, onUpdateProfile, addToRefillQueue]);
