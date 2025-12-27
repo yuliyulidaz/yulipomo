@@ -239,13 +239,6 @@ export const TimerScreen: React.FC<TimerScreenProps> = ({
     <div className={`relative w-full h-screen flex transition-colors duration-700 overflow-hidden font-sans select-none ${isDarkMode ? 'bg-[#0B0E14] text-slate-100' : 'bg-background text-text-primary'}`}>
       <EnergySavingOverlay isVisible={isBatterySaving} />
       
-      {/* System Toast UI */}
-      {toast && (
-        <div className="fixed top-24 left-1/2 -translate-x-1/2 z-[100] px-5 py-2.5 bg-slate-800/90 text-white text-[11px] font-black rounded-full shadow-2xl animate-in fade-in slide-in-from-top-4 duration-500 backdrop-blur-md border border-white/10">
-          {toast}
-        </div>
-      )}
-
       {showOnboarding && <OnboardingGuide isDarkMode={isDarkMode} characterName={profile.name} targets={{ settings: settingsBtnRef, character: characterBoxRef, reset: resetBtnRef, start: startBtnRef, affinity: affinityRef }} onClose={(never) => { if(never) localStorage.setItem('pomodoro_onboarding_done', 'true'); setShowOnboarding(false); }} />}
       {profile.imageSrc && <div className={`absolute inset-0 z-0 transition-opacity duration-700 ${isDarkMode ? 'opacity-5' : 'opacity-10'}`}><img src={profile.imageSrc} alt="BG" className="w-full h-full object-cover blur-md scale-110" /></div>}
       <AdminAuthModal isOpen={showAdminAuth} onClose={() => setShowAdminAuth(false)} password={adminPassword} setPassword={setAdminPassword} onVerify={(e) => { e.preventDefault(); if(adminPassword==='PTSD'){ setIsAdminMode(true); setShowAdminPanel(true); setShowAdminAuth(false); setAdminPassword(''); showToast("관리자 모드 활성화!"); } else { setAdminPassword(''); setShowAdminAuth(false); showToast("비밀번호 틀림."); } }} />
@@ -288,7 +281,13 @@ export const TimerScreen: React.FC<TimerScreenProps> = ({
                 <h2 className={`text-3xl md:text-4xl font-bold tracking-tight ${isDarkMode ? 'text-slate-100' : 'text-text-primary'}`}>{profile.name}</h2>
                 <p className={`text-[10px] font-bold tracking-widest uppercase ${isDarkMode ? 'text-slate-400' : 'text-text-secondary'}`}>To. {profile.honorific || profile.userName}</p>
             </div>
-            <div className="w-full flex flex-col items-center gap-6 mt-4 pb-4">
+            <div className="w-full flex flex-col items-center gap-6 mt-4 pb-4 relative">
+              {/* 타이머 바로 상단에 뜨는 시스템 토스트 */}
+              {toast && (
+                <div className={`absolute -top-10 left-1/2 -translate-x-1/2 z-[100] px-5 py-2.5 text-[11px] font-black rounded-full shadow-2xl animate-in fade-in slide-in-from-top-2 duration-500 backdrop-blur-md border transition-colors duration-500 whitespace-nowrap ${isDarkMode ? 'bg-slate-100/95 text-slate-900 border-black/5' : 'bg-slate-800/90 text-white border-white/10'}`}>
+                  {toast}
+                </div>
+              )}
               <TimerDisplay isBreak={isBreak} isDarkMode={isDarkMode} timeLeft={timeLeft} formatTime={formatTime} onModeClick={handleModeIconClick} />
               <CycleProgressBar overallProgressPercent={overallProgressPercent} isResetHolding={isResetHolding} resetHoldProgress={resetHoldProgress} isBreak={isBreak} sessionInCycle={sessionInCycle} isDarkMode={isDarkMode} />
               <ControlButtons isBreak={isBreak} isActive={isActive} onToggle={handleStartToggle} onSkipBreak={skipBreak} resetBtnRef={resetBtnRef} startBtnRef={startBtnRef} onResetStart={handleResetStart} onResetEnd={handleResetEnd} onResetCancel={handleResetCancel} isResetHolding={isResetHolding} isDarkMode={isDarkMode} />
