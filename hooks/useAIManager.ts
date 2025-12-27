@@ -11,9 +11,10 @@ import { CLICK_SITUATIONS, ActionSituation } from '../CharacterSituations';
 const COOLDOWN_MS = 30000;
 const API_TIMEOUT_MS = 15000; // 15초 타임아웃 설정
 
+// 각 대사 타입별 충전 설정
 const REFILL_CONFIG: Record<string, { max: number; threshold: number }> = {
-  click: { max: 20, threshold: 15 },
-  scolding: { max: 20, threshold: 10 }
+  click: { max: 20, threshold: 15 },      // 클릭 대사는 15개 이하일 때 보충
+  scolding: { max: 20, threshold: 10 }    // 꾸짖기 대사는 10개 이하일 때 보충
 };
 
 export const useAIManager = (
@@ -51,6 +52,7 @@ export const useAIManager = (
       refillQueueRef.current.push(category);
     }
     
+    // 큐 정렬: 더 시급한(개수가 적은) 카테고리 우선
     refillQueueRef.current.sort((a, b) => {
       const lenA = profileRef.current.dialogueCache[a].length;
       const lenB = profileRef.current.dialogueCache[b].length;
@@ -93,6 +95,7 @@ export const useAIManager = (
       const result = await Promise.race([fetchPromise, timeoutPromise]) as any;
 
       if (result && result.text) {
+        // CLICK은 3개, SCOLDING은 5개씩 보충
         const limit = category === 'click' ? 3 : 5;
         const newLines = result.text
           .split('\n')
@@ -120,6 +123,7 @@ export const useAIManager = (
   const processRefillQueue = useCallback(async () => {
     if (isGlobalApiLockedRef.current || refillQueueRef.current.length === 0) return;
     const category = refillQueueRef.current.shift()!;
+    // 실제로 충전이 필요한 시점인지 다시 확인 (임계치 체크)
     if (profileRef.current.dialogueCache[category].length > REFILL_CONFIG[category].threshold) return;
     
     isGlobalApiLockedRef.current = true;
@@ -127,6 +131,7 @@ export const useAIManager = (
     try {
       await refillCategory(category);
     } finally {
+      // API 과부하 방지를 위해 15초 뒤에 잠금 해제
       setTimeout(() => { 
         isGlobalApiLockedRef.current = false; 
       }, 15000);
@@ -134,11 +139,18 @@ export const useAIManager = (
   }, [refillCategory]);
 
   useEffect(() => {
-    const categories = Object.keys(REFILL_CONFIG) as Array<keyof typeof profile.dialogueCache>;
-    categories.forEach(cat => {
-      if (profileRef.current.dialogueCache[cat].length <= REFILL_CONFIG[cat].threshold) addToRefillQueue(cat);
-    });
-    const queueTimer = setInterval(processRefillQueue, 5000);
+    const queueTimer = setInterval(() => {
+      // 5초마다 CLICK(15개 이하)과 SCOLDING(10개 이하) 상태를 모두 확인
+      const categories = Object.keys(REFILL_CONFIG) as Array<keyof typeof profile.dialogueCache>;
+      categories.forEach(cat => {
+        const currentCount = profileRef.current.dialogueCache[cat].length;
+        if (currentCount <= REFILL_CONFIG[cat].threshold) {
+          addToRefillQueue(cat);
+        }
+      });
+      processRefillQueue();
+    }, 5000);
+    
     return () => clearInterval(queueTimer);
   }, [processRefillQueue, addToRefillQueue]);
 
@@ -184,6 +196,7 @@ export const useAIManager = (
         setMessage("..."); 
       }
       
+      // 즉시 보충 시도
       addToRefillQueue(categoryKey);
     }
   }, [profile, onUpdateProfile, addToRefillQueue]);
