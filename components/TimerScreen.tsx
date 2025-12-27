@@ -1,5 +1,4 @@
-
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { X } from 'lucide-react';
 import { CharacterProfile } from '../types';
 import { ObservationDiary } from './ObservationDiary';
@@ -10,8 +9,7 @@ import { EnergySavingOverlay } from './EnergySavingOverlay';
 import { PrivacyPolicyModal } from './PrivacyPolicyModal';
 
 // 설정 및 유틸리티
-import { LEVEL_TITLES } from './TimerConfig';
-import { formatTime, calculateOverallProgress, cleanDialogue } from './TimerUtils';
+import { formatTime, calculateOverallProgress } from './TimerUtils';
 
 // 모달 및 UI 컴포넌트
 import { AdminAuthModal, AdminPanel, CycleChoiceModal, AffinityGuideModal } from './TimerModals';
@@ -56,6 +54,7 @@ export const TimerScreen: React.FC<TimerScreenProps> = ({
   const { isBatterySaving, setIsBatterySaving } = useMobileCare(isActive);
 
   // --- 5. Local UI State ---
+  const [toast, setToast] = useState<string>("");
   const [distractions, setDistractions] = useState(profile.cycleStats?.distractions ?? 0);
   const [clicks, setClicks] = useState(profile.cycleStats?.clicks ?? 0);
   const [adminClicks, setAdminClicks] = useState(0);
@@ -76,6 +75,7 @@ export const TimerScreen: React.FC<TimerScreenProps> = ({
   const [isPrivacyModalOpen, setIsPrivacyModalOpen] = useState(false);
 
   // --- 6. Refs ---
+  const toastTimeoutRef = useRef<any>(null);
   const resetHoldTimerRef = useRef<any>(null);
   const resetStartTimeRef = useRef<number | null>(0);
   const settingsBtnRef = useRef<HTMLDivElement>(null);
@@ -84,6 +84,12 @@ export const TimerScreen: React.FC<TimerScreenProps> = ({
   const startBtnRef = useRef<HTMLButtonElement>(null);
   const affinityRef = useRef<HTMLDivElement>(null);
   const hasTriggeredInitialCooldown = useRef(false);
+
+  const showToast = useCallback((msg: string) => {
+    setToast(msg);
+    if (toastTimeoutRef.current) clearTimeout(toastTimeoutRef.current);
+    toastTimeoutRef.current = setTimeout(() => setToast(""), 3000);
+  }, []);
 
   // --- 7. Effects & Sync ---
   useEffect(() => {
@@ -98,7 +104,6 @@ export const TimerScreen: React.FC<TimerScreenProps> = ({
     }
   }, [isBreak, pendingExpiryAlert, isApiKeyModalOpen]);
 
-  // 브라우저 탭 전환(이탈) 감지 로직
   useEffect(() => {
     const handleVisibility = () => {
       if (document.visibilityState === 'visible' && isActive && !isBreak) {
@@ -129,7 +134,6 @@ export const TimerScreen: React.FC<TimerScreenProps> = ({
     });
   }, [timeLeft, isActive, isBreak, sessionInCycle, distractions, clicks, onUpdateProfile]);
 
-  // 세션이 바뀌거나 리셋되면 오프닝 트리거 초기화
   useEffect(() => {
     if (sessionInCycle !== 0 || isBreak) {
       hasTriggeredInitialCooldown.current = false;
@@ -159,7 +163,6 @@ export const TimerScreen: React.FC<TimerScreenProps> = ({
       setAdminClicks(0);
       setShowAdminAuth(true);
     }
-    // 2초 내에 연타하지 않으면 카운트 초기화
     const timer = setTimeout(() => setAdminClicks(0), 2000);
     return () => clearTimeout(timer);
   };
@@ -170,7 +173,6 @@ export const TimerScreen: React.FC<TimerScreenProps> = ({
     const timeStr = String(now.getHours()).padStart(2, '0') + String(now.getMinutes()).padStart(2, '0') + String(now.getSeconds()).padStart(2, '0');
     const filename = `${profile.name}_${dateStr}_${timeStr}.json`;
     
-    // 보안을 위해 API 키 제외 처리
     const { apiKey, ...profileWithoutKey } = profile;
     const dataStr = JSON.stringify(profileWithoutKey, null, 2);
     
@@ -180,10 +182,7 @@ export const TimerScreen: React.FC<TimerScreenProps> = ({
     linkElement.setAttribute('download', filename);
     linkElement.click();
     setIsSettingsOpen(false);
-    
-        const warningMsg = "API는 저장되지 않습니다. 나중에 다시 불러올 때 키를 입력해 주세요.";
-    setMessage(warningMsg);
-    setTimeout(() => { setMessage(current => current === warningMsg ? "" : current); }, 5000);
+    showToast("API는 저장되지 않습니다. 나중에 다시 불러올 때 키를 입력해 주세요.");
   };
 
   const handleResetStart = (e: React.MouseEvent | React.TouchEvent) => {
@@ -191,7 +190,7 @@ export const TimerScreen: React.FC<TimerScreenProps> = ({
     setIsResetHolding(true);
     setResetHoldProgress(0);
     resetStartTimeRef.current = Date.now();
-    resetHoldTimerRef.current = setTimeout(() => setMessage("처음부터 재시작됩니다."), 1000);
+    resetHoldTimerRef.current = setTimeout(() => showToast("계속 누르면 가장 처음으로 초기화 됩니다."), 1000);
   };
 
   const handleResetEnd = (e?: React.MouseEvent | React.TouchEvent) => {
@@ -207,9 +206,7 @@ export const TimerScreen: React.FC<TimerScreenProps> = ({
       setMessage("마음을 새로 먹었나 보네? 처음부터 다시 시작하자.");
     } else if (duration < 300) {
       resetTimer(false);
-      setMessage("응? 다시 하고 싶어? 좋아, 다시 집중해보자.");
-    } else {
-      setMessage(""); 
+      showToast("이번 세션만 새로 시작합니다.");
     }
   };
 
@@ -218,7 +215,6 @@ export const TimerScreen: React.FC<TimerScreenProps> = ({
     setIsResetHolding(false);
     setResetHoldProgress(0);
     if (resetHoldTimerRef.current) clearTimeout(resetHoldTimerRef.current);
-    setMessage(""); 
   };
 
   useEffect(() => {
@@ -242,9 +238,17 @@ export const TimerScreen: React.FC<TimerScreenProps> = ({
   return (
     <div className={`relative w-full h-screen flex transition-colors duration-700 overflow-hidden font-sans select-none ${isDarkMode ? 'bg-[#0B0E14] text-slate-100' : 'bg-background text-text-primary'}`}>
       <EnergySavingOverlay isVisible={isBatterySaving} />
+      
+      {/* System Toast UI */}
+      {toast && (
+        <div className="fixed top-24 left-1/2 -translate-x-1/2 z-[100] px-5 py-2.5 bg-slate-800/90 text-white text-[11px] font-black rounded-full shadow-2xl animate-in fade-in slide-in-from-top-4 duration-500 backdrop-blur-md border border-white/10">
+          {toast}
+        </div>
+      )}
+
       {showOnboarding && <OnboardingGuide isDarkMode={isDarkMode} characterName={profile.name} targets={{ settings: settingsBtnRef, character: characterBoxRef, reset: resetBtnRef, start: startBtnRef, affinity: affinityRef }} onClose={(never) => { if(never) localStorage.setItem('pomodoro_onboarding_done', 'true'); setShowOnboarding(false); }} />}
       {profile.imageSrc && <div className={`absolute inset-0 z-0 transition-opacity duration-700 ${isDarkMode ? 'opacity-5' : 'opacity-10'}`}><img src={profile.imageSrc} alt="BG" className="w-full h-full object-cover blur-md scale-110" /></div>}
-      <AdminAuthModal isOpen={showAdminAuth} onClose={() => setShowAdminAuth(false)} password={adminPassword} setPassword={setAdminPassword} onVerify={(e) => { e.preventDefault(); if(adminPassword==='PTSD'){ setIsAdminMode(true); setShowAdminPanel(true); setShowAdminAuth(false); setAdminPassword(''); setMessage("관리자 모드 활성화!"); } else { setAdminPassword(''); setShowAdminAuth(false); setMessage("비밀번호 틀림."); } }} />
+      <AdminAuthModal isOpen={showAdminAuth} onClose={() => setShowAdminAuth(false)} password={adminPassword} setPassword={setAdminPassword} onVerify={(e) => { e.preventDefault(); if(adminPassword==='PTSD'){ setIsAdminMode(true); setShowAdminPanel(true); setShowAdminAuth(false); setAdminPassword(''); showToast("관리자 모드 활성화!"); } else { setAdminPassword(''); setShowAdminAuth(false); showToast("비밀번호 틀림."); } }} />
       <AdminPanel isOpen={isAdminMode && showAdminPanel} onClose={() => setShowAdminPanel(false)} profile={profile} onTimeLeap={() => setTimeLeft(10)} onLevelChange={(lv) => onUpdateProfile({ level: lv, xp: 0 })} clicks={clicks} isApiKeyAlert={pendingExpiryAlert} onToggleApiKeyAlert={() => setPendingExpiryAlert(!pendingExpiryAlert)} />
       {showReport && <ObservationDiary profile={profile} stats={{ distractions, clicks }} onClose={() => { setShowReport(false); setDistractions(0); setClicks(0); setShowChoiceModal(true); }} />}
       <CycleChoiceModal isOpen={showChoiceModal} isDarkMode={isDarkMode} completedCycles={profile.totalCompletedCycles || 0} onChoice={(opt) => { setShowChoiceModal(false); setSessionInCycle(0); setIsBreak(true); setIsActive(true); if(opt==='LONG'){ setTimeLeft(30*60); onTickXP(5); } else { setTimeLeft(5*60); onTickXP(25); } }} onExport={handleExportProfile} />
@@ -260,7 +264,23 @@ export const TimerScreen: React.FC<TimerScreenProps> = ({
             {isSettingsOpen && <div className="fixed inset-0 z-40 bg-black/[0.02] backdrop-blur-[1.2px] cursor-default animate-in fade-in duration-300" onClick={(e) => { e.stopPropagation(); setIsSettingsOpen(false); }} />}
             <div className={`absolute top-2.5 inset-x-8 h-1.5 z-10 ${isDarkMode ? 'bg-slate-700/20' : 'bg-border/20'} rounded-full overflow-hidden`}><div className="h-full bg-gradient-to-r from-primary to-accent transition-all duration-1000 ease-out rounded-full" style={{ width: `${progressPercent}%` }} /></div>
             <div className="w-full flex justify-between items-start mt-2 px-2 relative z-50">
-                <SettingsMenu isOpen={isSettingsOpen} setIsOpen={setIsSettingsOpen} isDarkMode={isDarkMode} onToggleDarkMode={() => setIsDarkMode(!isDarkMode)} isBatterySaving={isBatterySaving} onToggleBatterySaving={() => setIsBatterySaving(!isBatterySaving)} onExport={handleExportProfile} onApiKeyOpen={() => { setApiKeyPopupType('MANUAL'); setIsApiKeyModalOpen(true); setIsSettingsOpen(false); }} onShowGuide={() => { setShowOnboarding(true); setIsSettingsOpen(false); }} isAdminMode={isAdminMode} onShowAdminPanel={() => setShowAdminPanel(!showAdminPanel)} btnRef={settingsBtnRef} isApiKeyAlert={pendingExpiryAlert} isBreak={isBreak} onPrivacyOpen={() => { setIsPrivacyModalOpen(true); setIsSettingsOpen(false); }} />
+                <SettingsMenu 
+                  isOpen={isSettingsOpen} 
+                  setIsOpen={setIsSettingsOpen} 
+                  isDarkMode={isDarkMode} 
+                  onToggleDarkMode={() => { const next = !isDarkMode; setIsDarkMode(next); showToast(next ? "다크모드" : "라이트모드"); }} 
+                  isBatterySaving={isBatterySaving} 
+                  onToggleBatterySaving={() => { const next = !isBatterySaving; setIsBatterySaving(next); showToast(next ? "절전모드 ON" : "절전모드 OFF"); }} 
+                  onExport={handleExportProfile} 
+                  onApiKeyOpen={() => { setApiKeyPopupType('MANUAL'); setIsApiKeyModalOpen(true); setIsSettingsOpen(false); }} 
+                  onShowGuide={() => { setShowOnboarding(true); setIsSettingsOpen(false); }} 
+                  isAdminMode={isAdminMode} 
+                  onShowAdminPanel={() => setShowAdminPanel(!showAdminPanel)} 
+                  btnRef={settingsBtnRef} 
+                  isApiKeyAlert={pendingExpiryAlert} 
+                  isBreak={isBreak} 
+                  onPrivacyOpen={() => { setIsPrivacyModalOpen(true); setIsSettingsOpen(false); }} 
+                />
                 <button onClick={() => setShowExitModal(true)} className={`p-2.5 rounded-full transition-all border border-transparent ${isDarkMode ? 'text-slate-400 hover:bg-white/10' : 'text-text-secondary hover:bg-slate-100'}`}><X size={20} /></button>
             </div>
             <CharacterSection profile={profile} isBreak={isBreak} cooldownRemaining={cooldownRemaining} cooldownMs={COOLDOWN_MS} message={message} isApiKeyModalOpen={isApiKeyModalOpen} isDarkMode={isDarkMode} onCharacterClick={handleCharacterClick} characterBoxRef={characterBoxRef} />
