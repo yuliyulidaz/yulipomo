@@ -88,7 +88,7 @@ export const SettingsMenu: React.FC<SettingsMenuProps> = ({ isOpen, setIsOpen, i
 
           {/* 저장 */}
           <div className="cursor-pointer" onClick={(e) => { e.stopPropagation(); onExport(); }}>
-            <div className={`w-12 h-12 rounded-full border shadow-sm flex items-center justify-center transition-all hover:scale-110 ${isDarkMode ? `bg-slate-800 ${darkIconColor} border-slate-700` : `bg-white border-slate-200 ${lightIconColor}`}`}>
+            <div className={`w-12 h-12 rounded-full border shadow-sm flex items-center justify-center transition-all hover:scale-110 ${isDarkMode ? 'bg-slate-800 ${darkIconColor} border-slate-700' : `bg-white border-slate-200 ${lightIconColor}`}`}>
               {/* @ts-ignore */}
               <Save size={20} />
             </div>
@@ -105,7 +105,7 @@ export const SettingsMenu: React.FC<SettingsMenuProps> = ({ isOpen, setIsOpen, i
           {/* 사용법 가이드 */}
           {!isBreak && (
             <div className="cursor-pointer" onClick={(e) => { e.stopPropagation(); onShowGuide(); setIsOpen(false); }}>
-              <div className={`w-12 h-12 rounded-full border shadow-sm flex items-center justify-center transition-all hover:scale-110 ${isDarkMode ? `bg-slate-800 ${darkIconColor} border-slate-700` : `bg-white border-slate-200 ${lightIconColor}`}`}>
+              <div className={`w-12 h-12 rounded-full border shadow-sm flex items-center justify-center transition-all hover:scale-110 ${isDarkMode ? 'bg-slate-800 ${darkIconColor} border-slate-700' : `bg-white border-slate-200 ${lightIconColor}`}`}>
                 <HelpCircle size={20} />
               </div>
             </div>
@@ -113,7 +113,7 @@ export const SettingsMenu: React.FC<SettingsMenuProps> = ({ isOpen, setIsOpen, i
 
           {/* AI 정책 (방패 모양 ShieldCheck로 변경) */}
           <div className="cursor-pointer" onClick={(e) => { e.stopPropagation(); onPrivacyOpen(); }}>
-            <div className={`w-12 h-12 rounded-full border shadow-sm flex items-center justify-center transition-all hover:scale-110 ${isDarkMode ? `bg-slate-800 ${darkIconColor} border-slate-700` : `bg-white border-slate-200 ${lightIconColor}`}`}>
+            <div className={`w-12 h-12 rounded-full border shadow-sm flex items-center justify-center transition-all hover:scale-110 ${isDarkMode ? 'bg-slate-800 ${darkIconColor} border-slate-700' : `bg-white border-slate-200 ${lightIconColor}`}`}>
               <ShieldCheck size={20} />
             </div>
           </div>
@@ -153,7 +153,10 @@ export const CharacterSection: React.FC<CharacterSectionProps> = ({ profile, isB
     else phrases = ["집중하는 옆모습 감상 중", "세상에서 가장 가까이서 감상 중", "몰입한 당신에게 눈을 떼지 못하는 중"];
     
     return phrases[Math.floor(Math.random() * phrases.length)];
-  }, [profile.level, cooldownRemaining === cooldownMs]); // 쿨타임 시작될 때마다 문구 갱신
+  }, [profile.level, cooldownRemaining === cooldownMs]);
+
+  // 대사가 뜬 후 8초 뒤에 배지가 나타나도록 설정 (클릭 시점 기준 cooldownMs-8000ms 이후)
+  const shouldShowWatchingText = cooldownRemaining > 0 && cooldownRemaining < (cooldownMs - 8000);
 
   return (
     <div className={`relative mt-9 md:mt-11 min-h-[180px] md:min-h-[220px] flex items-center justify-center w-full transition-all ${isApiKeyModalOpen ? 'z-50' : 'z-20'}`}>
@@ -165,11 +168,11 @@ export const CharacterSection: React.FC<CharacterSectionProps> = ({ profile, isB
           </div>
         ) : (
           <div className="relative group">
-            {cooldownRemaining > 0 && (
-              <div className="absolute bottom-2 left-1/2 -translate-x-1/2 z-30 animate-in fade-in zoom-in duration-500 pointer-events-none w-full flex justify-center">
-                <div className={`px-3 py-1 rounded-full border backdrop-blur-md shadow-sm animate-pulse-slow flex items-center justify-center whitespace-nowrap scale-90 md:scale-100
-                  ${isDarkMode ? 'bg-emerald-500/20 border-emerald-500/30 shadow-emerald-500/10' : 'bg-primary/20 border-primary/30 shadow-primary/10'}`}>
-                  <span className={`text-[9px] font-black uppercase tracking-tight ${isDarkMode ? 'text-emerald-300' : 'text-primary-dark'}`}>
+            {shouldShowWatchingText && (
+              <div className="absolute bottom-2 left-1/2 -translate-x-1/2 z-30 animate-in fade-in zoom-in duration-700 pointer-events-none w-full flex justify-center px-4">
+                <div className={`px-3 py-1 rounded-full border backdrop-blur-xl shadow-lg animate-pulse-slow flex items-center justify-center whitespace-nowrap scale-90 md:scale-100
+                  ${isDarkMode ? 'bg-black/90 border-white/10 shadow-black/40' : 'bg-slate-900/85 border-white/20 shadow-slate-900/20'}`}>
+                  <span className="text-[9px] font-black uppercase tracking-tight text-slate-100">
                     {watchingPhrase}
                   </span>
                 </div>
