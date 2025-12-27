@@ -79,7 +79,7 @@ export const Step1: React.FC<Step1Props> = ({ name, setName, imageSrc, setImageS
           </div>
         </div>
         
-        <div className="text-center pt-2 space-y-4">
+        <div className="text-center pt-7 space-y-4">
           {/* 정책 안내 문구 - 색상을 slate-500으로 변경하여 연한 회색보다 선명하게 표시 */}
           <div className="text-center space-y-1 w-full">
             <p className="text-[9px] text-slate-500 font-bold tracking-tight">이 서비스는 Google Gemini API키를 필요로 합니다.</p>
