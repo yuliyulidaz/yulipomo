@@ -9,7 +9,6 @@ import { FIXED_DIALOGUES } from '../CharacterDialogues';
 
 const COOLDOWN_MS = 30000;
 
-// 오직 click과 scolding만 API를 통해 리필하도록 설정
 const REFILL_CONFIG: Record<string, { max: number; threshold: number }> = {
   click: { max: 20, threshold: 10 },
   scolding: { max: 20, threshold: 10 }
@@ -29,7 +28,10 @@ export const useAIManager = (
   const refillQueueRef = useRef<Array<keyof typeof profile.dialogueCache>>([]);
   const profileRef = useRef(profile);
 
-  useEffect(() => { profileRef.current = profile; }, [profile]);
+  // 항상 최신 프로필 정보를 참조하기 위함
+  useEffect(() => { 
+    profileRef.current = profile; 
+  }, [profile]);
 
   useEffect(() => {
     if (message) {
@@ -39,23 +41,23 @@ export const useAIManager = (
   }, [message]);
 
   const addToRefillQueue = useCallback((category: keyof typeof profile.dialogueCache) => {
-    const currentCache = profileRef.current.dialogueCache[category];
     const config = REFILL_CONFIG[category as string];
-    // 10개 초과이거나 이미 리필 중이면 큐에 넣지 않음
-    if (!config || currentCache.length > config.threshold || isRefillingRef.current[category]) return;
+    if (!config || isRefillingRef.current[category]) return;
     
     if (!refillQueueRef.current.includes(category)) {
       refillQueueRef.current.push(category);
     }
     
-    // 리필 우선순위 로직: 
-    // 1. 현재 캐시 개수가 더 적은 쪽을 먼저 리필
-    // 2. 개수가 같다면 'click'을 우선 순위로 정렬
+    // 우선순위 정렬: 
+    // 1. 대사 개수가 부족한 순서
+    // 2. 개수가 같다면 'click'을 'scolding'보다 무조건 앞에 배치
     refillQueueRef.current.sort((a, b) => {
       const lenA = profileRef.current.dialogueCache[a].length;
       const lenB = profileRef.current.dialogueCache[b].length;
       if (lenA !== lenB) return lenA - lenB;
-      return a === 'click' ? -1 : 1;
+      if (a === 'click') return -1;
+      if (b === 'click') return 1;
+      return 0;
     });
   }, []);
 
@@ -64,6 +66,7 @@ export const useAIManager = (
     isRefillingRef.current[category] = true;
     
     try {
+      // 호출 직전의 최신 상태를 가져옴
       const currentProfile = profileRef.current;
       const ai = new GoogleGenAI({ apiKey: currentProfile.apiKey || process.env.API_KEY });
       const prompt = buildRefillPrompt(currentProfile, category, getTimePeriod(), getSeason());
@@ -75,15 +78,22 @@ export const useAIManager = (
       });
 
       if (result.text) {
-        const newLines = result.text.split('\n').map(l => l.replace(/["']/g, '').trim()).filter(l => l.length >= 5);
+        const newLines = result.text
+          .split('\n')
+          .map(l => l.replace(/["']/g, '').trim())
+          .filter(l => l.length >= 5)
+          .slice(0, 5); // 한 번에 최대 5개씩만
+
+        // 업데이트 시점에 한 번 더 최신 캐시 상태를 확인하여 다른 카테고리 데이터가 유실되지 않도록 병합
         onUpdateProfile({ 
           dialogueCache: { 
-            ...currentProfile.dialogueCache, 
-            [category]: [...currentProfile.dialogueCache[category], ...newLines] 
+            ...profileRef.current.dialogueCache, 
+            [category]: [...profileRef.current.dialogueCache[category], ...newLines] 
           } 
         });
       }
     } catch (e: any) {
+      console.error(`Refill failed for ${category}:`, e);
       if (e.message?.includes('API_KEY_INVALID') || e.status === 401 || e.status === 403 || e.status === 429) {
         setPendingExpiryAlert(true);
       }
@@ -93,40 +103,45 @@ export const useAIManager = (
   }, [onUpdateProfile]);
 
   const processRefillQueue = useCallback(async () => {
+    // 이미 진행 중이거나 큐가 비어있으면 중단
     if (isGlobalApiLockedRef.current || refillQueueRef.current.length === 0) return;
+
     const category = refillQueueRef.current.shift()!;
+    
+    // 현재 카테고리의 대사가 이미 충분하다면 건너뜀
+    const currentLen = profileRef.current.dialogueCache[category].length;
+    if (currentLen > REFILL_CONFIG[category].threshold) {
+      return;
+    }
+
     isGlobalApiLockedRef.current = true;
     await refillCategory(category);
-    // 호출 간 시간차를 두기 위해 일정 시간 후 잠금 해제
-    setTimeout(() => { isGlobalApiLockedRef.current = false; }, 15000);
+    
+    // API 과부하 방지 및 순차적 느낌을 위해 15초 대기 후 락 해제
+    setTimeout(() => { 
+      isGlobalApiLockedRef.current = false; 
+    }, 15000);
   }, [refillCategory]);
 
   useEffect(() => {
+    // 초기 진입 시 부족한 카테고리 파악하여 큐에 삽입
     const categories = Object.keys(REFILL_CONFIG) as Array<keyof typeof profile.dialogueCache>;
-    const isBrandNew = categories.every(cat => profileRef.current.dialogueCache[cat].length === 0);
-
-    if (isBrandNew) {
-      // 1. 타이머 페이지 진입 시 캐시가 비어있다면 click 5개부터 즉시 가져오기 시작
-      isGlobalApiLockedRef.current = true;
-      refillCategory('click').finally(() => {
-        setTimeout(() => { isGlobalApiLockedRef.current = false; }, 15000);
-      });
-      // 2. scolding은 큐에 넣어 정해진 시간차(processRefillQueue)를 두고 가져오게 함
-      ['scolding'].forEach(cat => addToRefillQueue(cat as any));
-    } else {
-      // 기존 유저인 경우 부족한 카테고리만 큐에 추가
-      categories.forEach(cat => addToRefillQueue(cat));
-    }
+    categories.forEach(cat => {
+      if (profileRef.current.dialogueCache[cat].length <= REFILL_CONFIG[cat].threshold) {
+        addToRefillQueue(cat);
+      }
+    });
     
+    // 5초마다 큐를 확인하여 리필 진행
     const queueTimer = setInterval(processRefillQueue, 5000);
     return () => clearInterval(queueTimer);
-  }, [processRefillQueue, refillCategory, addToRefillQueue]);
+  }, [processRefillQueue, addToRefillQueue]);
 
   const triggerAIResponse = useCallback((type: string) => {
     const userDisplayName = profile.honorific || profile.userName || "너";
     const toneKey = profile.personality[0] || "존댓말";
 
-    // START, PAUSE, READY 상황은 절대 API를 호출하지 않고 로컬 고정 대사에서 즉시 처리
+    // START, PAUSE, READY 상황은 로컬 고정 대사 사용
     if (type === 'START' || type === 'PAUSE' || type === 'READY') {
       const situation = type === 'READY' ? 'START' : type;
       const list = FIXED_DIALOGUES[toneKey]?.[situation as 'START' | 'PAUSE'];
@@ -150,16 +165,20 @@ export const useAIManager = (
     if (cachedList?.length > 0) {
       const randomIndex = Math.floor(Math.random() * cachedList.length);
       setMessage(cleanDialogue(cachedList[randomIndex], userDisplayName));
+      
       const newCacheList = [...cachedList];
       newCacheList.splice(randomIndex, 1);
-      onUpdateProfile({ dialogueCache: { ...profile.dialogueCache, [key]: newCacheList } });
       
-      // 소진 후 개수가 임계값 이하라면 리필 큐에 등록
-      if (REFILL_CONFIG[key] && newCacheList.length <= REFILL_CONFIG[key].threshold) {
+      onUpdateProfile({ 
+        dialogueCache: { ...profile.dialogueCache, [key]: newCacheList } 
+      });
+      
+      // 소진 후 부족해지면 큐에 추가
+      if (newCacheList.length <= REFILL_CONFIG[key].threshold) {
         addToRefillQueue(key);
       }
     } else {
-      // 캐시가 비었을 때만 예외적으로 폴백 템플릿 사용 및 즉시 리필 큐 등록
+      // 캐시가 비었을 때 폴백 사용
       const fallbackTone = profile.personality.find(p => FALLBACK_TEMPLATES[p]) || "존댓말";
       const rawMsgs = FALLBACK_TEMPLATES[fallbackTone][type] || ["..."];
       setMessage(cleanDialogue(rawMsgs[Math.floor(Math.random() * rawMsgs.length)], userDisplayName));
