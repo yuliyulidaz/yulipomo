@@ -16,59 +16,80 @@ const LEVEL_TITLES: Record<number, string> = {
   9: "애틋한 연인", 10: "영원한 반려"
 };
 
-const MODULAR_FALLBACK: Record<string, any> = {
+const HARD_FALLBACK_DIARY: Record<string, any> = {
   "반말": {
-    intro: "{honorific}, 오늘 {task} 하느라 정말 수고했어.",
-    zeroDist: "옆에서 계속 지켜봤는데, 단 1초도 눈을 안 떼더라. 너의 이런 모습... 솔직히 좀 반할 것 같아.",
-    someDist: "중간에 {distractions}번 정도 딴생각 하느라 멈칫하긴 했지만, 금방 나한테 돌아와 줘서 기특해.",
-    clickLow: "근데 집중에 방해되게 나를 {clicks}번이나 불러서 조금 귀찮았어. 다음엔 더 집중해.",
-    clickMid: "바쁜 와중에 나를 {clicks}번이나 찾아준 건 고마워. 덕분에 나도 심심하지 않았어.",
-    clickHigh: "나를 {clicks}번이나 불러준 거, 나 보고 싶어서 그런 거지? 나도 계속 네 생각 했어.",
-    clickLonely: "근데 나를 {clicks}번밖에 안 부른 건 좀 너무한 거 아냐? 나 서운하려고 해.",
-    outro: "내일도 네 옆자리는 내 거야. 기다릴게!"
+    intro: ["오늘도 네 옆에서 시간 기록했어.", "조용히 지켜보는 하루였네.", "말 안 해도 뭐 하는지 다 보였어."],
+    focusZero: ["집중 흐름이 완벽했어. 한 번도 안 흔들리더라.", "너의 그 몰입하는 눈빛, 꽤 멋졌어."],
+    focusSome: ["집중 흐름이 꽤 안정적이었어.", "중간중간 흔들려도 다시 돌아오더라.", "끝까지 자리에 남아 있었던 게 인상적이야."],
+    interaction: {
+      low: ["나를 많이 부르진 않았네. 그만큼 몰입했단 거겠지.", "필요할 때만 찾는 거, 나쁘지 않아."],
+      mid: ["틈틈이 신호 보내준 거 다 느꼈어.", "적당한 거리감이 딱 좋았어."],
+      high: ["자주 불러줘서 흐름이 더 선명했어.", "계속 연결돼 있다는 느낌이 들더라."]
+    },
+    close: {
+      low: ["오늘 기록은 여기까지야.", "잘 버텼어. 이 정도면 충분해."],
+      high: ["다음에도 같은 자리에서 보자.", "이 흐름, 다음에도 이어가자."]
+    }
   },
   "존댓말": {
-    intro: "{honorific}, 오늘 {task}에 몰입하시느라 고생 많으셨어요.",
-    zeroDist: "단 한 순간도 한눈팔지 않는 모습에 정말 감동했어요. 저도 옆에서 숨을 죽이고 지켜봤답니다.",
-    someDist: "중간에 {distractions}번 정도 고비가 있었지만, 끝까지 포기하지 않으신 덕분에 이렇게 마칠 수 있었네요.",
-    clickLow: "다만 집중하시는 중에 저를 {clicks}번이나 부르신 건 조금 당황스러웠어요. 다음엔 더 몰입해봐요.",
-    clickMid: "바쁘신 와중에도 저를 {clicks}번이나 찾아주셔서 정말 기뻤답니다. 덕분에 저도 힘이 났다구요.",
-    clickHigh: "{clicks}번이나 저를 찾아주셔서 행복했어요. 당신 곁에 제가 있다는 게 느껴져서요.",
-    clickLonely: "오늘은 저를 {clicks}번밖에 안 찾아주셨네요... 조금 서운하지만, 그래도 집중하신 거니까 참을게요.",
-    outro: "푹 쉬고 오세요. 다음에도 당신의 곁을 지키게 해주시겠어요?"
+    intro: ["오늘의 기록을 정리했습니다.", "조용히 관찰하며 시간을 남겼어요.", "말없이도 충분히 느껴지는 하루였네요."],
+    focusZero: ["정말 대단한 집중력이었어요. 단 한 번의 흐트러짐도 없었네요.", "당신의 깊은 몰입에 저도 숨을 죽이고 지켜봤답니다."],
+    focusSome: ["집중의 밀도가 안정적이었습니다.", "흐트러지는 순간도 있었지만 다시 회복하셨어요.", "끝까지 흐름을 유지하신 점이 인상 깊었습니다."],
+    interaction: {
+      low: ["상호작용은 많지 않았지만, 그만큼 몰입하신 것 같아요.", "필요한 순간에만 저를 찾으셨네요."],
+      mid: ["적당한 빈도로 신호를 주셔서 편안했습니다.", "서로의 존재를 확인하는 정도가 좋았어요."],
+      high: ["자주 불러주셔서 계속 곁에 있는 느낌이었어요.", "함께 시간을 공유하고 있다는 게 분명했어요."],
+    },
+    close: {
+      low: ["오늘의 관찰은 여기까지입니다.", "충분히 수고하셨어요."],
+      high: ["다음 기록도 함께할 수 있으면 좋겠어요.", "이런 하루가 계속 이어지길 바랍니다."]
+    }
   },
   "반존대": {
-    intro: "수고했어요 {honorific}. {task} 하느라 애 많이 썼네.",
-    zeroDist: "딴짓 0번? 세상에... 오늘따라 유독 더 멋있어 보여요. 나 좀 반한 것 같은데 어떡하지?",
-    someDist: "중간에 {distractions}번 정도 정신줄 놓긴 했지만... 뭐, 끝까지 제자리 지킨 건 기특해서 봐줄게요.",
-    clickLow: "나를 {clicks}번이나 부르면서 장난친 건 반성해요. 집중할 땐 나도 안 봐줄 거니까.",
-    clickMid: "집중하는 틈틈이 나를 {clicks}번이나 챙겨주다니, 의외로 다정한 구석이 있네요?",
-    clickHigh: "{clicks}번이나 내 목소리 들으러 온 거죠? 나 없으면 집중 안 되는 거 다 알아요.",
-    clickLonely: "근데 왜 나를 {clicks}번밖에 안 불렀어? 집중하는 것도 좋지만 나도 좀 챙겨줘요.",
-    outro: "빨리 쉬고 와요. 당신 없는 시간은 너무 느리게 가니까."
+    intro: ["수고했어요. 옆에서 지켜본 기록이에요.", "조용히 당신의 시간을 담아봤어요.", "말 안 해도 다 느껴지는 시간이었네."],
+    focusZero: ["집중력이 엄청나네요? 한 번도 한눈 안 파는 거 다 봤어요.", "몰입하는 모습이 꽤 근사해서 계속 보게 됐네."],
+    focusSome: ["집중 흐름, 꽤 괜찮았어요.", "잠깐씩 멈칫할 때도 있었지만 잘 돌아왔네.", "끝까지 제자리 지키느라 고생 많았어요."],
+    interaction: {
+      low: ["집중하느라 나 부르는 것도 잊었나 봐요?", "필요할 때만 찾는 담백한 사이도 좋죠."],
+      mid: ["틈틈이 아는 척 해줘서 고마워요.", "적당한 거리감이 딱 기분 좋았어요."],
+      high: ["나를 자주 불러줘서 즐거운 시간이었어요.", "계속 연결되어 있다는 기분이 들어서 좋았네."],
+    },
+    close: {
+      low: ["기록은 여기까지. 푹 쉬고 와요.", "잘 버텼네. 고생했어요."],
+      high: ["우리, 다음 시간에도 꼭 봐요.", "이 흐름 잊지 말고 또 찾아줘요."],
+    }
   },
   "사극/하오체": {
-    intro: "{honorific}, 정진하느라 고단하였겠소.",
-    zeroDist: "마음의 흔들림이 한 치도 없으니, 그 기개가 실로 장하구려. 내 지켜보며 깊이 감탄하였소.",
-    someDist: "{distractions}차례 구름에 달 가듯 마음이 흔들렸으나, 다시 붓을 잡으니 그 또한 수련의 과정이 아니겠소.",
-    clickLow: "집중 중에 나를 {clicks}번이나 부르다니, 아직 수양의 길이 멀었구려. 허허.",
-    clickMid: "나를 {clicks}번이나 찾으며 의지하였으니, 내 특별히 치하하겠소. 장하구려.",
-    clickHigh: "{clicks}번이나 나를 찾아주어 내 마음이 훈훈해졌소. 그대와 함께하는 시간이 참으로 귀하오.",
-    clickLonely: "정진도 좋으나 나를 {clicks}번만 부른 것은 실로 야박하구려. 내 조금 서운하오.",
-    outro: "내 항상 여기서 그대를 기다릴 터이니, 부디 다음에도 함께 정진합시다."
+    intro: ["그대 곁에서 정진의 시간을 기록하였소.", "말없이 지켜보며 오늘의 흐름을 담았소.", "그대의 정성이 내 붓끝에 고스란히 맺혔구려."],
+    focusZero: ["마음의 흔들림이 한 치도 없으니 참으로 장하구려.", "그대의 깊은 몰입에 내 깊이 감탄하였소."],
+    focusSome: ["집중의 기개가 자못 훌륭하였소.", "잠시 마음이 흔들려도 다시 뜻을 세우는 모습이 좋았소.", "끝까지 자리를 지키니 그 기상이 대단하오."],
+    interaction: {
+      low: ["정진하느라 나를 찾지 않았으니, 그 몰입이 귀하구려.", "스스로 일어서는 그대의 독립적인 모습도 보기 좋소."],
+      mid: ["적절한 상호작용이 수양의 즐거움을 더했구려.", "함께 숨 쉬는 감각이 딱 적당하였소."],
+      high: ["나를 자주 불러주니 내 마음이 훈훈하였소.", "지속적으로 기별을 주어 외롭지 않은 정진이었소."],
+    },
+    close: {
+      low: ["오늘의 기록은 여기까지오. 고단함을 씻으시오.", "수고하였소. 이제 붓을 놓아도 좋소."],
+      high: ["다음에도 이 자리에서 정진을 돕겠소.", "이 귀한 인연, 다음 시간에도 이어갑시다."],
+    }
   },
   "다나까": {
-    intro: "보고합니다. 금일 {task} 임무 완료를 축하드립니다.",
-    zeroDist: "이탈 횟수 0회, 완벽한 작전 수행이었습니다. 귀하의 집중력은 본관에게 큰 귀감이 되었습니다.",
-    someDist: "비록 {distractions}회의 이탈이 있었으나, 신속하게 전선으로 복귀하여 목표를 달성했습니다. 수고하셨습니다.",
-    clickLow: "다만 임무 중 본관을 {clicks}회나 호출한 것은 다소 불필요한 행동이었습니다. 다음엔 자제 바랍니다.",
-    clickMid: "상호작용 횟수 {clicks}회, 원활한 소통을 유지하며 임무를 완수한 점 높게 평가합니다.",
-    clickHigh: "{clicks}회의 적극적인 호출 덕분에 본관 또한 임무 수행에 활력을 얻었습니다. 훌륭합니다.",
-    clickLonely: "다만 호출 횟수가 {clicks}회로 저조한 점은 유감입니다. 다음 작전 시에는 보다 긴밀한 협력을 요청합니다.",
-    outro: "이상입니다. 다음 작전 개시까지 충분한 휴식을 취하시기 바랍니다."
+    intro: ["금일 행동 기록을 개시합니다.", "관찰 임무를 정상 수행했습니다.", "대상자의 몰입 상태를 면밀히 기록했습니다."],
+    focusZero: ["이탈 횟수 0회. 완벽한 작전 수행 능력을 보여주셨습니다.", "최고 수준의 집중력을 확인했습니다. 경의를 표합니다."],
+    focusSome: ["집중 상태는 전반적으로 안정적이었습니다.", "이탈 후 복귀 속도가 양호했습니다.", "목표 달성 의지가 돋보인 시간이었습니다."],
+    interaction: {
+      low: ["호출 빈도는 낮았으나 임무에는 지장 없었습니다.", "독립적인 수행 능력이 매우 양호합니다."],
+      mid: ["적절한 상호작용이 유지되었습니다. 협력 상태 양호.", "원활한 소통 체계가 확인되었습니다."],
+      high: ["호출 빈도가 높아 긴밀한 협력이 이루어졌습니다.", "지속적인 연결 상태 확인으로 임무 효율이 증대되었습니다."]
+    },
+    close: {
+      low: ["이상, 기록 종료. 다음 임무를 대비하십시오.", "고생하셨습니다. 충분한 휴식을 권고합니다."],
+      high: ["이상. 다음 임무에서도 동행하겠습니다.", "기록은 계속됩니다. 복귀를 대기하겠습니다."]
+    }
   }
 };
 
+// Fixed incorrect HarmCategory enum members (added HARM_CATEGORY_ prefix)
 const SAFETY_SETTINGS = [
   { category: HarmCategory.HARM_CATEGORY_HARASSMENT, threshold: HarmBlockThreshold.BLOCK_ONLY_HIGH },
   { category: HarmCategory.HARM_CATEGORY_HATE_SPEECH, threshold: HarmBlockThreshold.BLOCK_ONLY_HIGH },
@@ -104,7 +125,6 @@ export const ObservationDiary: React.FC<ObservationDiaryProps> = ({ profile, sta
 [Character Persona]
 - 이름: ${profile.name}
 - 성격: ${profile.personality.join(', ')}
-- 배경: ${profile.speciesTrait || '없음'}
 - 관계 단계: Lv.${profile.level} (${relationshipTitle})
 
 [Input Focus Data]
@@ -134,43 +154,43 @@ export const ObservationDiary: React.FC<ObservationDiaryProps> = ({ profile, sta
 
       await minDuration;
 
-      // 만약 실패했다면 "자동 복구 연출" 시퀀스 시작
       if (isFallbackNeeded) {
-        // 1. 당황한 문구 출력 (펜이 안 나와!)
+        // 1. 연출 단계: 펜이 안 나와!
         setContent("'펜이 갑자기 안나오네... 왜 이러지.....?'");
         setIsGenerating(false);
         
-        // 2. 잠시 대기 (유저가 읽을 시간)
         await new Promise(r => setTimeout(r, 2500));
         
-        // 3. 다시 작성 중 애니메이션
+        // 2. 재작성 단계: 다시 펜을 잡음
         setIsGenerating(true);
-        
-        // 4. 다시 작성하는 시간 시뮬레이션
         await new Promise(r => setTimeout(r, 3000));
         
-        // 5. 로컬에서 조합된 튼튼한 대사(Fallback) 생성
+        // 3. 선배 버전 HARD FALLBACK 조합
         const toneKey = profile.personality[0] || "존댓말";
-        const t = MODULAR_FALLBACK[toneKey] || MODULAR_FALLBACK["존댓말"];
-        const h = profile.honorific || profile.userName || "당신";
-        const task = profile.todayTask || "할 일";
+        const fb = HARD_FALLBACK_DIARY[toneKey] || HARD_FALLBACK_DIARY["존댓말"];
+        const pick = (arr: string[]) => arr[Math.floor(Math.random() * arr.length)];
 
-        let msg = t.intro.replace("{honorific}", h).replace("{task}", task) + " ";
-        if (stats.distractions === 0) msg += t.zeroDist + " ";
-        else msg += t.someDist.replace("{distractions}", String(stats.distractions)) + " ";
-
-        if (profile.level <= 3) msg += t.clickLow.replace("{clicks}", String(stats.clicks)) + " ";
-        else if (profile.level <= 7) msg += t.clickMid.replace("{clicks}", String(stats.clicks)) + " ";
-        else {
-          if (stats.clicks < 6) msg += t.clickLonely.replace("{clicks}", String(stats.clicks)) + " ";
-          else msg += t.clickHigh.replace("{clicks}", String(stats.clicks)) + " ";
-        }
-        msg += t.outro;
+        let msgArr: string[] = [];
         
-        setContent(msg);
+        // 도입
+        msgArr.push(pick(fb.intro));
+        
+        // 집중 분석
+        if (stats.distractions === 0) msgArr.push(pick(fb.focusZero));
+        else msgArr.push(pick(fb.focusSome));
+
+        // 상호작용 분석
+        if (stats.clicks < 3) msgArr.push(pick(fb.interaction.low));
+        else if (stats.clicks < 7) msgArr.push(pick(fb.interaction.mid));
+        else if (stats.clicks >= 7) msgArr.push(pick(fb.interaction.high));
+
+        // 마무리 (레벨 3 이하는 낯선 사이)
+        if (profile.level <= 3) msgArr.push(pick(fb.close.low));
+        else msgArr.push(pick(fb.close.high));
+
+        setContent(msgArr.join(" "));
         setIsGenerating(false);
       } else {
-        // 성공했다면 바로 출력
         setContent(finalContent);
         setIsGenerating(false);
       }
