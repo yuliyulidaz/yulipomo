@@ -1,11 +1,11 @@
-
 import { useState, useCallback, useRef, useEffect } from 'react';
 import { GoogleGenAI } from "@google/genai";
-import { CharacterProfile } from '../types';
+import { CharacterProfile, DialogueLine, ToneTag } from '../types';
 import { SAFETY_SETTINGS, FALLBACK_TEMPLATES } from '../components/TimerConfig';
 import { cleanDialogue, getTimePeriod, getSeason } from '../components/TimerUtils';
 import { buildRefillPrompt } from '../components/AIPromptTemplates';
 import { FIXED_DIALOGUES } from '../CharacterDialogues';
+import { KEYWORD_TO_TAGS } from '../components/SetupConfig';
 
 const COOLDOWN_MS = 30000;
 
@@ -28,7 +28,6 @@ export const useAIManager = (
   const refillQueueRef = useRef<Array<keyof typeof profile.dialogueCache>>([]);
   const profileRef = useRef(profile);
 
-  // 항상 최신 프로필 정보를 참조하기 위함
   useEffect(() => { 
     profileRef.current = profile; 
   }, [profile]);
@@ -48,9 +47,6 @@ export const useAIManager = (
       refillQueueRef.current.push(category);
     }
     
-    // 우선순위 정렬: 
-    // 1. 대사 개수가 부족한 순서
-    // 2. 개수가 같다면 'click'을 'scolding'보다 무조건 앞에 배치
     refillQueueRef.current.sort((a, b) => {
       const lenA = profileRef.current.dialogueCache[a].length;
       const lenB = profileRef.current.dialogueCache[b].length;
@@ -66,7 +62,6 @@ export const useAIManager = (
     isRefillingRef.current[category] = true;
     
     try {
-      // 호출 직전의 최신 상태를 가져옴
       const currentProfile = profileRef.current;
       const ai = new GoogleGenAI({ apiKey: currentProfile.apiKey || process.env.API_KEY });
       const prompt = buildRefillPrompt(currentProfile, category, getTimePeriod(), getSeason());
@@ -82,9 +77,8 @@ export const useAIManager = (
           .split('\n')
           .map(l => l.replace(/["']/g, '').trim())
           .filter(l => l.length >= 5)
-          .slice(0, 5); // 한 번에 최대 5개씩만
+          .slice(0, 5); 
 
-        // 업데이트 시점에 한 번 더 최신 캐시 상태를 확인하여 다른 카테고리 데이터가 유실되지 않도록 병합
         onUpdateProfile({ 
           dialogueCache: { 
             ...profileRef.current.dialogueCache, 
@@ -103,51 +97,59 @@ export const useAIManager = (
   }, [onUpdateProfile]);
 
   const processRefillQueue = useCallback(async () => {
-    // 이미 진행 중이거나 큐가 비어있으면 중단
     if (isGlobalApiLockedRef.current || refillQueueRef.current.length === 0) return;
-
     const category = refillQueueRef.current.shift()!;
-    
-    // 현재 카테고리의 대사가 이미 충분하다면 건너뜀
     const currentLen = profileRef.current.dialogueCache[category].length;
-    if (currentLen > REFILL_CONFIG[category].threshold) {
-      return;
-    }
+    if (currentLen > REFILL_CONFIG[category].threshold) return;
 
     isGlobalApiLockedRef.current = true;
     await refillCategory(category);
-    
-    // API 과부하 방지 및 순차적 느낌을 위해 15초 대기 후 락 해제
-    setTimeout(() => { 
-      isGlobalApiLockedRef.current = false; 
-    }, 15000);
+    setTimeout(() => { isGlobalApiLockedRef.current = false; }, 15000);
   }, [refillCategory]);
 
   useEffect(() => {
-    // 초기 진입 시 부족한 카테고리 파악하여 큐에 삽입
     const categories = Object.keys(REFILL_CONFIG) as Array<keyof typeof profile.dialogueCache>;
     categories.forEach(cat => {
       if (profileRef.current.dialogueCache[cat].length <= REFILL_CONFIG[cat].threshold) {
         addToRefillQueue(cat);
       }
     });
-    
-    // 5초마다 큐를 확인하여 리필 진행
     const queueTimer = setInterval(processRefillQueue, 5000);
     return () => clearInterval(queueTimer);
   }, [processRefillQueue, addToRefillQueue]);
 
+  // 새로운 대사 선택 엔진
   const triggerAIResponse = useCallback((type: string) => {
     const userDisplayName = profile.honorific || profile.userName || "너";
     const toneKey = profile.personality[0] || "존댓말";
+    const currentLevel = profile.level || 1;
 
-    // START, PAUSE, READY 상황은 로컬 고정 대사 사용
+    // 성격 키워드들로부터 허용된 태그들 추출 (예: ["sweet", "soft", "tsundere"])
+    const selectedKeywords = profile.personality.slice(1);
+    const allowedTags: ToneTag[] = selectedKeywords.flatMap(k => KEYWORD_TO_TAGS[k] || []);
+
     if (type === 'START' || type === 'PAUSE' || type === 'READY') {
       const situation = type === 'READY' ? 'START' : type;
-      const list = FIXED_DIALOGUES[toneKey]?.[situation as 'START' | 'PAUSE'];
-      if (list && list.length > 0) {
-        const line = list[Math.floor(Math.random() * list.length)];
-        setMessage(cleanDialogue(line, userDisplayName));
+      const allPossibleLines: DialogueLine[] = FIXED_DIALOGUES[toneKey]?.[situation as 'START' | 'PAUSE'] || [];
+      
+      // 1. 레벨 필터링
+      const levelFiltered = allPossibleLines.filter(line => 
+        currentLevel >= line.levelRange[0] && currentLevel <= line.levelRange[1]
+      );
+
+      // 2. 성격 태그 필터링
+      const tagFiltered = levelFiltered.filter(line => 
+        line.tones.some(t => allowedTags.includes(t))
+      );
+
+      // 3. 우선순위 결정: 성격 일치 > 레벨 일치 > 전체 랜덤
+      const finalPool = tagFiltered.length > 0 
+        ? tagFiltered 
+        : (levelFiltered.length > 0 ? levelFiltered : allPossibleLines);
+
+      if (finalPool.length > 0) {
+        const picked = finalPool[Math.floor(Math.random() * finalPool.length)];
+        setMessage(cleanDialogue(picked.text, userDisplayName));
         return;
       }
     }
@@ -157,7 +159,6 @@ export const useAIManager = (
       'CLICK': 'click', 
       'RETURN': 'scolding' 
     };
-    
     const key = cacheKeyMap[type];
     if (!key) return;
 
@@ -165,20 +166,11 @@ export const useAIManager = (
     if (cachedList?.length > 0) {
       const randomIndex = Math.floor(Math.random() * cachedList.length);
       setMessage(cleanDialogue(cachedList[randomIndex], userDisplayName));
-      
       const newCacheList = [...cachedList];
       newCacheList.splice(randomIndex, 1);
-      
-      onUpdateProfile({ 
-        dialogueCache: { ...profile.dialogueCache, [key]: newCacheList } 
-      });
-      
-      // 소진 후 부족해지면 큐에 추가
-      if (newCacheList.length <= REFILL_CONFIG[key].threshold) {
-        addToRefillQueue(key);
-      }
+      onUpdateProfile({ dialogueCache: { ...profile.dialogueCache, [key]: newCacheList } });
+      if (newCacheList.length <= REFILL_CONFIG[key].threshold) addToRefillQueue(key);
     } else {
-      // 캐시가 비었을 때 폴백 사용
       const fallbackTone = profile.personality.find(p => FALLBACK_TEMPLATES[p]) || "존댓말";
       const rawMsgs = FALLBACK_TEMPLATES[fallbackTone][type] || ["..."];
       setMessage(cleanDialogue(rawMsgs[Math.floor(Math.random() * rawMsgs.length)], userDisplayName));
