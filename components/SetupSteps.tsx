@@ -1,5 +1,7 @@
+
 import React from 'react';
-import { Camera, FileJson, Heart, ExternalLink, ClipboardPaste, X, Timer, Coffee } from 'lucide-react';
+// Added missing icon imports: ExternalLink, ClipboardPaste, X to fix build errors in Step3
+import { Camera, Heart, Timer, Coffee, ExternalLink, ClipboardPaste, X } from 'lucide-react';
 import { FileUpload } from './FileUpload';
 import { TONE_KEYWORDS, PERSONALITY_KEYWORDS } from './SetupConfig';
 
@@ -10,34 +12,30 @@ interface Step1Props {
   setImageSrc: (v: string | null) => void;
   charGender: 'MALE' | 'FEMALE' | 'NEUTRAL' | '';
   setCharGender: (v: 'MALE' | 'FEMALE' | 'NEUTRAL') => void;
-  onLoadClick: () => void;
-  fileInputRef: React.RefObject<HTMLInputElement | null>;
-  handleFileChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
   onPrivacyOpen: () => void;
   nameInputRef?: React.RefObject<HTMLInputElement | null>;
 }
 
-export const Step1: React.FC<Step1Props> = ({ name, setName, imageSrc, setImageSrc, charGender, setCharGender, onLoadClick, fileInputRef, handleFileChange, onPrivacyOpen, nameInputRef }) => (
+export const Step1: React.FC<Step1Props> = ({ name, setName, imageSrc, setImageSrc, charGender, setCharGender, onPrivacyOpen, nameInputRef }) => (
   <div className="flex flex-col items-center animate-in fade-in duration-700">
     <div className="w-full flex flex-col items-center justify-center pt-6">
       <div className="text-center">
         <div className="flex items-center justify-center gap-2 mb-4">
             <Heart size={14} className="text-accent fill-accent" />
-            <span className="text-[11px] font-black text-primary tracking-widest uppercase">최애와 딱 100분 집중하기</span>
+            <span className="text-sm font-black text-primary tracking-widest uppercase">최애와 딱 100분 집중하기</span>
         </div>
-        <h1 className="text-xl font-black text-text-primary mb-2">최애 뽀모도로</h1>
+        <h1 className="text-xl font-black text-text-primary mb-2"></h1>
         
         {/* 뽀모도로 사이클 설명 추가 */}
         <div className="flex flex-col items-center gap-1.5 mb-8">
           <div className="flex items-center gap-1.5 text-[10px] font-black text-slate-400 bg-slate-50 px-3 py-1 rounded-full border border-slate-100">
-            (<Timer size={11} className="text-slate-400" /> 25분 집중 + <Coffee size={11} className="text-slate-400" /> 5분 휴식) x 4회
+            (<Timer size={11} className="text-slate-400" />25분 집중 + <Coffee size={11} className="text-slate-400" />5분 휴식) x 4회
           </div>
-          <p className="text-[11px] font-black text-primary/70 mt-1">최애를 여기에 불러 당신을 응원하게 하세요!</p>
         </div>
         
         <div className="relative w-32 h-32 md:w-44 md:h-44 mx-auto">
-          {/* 사진 필수 요소 표시: 붉은 원 안에 하얀 별표 (테두리 제거 및 투명도 조절) */}
-          <div className="absolute -top-2 -right-2 w-7 h-7 bg-rose-500/80 rounded-full flex items-center justify-center shadow-md z-10 animate-bounce select-none">
+          {/* 사진 필수 요소 표시: 붉은 원 안에 하얀 별표 (bounce 대신 아주 천천히 깜빡이는 pulse-slow 적용) */}
+          <div className="absolute -top-2 -right-2 w-7 h-7 bg-rose-500/80 rounded-full flex items-center justify-center shadow-md z-10 animate-pulse-slow select-none">
             <span className="text-white font-black text-lg leading-none mt-1">*</span>
           </div>
           
@@ -81,17 +79,9 @@ export const Step1: React.FC<Step1Props> = ({ name, setName, imageSrc, setImageS
           </div>
         </div>
         
-        <div className="text-center pt-0 space-y-4">
-          <div className="flex flex-col items-center">
-            <input type="file" ref={fileInputRef} onChange={handleFileChange} accept=".json" className="hidden" />
-            <button onClick={onLoadClick} className="flex items-center gap-2 px-6 py-2.5 text-primary/60 hover:text-primary transition-all group">
-              <FileJson size={14} className="group-hover:scale-110 transition-transform" />
-              <span className="text-xs font-black">계속 이어하기 (불러오기)</span>
-            </button>
-          </div>
-
-          {/* 정책 안내 문구 이동: 계속 이어하기 버튼 아래로 */}
-          <div className="text-center space-y-1 pt-2 border-t border-slate-50 w-full">
+        <div className="text-center pt-2 space-y-4">
+          {/* 정책 안내 문구 */}
+          <div className="text-center space-y-1 border-t border-slate-50 w-full pt-4">
             <p className="text-[9px] text-text-secondary font-bold tracking-tight">이 서비스는 Google Gemini API키를 필요로 합니다.</p>
             <button 
               onClick={onPrivacyOpen}
@@ -223,7 +213,6 @@ export const Step3: React.FC<Step3Props> = ({ userName, setUserName, honorific, 
             <label className="absolute -top-6 left-0 text-[10px] font-bold text-text-secondary uppercase tracking-widest">
               내 이름 <span className="text-rose-500">*</span>
             </label>
-            {/* Fix: removed nested setUserName call that returned void and caused a type error */}
             <input ref={userNameInputRef} type="text" value={userName} onChange={e => setUserName(e.target.value)} placeholder="당신의 이름" className="w-full py-2 bg-transparent border-b border-border outline-none focus:border-primary transition-all font-semibold text-sm text-text-primary" />
           </div>
           <div className="relative group">
