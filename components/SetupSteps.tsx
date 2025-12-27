@@ -162,8 +162,20 @@ export const Step2: React.FC<Step2Props> = ({ selectedTone, setSelectedTone, sel
             className="w-full h-56 p-4 bg-background border-none rounded-md outline-none focus:bg-surface transition-all text-sm leading-relaxed font-medium resize-none text-text-primary placeholder:text-slate-400 placeholder:text-xs" 
           />
           <div className="flex gap-2 justify-start">
-            <button onClick={() => insertPlaceholder('{{user}}')} className="py-1 px-3 text-xs rounded bg-primary/10 border border-primary text-primary shadow-sm hover:bg-primary/20"> 나 {"{{user}}"} </button>
-            <button onClick={() => insertPlaceholder('{{char}}')} className="py-1 px-3 text-xs rounded bg-primary/10 border border-primary text-primary shadow-sm hover:bg-primary/20"> 최애 {"{{char}}"} </button>
+            <button 
+              onMouseDown={(e) => e.preventDefault()}
+              onClick={() => insertPlaceholder('{{user}}')} 
+              className="py-1 px-3 text-xs rounded bg-primary/10 border border-primary text-primary shadow-sm hover:bg-primary/20"
+            > 
+              나 {"{{user}}"} 
+            </button>
+            <button 
+              onMouseDown={(e) => e.preventDefault()}
+              onClick={() => insertPlaceholder('{{char}}')} 
+              className="py-1 px-3 text-xs rounded bg-primary/10 border border-primary text-primary shadow-sm hover:bg-primary/20"
+            > 
+              최애 {"{{char}}"} 
+            </button>
           </div>
         </div>
       </div>
