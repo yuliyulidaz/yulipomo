@@ -55,7 +55,7 @@ export const ApiKeyHelpModal: React.FC<ApiKeyHelpModalProps> = ({
                 왜 키가 필요한가요?
               </h4>
               <p className={`text-[11px] font-medium leading-relaxed px-1 ${isDarkMode ? 'text-slate-400' : 'text-text-secondary'}`}>
-                최애 캐릭터가 당신의 행동(집중, 딴짓, 클릭 등)을 실시간으로 인지하고, 상황에 맞는 생생한 대화와 관찰 일지를 작성하기 위해 Google의 고성능 AI인 Gemini 모델을 사용합니다. 사용자 개별 API 키를 사용함으로써 더 빠르고 자유로운 대화 경험을 제공할 수 있습니다. 키는 처음 한 번만 발급받으면, 한도 내에서 계속 사용할 수 있습니다.
+                최애 캐릭터가 당신의 행동(집중, 딴짓, 클릭 등)을 실시간으로 인지하고, 상황에 맞는 생생한 대화와 관찰 일지를 작성하기 위해 Google의 고성능 AI인 Gemini 모델을 사용합니다. 사용자 개별 API 키를 사용함으로써 더 빠르고 자유로운 대화 경험을 제공할 수 있습니다. 키는 처음 한 번만 발급받으면 계속 사용할 수 있습니다.
               </p>
             </div>
 
