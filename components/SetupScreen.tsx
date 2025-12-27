@@ -9,6 +9,7 @@ import { Step1, Step2, Step3 } from './SetupSteps';
 import { PersonalityQuiz } from './PersonalityQuiz';
 import { buildQuizPrompt, buildRefreshQuizPrompt } from './AIPromptTemplates';
 import { PrivacyPolicyModal } from './PrivacyPolicyModal';
+import { ApiKeyHelpModal } from './ApiKeyHelpModal';
 
 interface SetupScreenProps {
   onComplete: (profile: CharacterProfile) => void;
@@ -37,6 +38,7 @@ export const SetupScreen: React.FC<SetupScreenProps> = ({ onComplete }) => {
   const [selectedStyles, setSelectedStyles] = useState<DialogueStyles>({ late: '', gift: '', lazy: '' });
   const [tempQuizSelection, setTempQuizSelection] = useState<string>('');
   const [isPrivacyModalOpen, setIsPrivacyModalOpen] = useState(false);
+  const [isHelpModalOpen, setIsHelpModalOpen] = useState(false);
   
   const [isImportedProfile, setIsImportedProfile] = useState(false);
   const [importedBaseProfile, setImportedBaseProfile] = useState<Partial<CharacterProfile> | null>(null);
@@ -310,7 +312,7 @@ export const SetupScreen: React.FC<SetupScreenProps> = ({ onComplete }) => {
           )}
           {(step === 'STEP2' || step === 'STEP3') && <div className="px-10 pb-4">
             {step === 'STEP2' && <Step2 selectedTone={selectedTone} setSelectedTone={setSelectedTone} selectedPersonalities={selectedPersonalities} togglePersonality={togglePersonality} tmi={tmi} setTmi={setTmi} tmiRef={tmiRef} insertPlaceholder={insertPlaceholder} />}
-            {step === 'STEP3' && <Step3 userName={userName} setUserName={setUserName} honorific={honorific} setHonorific={setHonorific} gender={gender} setGender={setGender} todayTask={todayTask} setTodayTask={setTodayTask} apiKey={apiKey} setApiKey={setApiKey} name={name} userNameInputRef={userNameInputRef} apiKeyInputRef={apiKeyInputRef} />}
+            {step === 'STEP3' && <Step3 userName={userName} setUserName={setUserName} honorific={honorific} setHonorific={setHonorific} gender={gender} setGender={setGender} todayTask={todayTask} setTodayTask={setTodayTask} apiKey={apiKey} setApiKey={setApiKey} name={name} userNameInputRef={userNameInputRef} apiKeyInputRef={apiKeyInputRef} onHelpOpen={() => setIsHelpModalOpen(true)} />}
           </div>}
           {step === 'QUIZ' && <PersonalityQuiz currentQuizStep={currentQuizStep} name={name} imageSrc={imageSrc} quizData={quizData} tempSelection={tempQuizSelection} onTempSelect={handleQuizSelect} onRefresh={refreshCurrentQuizStep} isPartialRefreshing={isPartialRefreshing} />}
         </div>
@@ -370,6 +372,7 @@ export const SetupScreen: React.FC<SetupScreenProps> = ({ onComplete }) => {
         </div>
       </div>
       <PrivacyPolicyModal isOpen={isPrivacyModalOpen} onClose={() => setIsPrivacyModalOpen(false)} isDarkMode={false} />
+      <ApiKeyHelpModal isOpen={isHelpModalOpen} onClose={() => setIsHelpModalOpen(false)} isDarkMode={false} />
     </div>
   );
 };
