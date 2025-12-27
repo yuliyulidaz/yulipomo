@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useRef } from 'react';
 import { X } from 'lucide-react';
 import { CharacterProfile } from '../types';
@@ -101,7 +102,7 @@ export const TimerScreen: React.FC<TimerScreenProps> = ({
   useEffect(() => {
     const handleVisibility = () => {
       if (document.visibilityState === 'visible' && isActive && !isBreak) {
-        triggerAIResponse('RETURN');
+        triggerAIResponse('SCOLDING');
         setDistractions(prev => prev + 1);
       }
     };
@@ -180,7 +181,7 @@ export const TimerScreen: React.FC<TimerScreenProps> = ({
     linkElement.click();
     setIsSettingsOpen(false);
     
-    const warningMsg = "API는 저장되지 않습니다. 나중에 다시 불러올 때 키를 입력해 주세요.";
+        const warningMsg = "API는 저장되지 않습니다. 나중에 다시 불러올 때 키를 입력해 주세요.";
     setMessage(warningMsg);
     setTimeout(() => { setMessage(current => current === warningMsg ? "" : current); }, 5000);
   };
