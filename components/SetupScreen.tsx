@@ -1,5 +1,6 @@
+
 import React, { useState, useRef, useEffect } from 'react';
-import { ArrowRight, AlertCircle, Loader2, Sparkles, ArrowLeft } from 'lucide-react';
+import { ArrowRight, AlertCircle, Loader2, Sparkles, ArrowLeft, FolderOpen } from 'lucide-react';
 import { CharacterProfile, DialogueStyles } from '../types';
 import { GoogleGenAI, Type } from "@google/genai";
 
@@ -37,11 +38,9 @@ export const SetupScreen: React.FC<SetupScreenProps> = ({ onComplete }) => {
   const [tempQuizSelection, setTempQuizSelection] = useState<string>('');
   const [isPrivacyModalOpen, setIsPrivacyModalOpen] = useState(false);
   
-  // 불러온 데이터인지 여부를 추적 (퀴즈 스킵용)
   const [isImportedProfile, setIsImportedProfile] = useState(false);
   const [importedBaseProfile, setImportedBaseProfile] = useState<Partial<CharacterProfile> | null>(null);
 
-  // 안드로이드 키보드 대응을 위한 고정 높이 상태
   const [containerHeight, setContainerHeight] = useState<string>('100dvh');
 
   const containerRef = useRef<HTMLDivElement>(null);
@@ -51,21 +50,28 @@ export const SetupScreen: React.FC<SetupScreenProps> = ({ onComplete }) => {
   const userNameInputRef = useRef<HTMLInputElement>(null);
   const apiKeyInputRef = useRef<HTMLInputElement>(null);
 
-  // 컴포넌트 마운트 시 실제 뷰포트 높이를 측정하여 고정 (안드로이드 리사이징 방지)
   useEffect(() => {
+    const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+    
     const handleResize = () => {
-      // 모바일 환경에서만 픽셀 단위로 고정
       if (window.innerWidth < 768) {
-        setContainerHeight(`${window.innerHeight}px`);
+        if (isIOS) {
+          setContainerHeight('100dvh');
+        } else {
+          setContainerHeight(`${window.innerHeight}px`);
+        }
       } else {
         setContainerHeight('720px');
       }
     };
     
     handleResize();
-    // 초기 로드 직후 한 번 더 측정 (일부 브라우저 대응)
     const timer = setTimeout(handleResize, 100);
-    return () => clearTimeout(timer);
+    window.addEventListener('resize', handleResize);
+    return () => {
+      clearTimeout(timer);
+      window.removeEventListener('resize', handleResize);
+    };
   }, []);
 
   useEffect(() => {
@@ -110,10 +116,7 @@ export const SetupScreen: React.FC<SetupScreenProps> = ({ onComplete }) => {
     reader.onload = (event) => {
       try {
         const loadedProfile = JSON.parse(event.target?.result as string) as CharacterProfile;
-        
-        // 퀴즈 결과가 포함된 성숙한 프로필인지 확인
         if (loadedProfile.name && loadedProfile.selectedDialogueStyles?.late) {
-          // 데이터 매핑
           setName(loadedProfile.name);
           setUserName(loadedProfile.userName || "");
           setHonorific(loadedProfile.honorific || "");
@@ -122,19 +125,15 @@ export const SetupScreen: React.FC<SetupScreenProps> = ({ onComplete }) => {
           setGender(loadedProfile.gender || 'FEMALE');
           setTmi(loadedProfile.speciesTrait || "");
           setSelectedStyles(loadedProfile.selectedDialogueStyles);
-          
           if (loadedProfile.personality) {
             setSelectedTone(loadedProfile.personality[0]);
             setSelectedPersonalities(loadedProfile.personality.slice(1));
           }
-
-          // 불러오기 모드 활성화 및 Step 3로 이동
           setIsImportedProfile(true);
           setImportedBaseProfile(loadedProfile);
           setStep('STEP3');
           setError(null);
         } else if (loadedProfile.name && loadedProfile.level !== undefined) {
-          // 퀴즈 결과는 없지만 프로필 데이터만 있는 경우 (기존 로직 유지)
           onComplete(loadedProfile);
         } else {
           setError("올바른 캐릭터 파일이 아닙니다.");
@@ -182,7 +181,6 @@ export const SetupScreen: React.FC<SetupScreenProps> = ({ onComplete }) => {
       else setStep('STEP3');
     } else if (step === 'STEP3') {
       if (isImportedProfile) {
-        // 불러오기 모드일 때 뒤로 가면 초기 상태로 리셋
         setIsImportedProfile(false);
         setImportedBaseProfile(null);
         setStep('STEP1');
@@ -195,12 +193,9 @@ export const SetupScreen: React.FC<SetupScreenProps> = ({ onComplete }) => {
 
   const generatePersonalityOptions = async () => {
     if (!validateStep()) return;
-
-    // 만약 불러오기 모드라면 퀴즈를 생략하고 바로 완료 처리
     if (isImportedProfile && importedBaseProfile) {
       const targetName = honorific || userName || "당신";
       const initialGreeting = GREETING_TEMPLATES[selectedTone].replace("{honorific}", targetName);
-      
       onComplete({
         ...importedBaseProfile as CharacterProfile,
         apiKey,
@@ -211,13 +206,11 @@ export const SetupScreen: React.FC<SetupScreenProps> = ({ onComplete }) => {
       });
       return;
     }
-
     setIsGenerating(true);
     try {
       const ai = new GoogleGenAI({ apiKey });
       const processedTmi = tmi.replace(/{{user}}/g, userName).replace(/{{char}}/g, name);
       const prompt = buildQuizPrompt({ name, charGender, selectedPersonalities, selectedTone, tmi: processedTmi, userName, gender, honorific });
-
       const response = await ai.models.generateContent({
         model: 'gemini-3-flash-preview',
         contents: prompt,
@@ -249,7 +242,6 @@ export const SetupScreen: React.FC<SetupScreenProps> = ({ onComplete }) => {
       const targetKey = situationKeys[currentQuizStep];
       const processedTmi = tmi.replace(/{{user}}/g, userName).replace(/{{char}}/g, name);
       const prompt = buildRefreshQuizPrompt({ name, charGender, selectedPersonalities, selectedTone, tmi: processedTmi, userName, gender, honorific, situationIdx: currentQuizStep, targetKey });
-
       const response = await ai.models.generateContent({
         model: 'gemini-3-flash-preview', contents: prompt,
         config: { responseMimeType: "application/json", safetySettings: SAFETY_SETTINGS },
@@ -291,12 +283,11 @@ export const SetupScreen: React.FC<SetupScreenProps> = ({ onComplete }) => {
 
   return (
     <div className="min-h-screen bg-white flex items-center justify-center p-0 font-sans">
-      {/* 고정된 px 높이를 적용하여 안드로이드 키보드 리사이징 방지 */}
+      <input type="file" ref={fileInputRef} onChange={handleFileChange} accept=".json" className="hidden" />
       <div 
         className="w-full max-w-xl bg-white flex flex-col relative overflow-hidden" 
         style={{ height: containerHeight }}
       >
-        {/* 상단 프로그레스 바 */}
         <div className="flex-none w-full flex bg-white z-20">
           {[1, 2, 3].map(i => {
             let isActive = step === 'QUIZ' || (step === 'STEP1' && i === 1) || (step === 'STEP2' && i <= 2) || (step === 'STEP3' && i <= 3);
@@ -304,7 +295,6 @@ export const SetupScreen: React.FC<SetupScreenProps> = ({ onComplete }) => {
           })}
         </div>
 
-        {/* 중앙 스크롤 영역 */}
         <div ref={containerRef} className="flex-1 overflow-y-auto scroll-smooth pt-4 relative">
           {step === 'STEP1' && (
             <Step1 
@@ -314,9 +304,6 @@ export const SetupScreen: React.FC<SetupScreenProps> = ({ onComplete }) => {
               setImageSrc={setImageSrc} 
               charGender={charGender} 
               setCharGender={setCharGender} 
-              onLoadClick={() => fileInputRef.current?.click()} 
-              fileInputRef={fileInputRef} 
-              handleFileChange={handleFileChange} 
               onPrivacyOpen={() => setIsPrivacyModalOpen(true)}
               nameInputRef={nameInputRef} 
             />
@@ -328,8 +315,7 @@ export const SetupScreen: React.FC<SetupScreenProps> = ({ onComplete }) => {
           {step === 'QUIZ' && <PersonalityQuiz currentQuizStep={currentQuizStep} name={name} imageSrc={imageSrc} quizData={quizData} tempSelection={tempQuizSelection} onTempSelect={handleQuizSelect} onRefresh={refreshCurrentQuizStep} isPartialRefreshing={isPartialRefreshing} />}
         </div>
 
-          {/* 하단 버튼 영역 (고정) - 버튼 pb-20으로 조정 */}
-        <div className={`flex-none px-10 pb-20 pt-4 bg-white flex flex-col gap-3 relative z-30`}>
+        <div className={`flex-none px-10 pt-4 bg-white flex flex-col gap-3 relative z-30 pb-[max(1.5rem,calc(env(safe-area-inset-bottom)+1.2rem))]`}>
           {error && (
             <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-4 w-[90%] max-w-sm px-4 py-3 bg-[#FF7F50] text-white text-[11px] font-bold rounded-xl flex items-center gap-2 shadow-xl animate-in slide-in-from-bottom-2 duration-300">
               <AlertCircle size={14} className="shrink-0" />
@@ -338,7 +324,16 @@ export const SetupScreen: React.FC<SetupScreenProps> = ({ onComplete }) => {
           )}
 
           <div className="flex gap-3">
-            {step !== 'STEP1' && (
+            {step === 'STEP1' ? (
+              <button 
+                onClick={() => fileInputRef.current?.click()} 
+                className="px-5 bg-white hover:bg-slate-50 text-text-secondary rounded-xl border border-slate-100 flex flex-col items-center justify-center transition-all active:scale-95 h-14"
+                title="불러오기"
+              >
+                <FolderOpen size={18}/>
+                <span className="text-[8px] font-black leading-none mt-1 uppercase">Load</span>
+              </button>
+            ) : (
               <button 
                 onClick={handleBackStep} 
                 className="px-5 bg-white hover:bg-slate-50 text-text-secondary rounded-xl border border-slate-100 flex items-center justify-center transition-all active:scale-95 h-14"
@@ -346,6 +341,7 @@ export const SetupScreen: React.FC<SetupScreenProps> = ({ onComplete }) => {
                 <ArrowLeft size={20}/>
               </button>
             )}
+            
             {step === 'QUIZ' ? (
               <button 
                 onClick={handleQuizConfirm} 
