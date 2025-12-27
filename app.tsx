@@ -45,13 +45,11 @@ function App() {
       let restoredProfile = { ...defaults, ...parsed, dialogueCache };
 
       // 4세션 완료 상태(100%)로 저장되어 있다면 캐릭터 성장은 보존하되 타이머 상태만 0으로 초기화하여 불러옴
-      // 이는 완료 후 새로고침이나 재진입 시 유저가 "할 게 없는" 완료 화면에 갇히는 것을 방지함
       if (restoredProfile.savedSessionInCycle === 4) {
         restoredProfile.savedSessionInCycle = 0;
         restoredProfile.savedTimeLeft = 25 * 60;
         restoredProfile.savedIsBreak = false;
         restoredProfile.savedIsActive = false;
-        // 보고서용 통계도 다음 세션을 위해 초기화
         restoredProfile.cycleStats = { distractions: 0, clicks: 0 };
       }
 
@@ -78,7 +76,6 @@ function App() {
 
     if (!saveToStorage(profile)) {
       console.warn("Storage Full! Attempting smart recovery...");
-      // 용량 부족 시 모든 캐시를 최소치(3개)로 압축
       const slimCache = { ...profile.dialogueCache };
       (Object.keys(slimCache) as Array<keyof typeof slimCache>).forEach(key => {
         if (slimCache[key].length > 3) {
@@ -112,10 +109,9 @@ function App() {
   };
 
   const handleReset = useCallback(() => {
-    if (window.confirm("정말 캐릭터를 초기화하시겠습니까? 모든 호감도와 수집한 쪽지가 삭제됩니다.")) {
-      setProfile(null);
-      localStorage.removeItem('pomodoro_profile');
-    }
+    // ExitConfirmModal에서 이미 사용자 확인을 거쳤으므로 브라우저 경고창은 생략합니다.
+    setProfile(null);
+    localStorage.removeItem('pomodoro_profile');
   }, []);
 
   const handleUpdateProfile = useCallback((updates: Partial<CharacterProfile>) => {
@@ -123,7 +119,6 @@ function App() {
       if (!prev) return null;
       let newProfile = { ...prev, ...updates };
 
-      // 카테고리별 차등 용량 제한 강제 적용
       if (updates.dialogueCache) {
         const currentCache = { ...newProfile.dialogueCache };
         (Object.keys(currentCache) as Array<keyof typeof currentCache>).forEach(key => {
