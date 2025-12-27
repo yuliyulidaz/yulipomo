@@ -1,4 +1,3 @@
-
 import React, { useState, useRef, useEffect } from 'react';
 import { ArrowRight, AlertCircle, Loader2, Sparkles, ArrowLeft, FolderOpen } from 'lucide-react';
 import { CharacterProfile, DialogueStyles } from '../types';
@@ -195,14 +194,15 @@ export const SetupScreen: React.FC<SetupScreenProps> = ({ onComplete }) => {
 
   const generatePersonalityOptions = async () => {
     if (!validateStep()) return;
+    const effectiveHonorific = honorific || userName || "당신";
+    
     if (isImportedProfile && importedBaseProfile) {
-      const targetName = honorific || userName || "당신";
-      const initialGreeting = GREETING_TEMPLATES[selectedTone].replace("{honorific}", targetName);
+      const initialGreeting = GREETING_TEMPLATES[selectedTone].replace("{honorific}", effectiveHonorific);
       onComplete({
         ...importedBaseProfile as CharacterProfile,
         apiKey,
         userName,
-        honorific: targetName,
+        honorific: effectiveHonorific,
         todayTask: todayTask.trim() || importedBaseProfile.todayTask,
         initialGreeting: importedBaseProfile.initialGreeting || initialGreeting
       });
@@ -212,7 +212,16 @@ export const SetupScreen: React.FC<SetupScreenProps> = ({ onComplete }) => {
     try {
       const ai = new GoogleGenAI({ apiKey });
       const processedTmi = tmi.replace(/{{user}}/g, userName).replace(/{{char}}/g, name);
-      const prompt = buildQuizPrompt({ name, charGender, selectedPersonalities, selectedTone, tmi: processedTmi, userName, gender, honorific });
+      const prompt = buildQuizPrompt({ 
+        name, 
+        charGender, 
+        selectedPersonalities, 
+        selectedTone, 
+        tmi: processedTmi, 
+        userName, 
+        gender, 
+        honorific: effectiveHonorific // 비어있으면 이름을 호칭으로 전달
+      });
       const response = await ai.models.generateContent({
         model: 'gemini-3-flash-preview',
         contents: prompt,
@@ -243,7 +252,20 @@ export const SetupScreen: React.FC<SetupScreenProps> = ({ onComplete }) => {
       const situationKeys = ["late_options", "gift_options", "lazy_options"];
       const targetKey = situationKeys[currentQuizStep];
       const processedTmi = tmi.replace(/{{user}}/g, userName).replace(/{{char}}/g, name);
-      const prompt = buildRefreshQuizPrompt({ name, charGender, selectedPersonalities, selectedTone, tmi: processedTmi, userName, gender, honorific, situationIdx: currentQuizStep, targetKey });
+      const effectiveHonorific = honorific || userName || "당신";
+      
+      const prompt = buildRefreshQuizPrompt({ 
+        name, 
+        charGender, 
+        selectedPersonalities, 
+        selectedTone, 
+        tmi: processedTmi, 
+        userName, 
+        gender, 
+        honorific: effectiveHonorific, 
+        situationIdx: currentQuizStep, 
+        targetKey 
+      });
       const response = await ai.models.generateContent({
         model: 'gemini-3-flash-preview', contents: prompt,
         config: { responseMimeType: "application/json", safetySettings: SAFETY_SETTINGS },
