@@ -12,7 +12,7 @@ const COOLDOWN_MS = 30000;
 const API_TIMEOUT_MS = 15000; // 15초 타임아웃 설정
 
 const REFILL_CONFIG: Record<string, { max: number; threshold: number }> = {
-  click: { max: 20, threshold: 10 },
+  click: { max: 20, threshold: 15 },
   scolding: { max: 20, threshold: 10 }
 };
 
@@ -25,7 +25,7 @@ export const useAIManager = (
   const [pendingExpiryAlert, setPendingExpiryAlert] = useState(false);
   
   const cooldownIntervalRef = useRef<any>(null);
-  const isRefillingRef = useRef<Record<string, boolean>>({});
+  const isRefillingRef.current = useRef<Record<string, boolean>>({});
   const isGlobalApiLockedRef = useRef<boolean>(false);
   const refillQueueRef = useRef<Array<keyof typeof profile.dialogueCache>>([]);
   const profileRef = useRef(profile);
@@ -62,9 +62,9 @@ export const useAIManager = (
   const selectSituationsForRefill = useCallback((level: number): ActionSituation[] => {
     const available = CLICK_SITUATIONS.filter(s => s.level <= level);
     const fresh = available.filter(s => !usedSituationIdsRef.current.includes(s.id));
-    const pool = fresh.length >= 5 ? fresh : available;
+    const pool = fresh.length >= 3 ? fresh : available;
     const shuffled = [...pool].sort(() => 0.5 - Math.random());
-    const selected = shuffled.slice(0, 5);
+    const selected = shuffled.slice(0, 3);
     const newUsedIds = [...selected.map(s => s.id), ...usedSituationIdsRef.current].slice(0, 15);
     usedSituationIdsRef.current = newUsedIds;
     return selected;
@@ -93,11 +93,12 @@ export const useAIManager = (
       const result = await Promise.race([fetchPromise, timeoutPromise]) as any;
 
       if (result && result.text) {
+        const limit = category === 'click' ? 3 : 5;
         const newLines = result.text
           .split('\n')
           .map((l: string) => l.replace(/^[0-9]\.\s*/, '').replace(/["']/g, '').trim())
           .filter((l: string) => l.length >= 5)
-          .slice(0, 5); 
+          .slice(0, limit); 
         
         onUpdateProfile({ 
           dialogueCache: { 
