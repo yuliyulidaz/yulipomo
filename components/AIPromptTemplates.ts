@@ -82,8 +82,8 @@ export const buildRefillPrompt = (profile: CharacterProfile, category: string, t
   const isClick = category === 'click' && situations && situations.length > 0;
   
   let missionHeader = isClick 
-    ? `유저가 당신을 클릭하여 상호작용이 일어난 상황입니다. 아래 제시된 [5가지 개별 상황 지문]에 대해 캐릭터로서 각각 한 줄씩의 '반응 대사'를 작성하세요.`
-    : `유저가 딴짓을 하거나 주의가 산만해진 상황입니다. 캐릭터로서 유저를 꾸짖거나 주의를 환기시키는 대사 5개를 작성하세요.`;
+    ? `유저가 당신을 클릭했습니다. 아래 제시된 5가지 [Action] 지문을 읽고, 당신의 성격과 유저와의 관계(Lv.${profile.level})에 맞춰 각각 한 줄씩의 '리액션 대사'를 작성하세요.`
+    : `유저가 딴짓을 하거나 주의가 산만해진 상황입니다. 유저를 꾸짖거나 주의를 환기시키는 대사 5개를 작성하세요.`;
 
   let situationList = isClick 
     ? situations!.map((s, i) => `${i + 1}. [Action] ${s.description}`).join('\n')
@@ -92,21 +92,21 @@ export const buildRefillPrompt = (profile: CharacterProfile, category: string, t
   return `
 ${buildPersonaHeader(profile)}
 
-[Shared Space]
-- 현재 일: ${profile.todayTask || '몰입'}
+[Environment]
+- 현재 일: ${profile.todayTask || '집중'}
 - 배경: ${timeContext} / ${seasonContext}
 
 [Core Mission]
 ${missionHeader}
 
-[Situations]
+[Situations to React]
 ${situationList}
 
-[Writing Guidelines]
-1. [상황 재설명 금지]: "유저가 ~하고 있네요" 같은 상황 설명은 생략하고, 곧바로 반응만 말하세요.
-2. [관찰자 시점 유지]: 당신은 유저의 바로 옆에서 유저를 지켜보고 있습니다.
-3. [짧은 호흡]: 10~30자 이내의 짧은 한국어 구어체.
-4. [여운]: 따옴표 없이 문장만 줄바꿈으로 구분하여 총 5줄 출력.
+[Strict Guidelines]
+1. [지문 재설명 금지]: "유저가 ~하고 있네요" 같이 상황을 설명하지 마세요. 곧바로 유저에게 건네는 리액션 대사만 적으세요.
+2. [생생한 존재감]: 당신은 유저 옆에서 유저의 아주 세밀한 동작과 주변 공기를 감지하고 있습니다.
+3. [짧은 호흡]: 10~35자 이내의 한국어 구어체.
+4. [포맷]: 따옴표 없이 문장만 줄바꿈으로 구분하여 총 5줄 출력.
 `;
 };
 
