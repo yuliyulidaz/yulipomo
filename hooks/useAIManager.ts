@@ -1,3 +1,4 @@
+
 import { useState, useCallback, useRef, useEffect } from 'react';
 import { GoogleGenAI } from "@google/genai";
 import { CharacterProfile } from '../types';
@@ -6,7 +7,7 @@ import { cleanDialogue, getTimePeriod, getSeason } from '../components/TimerUtil
 import { buildRefillPrompt } from '../components/AIPromptTemplates';
 import { FIXED_DIALOGUES } from '../CharacterDialogues';
 
-const COOLDOWN_MS = 16000;
+const COOLDOWN_MS = 30000;
 
 // 오직 click과 scolding만 API를 통해 리필하도록 설정
 const REFILL_CONFIG: Record<string, { max: number; threshold: number }> = {
