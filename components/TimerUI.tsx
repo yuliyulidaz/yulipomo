@@ -2,6 +2,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { Heart, Settings, Sun, Moon, Save, Key, Terminal, X, Coffee, Timer as TimerIcon, Pause, Play, SkipForward, RotateCcw, Bed, HelpCircle, Zap, ShieldCheck } from 'lucide-react';
 import { CharacterProfile } from '../types';
+import { WATCHING_PHRASES } from '../WatchingPhrases';
 
 interface TopBadgeProps {
   level: number;
@@ -144,23 +145,10 @@ interface CharacterSectionProps {
 }
 
 export const CharacterSection: React.FC<CharacterSectionProps> = ({ profile, isBreak, cooldownRemaining, cooldownMs, message, isApiKeyModalOpen, isDarkMode, onCharacterClick, characterBoxRef }) => {
-  // 레벨 1~10까지 하나하나 다르게 설정하는 '객체 매핑' IF구문 대체 방식
+  // 전용 파일(WatchingPhrases.ts)에서 레벨별 문구 선택
   const watchingPhrase = useMemo(() => {
     const lv = profile.level;
-    const phrasesMap: Record<number, string[]> = {
-      1: ["낯선 시선으로 관찰 중...", "적당한 거리 유지 중", "일하는 모습 분석 중"],
-      2: ["조금씩 눈길이 가는 중", "딴짓하는지 체크 중", "당신의 리듬을 기록 중"],
-      3: ["익숙해진 뒷모습 관찰 중", "말없이 지켜보는 중", "당신의 페이스를 파악 중"],
-      4: ["가까운 곳에서 지켜보는 중", "당신의 리듬에 맞추는 중", "방해되지 않게 침묵 중"],
-      5: ["편안하게 옆자리를 지키는 중", "정이 든 눈빛으로 관찰 중", "당신의 몰입을 돕는 중"],
-      6: ["신뢰를 담아 바라보는 중", "조용히 등을 밀어주는 중", "당신의 호흡을 느끼는 중"],
-      7: ["특별한 시선이 머무는 중", "당신에게 눈을 떼지 못하는 중", "조금 더 가까이 지켜보는 중"],
-      8: ["애정 어린 눈빛으로 감상 중", "몰입한 옆모습이 예뻐서...", "세상에서 가장 가까운 시선"],
-      9: ["깊은 유대를 느끼며 감상 중", "당신의 모든 순간을 소중히 관찰 중", "함께 있는 공기를 느끼는 중"],
-      10: ["영원한 동반자로서 지켜보는 중", "사랑스러운 눈빛으로 감상 중", "눈앞의 당신에게 매료되는 중"]
-    };
-    
-    const phrases = phrasesMap[lv] || ["가만히 바라보는 중..."];
+    const phrases = WATCHING_PHRASES[lv] || ["가만히 바라보는 중..."];
     return phrases[Math.floor(Math.random() * phrases.length)];
   }, [profile.level, cooldownRemaining === cooldownMs]);
 
