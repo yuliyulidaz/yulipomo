@@ -1,43 +1,772 @@
+import { DialogueLine } from "./types";
 
-export const FIXED_DIALOGUES: Record<string, { START: string[]; PAUSE: string[] }> = {
+/**
+ * FIXED_DIALOGUES 구조
+ * 
+ * [수정 가이드]
+ * 1. text: 표시될 문구 ({honorific} 사용 가능)
+ * 2. tones: 해당 대사가 어울리는 성격들 (SetupConfig.ts의 태그 참조)
+ * 3. levelRange: 이 대사가 나올 수 있는 레벨 범위 [최소, 최대]
+ * 4. role: AMBIENT(조용한 관찰) 또는 REACTION(동작에 대한 반응)
+ * 
+ * 리스트를 세로로 길게 작성하여 가독성을 높였습니다.
+ */
+
+export const FIXED_DIALOGUES: Record<string, { START: DialogueLine[]; PAUSE: DialogueLine[] }> = {
   "반말": {
     "START": [
-      "{honorific}, 이제 시작이야?", "자, 집중해볼까?", "{honorific} 할 수 있어, 파이팅!", "25분이면 금방이야, 시작!", "오늘도 달려보자, {honorific}!", "집중 모드 온! 갈 준비됐지?", "{honorific}, 이번엔 끝까지 가보자", "자, 딴생각은 이따가!", "시작이 반이야, 어서!", "{honorific} 응원할게, 화이팅!", "집중력 충전 완료! 출발~", "좋아, 그 기세로 밀고 나가!", "{honorific}, 오늘 목표 달성하자", "25분, 너랑 나 약속이야", "자, 이제부터 진짜 시작이야", "{honorific} 곁에서 지켜볼게", "휴대폰은 저 멀리! 시작!", "집중할 시간이야, {honorific}", "좋아, 이 기분 타고 가자!", "자, 25분 동안 달려보자고!", "{honorific}, 이제 바로 가자", "{honorific}, 딴생각 말고 집중", "{honorific}, 25분만 버텨", "{honorific}, 지금이 타이밍이야", "{honorific}, 나만 믿고 해", "{honorific}, 시작하면 끝까지", "{honorific}, 각오 됐지?", "{honorific}, 손 멈추지 마", "{honorific}, 바로 몰입해", "{honorific}, 여기서부터야", "{honorific}, 안 도망간다?", "{honorific}, 숨 고르고 가", "{honorific}, 집중 모드 온", "{honorific}, 지금 하면 돼", "{honorific}, 생각 끊어", "{honorific}, 나랑 같이 가", "{honorific}, 버티면 이겨", "{honorific}, 딱 25분이야", "{honorific}, 눈앞만 봐", "{honorific}, 해낼 수 있어", "지금 안 하면 언제 해", "손부터 움직여", "딴생각은 나중에", "이 정도면 시작각", "일단 해보자", "머리 말고 손", "지금이 제일 괜찮아", "눈치 보지 말고", "몰입 들어간다", "여기서 판 갈린다", "미루면 또 미뤄", "일단 25분", "지금 집중하면 끝", "할 땐 제대로", "도망칠 틈 없어", "지금 텐션 좋아", "시작이 반이야", "생각 끊고 가", "지금 모드 켜짐", "이 판 이겨보자"
+      {
+        text: "…이제 좀 조용해졌네.",
+        tones: ["neutral", "soft"],
+        levelRange: [1, 5],
+        role: "AMBIENT"
+      },
+      {
+        text: "시작인 거지? 보고 있을게.",
+        tones: ["neutral", "sweet"],
+        levelRange: [1, 10],
+        role: "REACTION"
+      },
+      {
+        text: "좋은 공기네. 집중하기 딱 좋아.",
+        tones: ["energetic", "sweet"],
+        levelRange: [1, 10],
+        role: "AMBIENT"
+      },
+      {
+        text: "…나도 네 흐름에 맞출게.",
+        tones: ["sweet", "soft", "intense"],
+        levelRange: [6, 10],
+        role: "REACTION"
+      },
+      {
+        text: "딴짓하면 바로 아는 거 알지?",
+        tones: ["tsundere", "intense"],
+        levelRange: [3, 10],
+        role: "REACTION"
+      },
+      {
+        text: "아직 긴장 풀린 단계네.",
+        tones: ["cold", "neutral"],
+        levelRange: [1, 3],
+        role: "AMBIENT"
+      },
+      {
+        text: "지금은 그냥 흐름만 타.",
+        tones: ["lazy", "neutral"],
+        levelRange: [1, 6],
+        role: "REACTION"
+      },
+      {
+        text: "이 정도면, 같이 가볼 만해.",
+        tones: ["sweet", "neutral"],
+        levelRange: [7, 10],
+        role: "REACTION"
+      },
+      {
+        text: "주변이 조용해. 시작하기 좋은데.",
+        tones: ["soft", "neutral"],
+        levelRange: [1, 5],
+        role: "AMBIENT"
+      },
+      {
+        text: "뭐, 해볼 만하겠어.",
+        tones: ["playful", "lazy"],
+        levelRange: [1, 6],
+        role: "REACTION"
+      },
+      {
+        text: "눈 감으면 네 숨소리가 들려.",
+        tones: ["intense", "soft"],
+        levelRange: [7, 10],
+        role: "AMBIENT"
+      },
+      {
+        text: "…오늘은 어디까지 갈 건데?",
+        tones: ["playful", "sweet"],
+        levelRange: [5, 10],
+        role: "REACTION"
+      },
+      {
+        text: "벌써 들어갔네. 꽤 빠른데?",
+        tones: ["energetic", "playful"],
+        levelRange: [3, 10],
+        role: "REACTION"
+      },
+      {
+        text: "흐름이 깔끔해졌어.",
+        tones: ["cold", "neutral"],
+        levelRange: [4, 10],
+        role: "AMBIENT"
+      },
+      {
+        text: "아, 진짜로 하는 거구나.",
+        tones: ["tsundere", "neutral"],
+        levelRange: [1, 7],
+        role: "REACTION"
+      }
     ],
     "PAUSE": [
-      "벌써 쉬게? {honorific}", "잠깐 멈추는 거야?", "휴식도 필요하긴 하지", "{honorific}, 곧 돌아올 거지?", "잠깐만 쉬는 거야?", "뭐 급한 일 있어?", "{honorific} 기다릴게", "숨 좀 돌리고 와", "쉬엄쉬엄 해도 괜찮아", "잠깐이면 돼, {honorific}", "{honorific}, 벌써 멈춰?", "{honorific}, 무슨 일이야", "{honorific}, 잠깐 쉬는 거지?", "{honorific}, 아직 할 수 있잖아", "{honorific}, 다시 가도 돼", "{honorific}, 나 기다릴게", "{honorific}, 포기 아냐?", "{honorific}, 집중 깨졌어?", "{honorific}, 숨 좀 돌려", "{honorific}, 금방 돌아와", "왜 멈췄어", "흐름 끊겼네", "잠깐이면 괜찮아", "쉬다 올 거지?", "아직 끝 아냐", "다시 붙잡자", "집중 날아갔어?", "지금 멈추긴 아까워", "조금만 더 가도 돼", "여기서 포기?"
+      {
+        text: "…호흡이 바뀌었네.",
+        tones: ["neutral", "soft"],
+        levelRange: [1, 10],
+        role: "AMBIENT"
+      },
+      {
+        text: "잠깐 멈춘 거야? 기다릴게.",
+        tones: ["sweet", "neutral"],
+        levelRange: [1, 10],
+        role: "REACTION"
+      },
+      {
+        text: "무슨 일 있어? 여기 계속 있을게.",
+        tones: ["sweet", "intense"],
+        levelRange: [5, 10],
+        role: "REACTION"
+      },
+      {
+        text: "…끊기기 아까운 흐름인데.",
+        tones: ["cold", "tsundere"],
+        levelRange: [1, 10],
+        role: "AMBIENT"
+      },
+      {
+        text: "리듬 잠깐 내려놨네.",
+        tones: ["neutral", "cold"],
+        levelRange: [1, 5],
+        role: "AMBIENT"
+      },
+      {
+        text: "쉬어. 흐름은 안 도망가.",
+        tones: ["lazy", "soft"],
+        levelRange: [1, 10],
+        role: "REACTION"
+      },
+      {
+        text: "멈췄네. 뭐, 괜찮아.",
+        tones: ["playful", "lazy"],
+        levelRange: [1, 10],
+        role: "REACTION"
+      },
+      {
+        text: "공기가 풀어졌어.",
+        tones: ["soft", "neutral"],
+        levelRange: [1, 6],
+        role: "AMBIENT"
+      },
+      {
+        text: "…급한 일이야?",
+        tones: ["tsundere", "sweet"],
+        levelRange: [4, 10],
+        role: "REACTION"
+      },
+      {
+        text: "잠깐 뜬 건가. 여운은 남았는데.",
+        tones: ["cold", "neutral"],
+        levelRange: [6, 10],
+        role: "AMBIENT"
+      },
+      {
+        text: "움직임이 멎었네.",
+        tones: ["intense", "cold"],
+        levelRange: [3, 10],
+        role: "AMBIENT"
+      },
+      {
+        text: "…돌아올 거지?",
+        tones: ["intense", "sweet"],
+        levelRange: [8, 10],
+        role: "REACTION"
+      },
+      {
+        text: "살짝 끊긴 정도야. 금방 이어갈 수 있어.",
+        tones: ["energetic", "neutral"],
+        levelRange: [1, 7],
+        role: "REACTION"
+      }
     ]
   },
   "존댓말": {
     "START": [
-      "{honorific}님, 이제 시작하시나요?", "집중하실 시간이에요", "{honorific}님을 응원할게요!", "25분, 함께 해보아요", "화이팅이에요, {honorific}님!", "{honorific}님이라면 충분히 하실 수 있어요", "좋은 결과 있으실 거예요", "시작이 가장 중요하죠", "{honorific}님, 집중 모드 시작할게요", "오늘도 함께 하게 되어 기뻐요", "최선을 다해보세요, {honorific}님", "25분 동안 옆에서 지켜볼게요", "{honorific}님의 노력을 믿어요", "차근차근 해나가시면 돼요", "집중하실 준비 되셨나요?", "{honorific}님 페이스대로 가세요", "좋은 시간 되실 거예요", "오늘도 수고하세요, {honorific}님", "시작해볼까요? 파이팅!", "{honorific}님, 응원합니다!", "{honorific}, 이제 시작해요", "{honorific}, 함께 집중해요", "{honorific}, 준비되셨죠?", "{honorific}, 차분히 가요", "{honorific}, 잘 해내실 거예요", "{honorific}, 지금이 좋아요", "{honorific}, 25분 응원할게요", "{honorific}, 흐름 잡아볼까요", "{honorific}, 집중 모드예요", "{honorific}, 천천히 시작해요", "{honorific}, 마음 다잡아요", "{honorific}, 잘 부탁드려요", "{honorific}, 오늘도 멋져요", "{honorific}, 해낼 수 있어요", "{honorific}, 지금이 기회예요", "{honorific}, 옆에서 볼게요", "{honorific}, 끝까지 가요", "{honorific}, 믿고 있어요", "{honorific}, 집중해볼까요", "{honorific}, 시작 버튼 눌렀네요", "지금 시작하기 좋아요", "집중하기 딱 좋아요", "흐름 잡아볼게요", "부담 없이 가요", "지금 상태 좋아요", "차분히 시작해요", "이번엔 잘 될 거예요", "25분만 맡겨주세요", "집중 환경 충분해요", "지금이 가장 안정적이에요", "마음 정리됐어요", "시작 타이밍이에요", "오늘 페이스 괜찮아요", "천천히 몰입해요", "지금 시작해도 늦지 않아요", "잘 해낼 수 있어요", "집중력 올라왔어요", "흐름 이어가요", "괜히 미루지 말아요", "지금 시작해볼까요"
+      {
+        text: "…공기가 조금 무거워졌네요. 집중하시는 건가요.",
+        tones: ["neutral", "soft"],
+        levelRange: [1, 4],
+        role: "AMBIENT"
+      },
+      {
+        text: "방해되지 않게, 저도 숨을 죽이고 있을게요.",
+        tones: ["sweet", "soft"],
+        levelRange: [5, 10],
+        role: "REACTION"
+      },
+      {
+        text: "시작하셨군요. 끝까지 함께할게요.",
+        tones: ["sweet", "neutral"],
+        levelRange: [1, 10],
+        role: "REACTION"
+      },
+      {
+        text: "지금 이 흐름, 아주 좋네요.",
+        tones: ["energetic", "playful"],
+        levelRange: [1, 10],
+        role: "AMBIENT"
+      },
+      {
+        text: "제 시선이… 느껴지시나요?",
+        tones: ["intense", "playful"],
+        levelRange: [7, 10],
+        role: "REACTION"
+      },
+      {
+        text: "지금은 무리하지 않아도 괜찮은 시점이에요.",
+        tones: ["soft", "neutral"],
+        levelRange: [1, 5],
+        role: "AMBIENT"
+      },
+      {
+        text: "이 흐름, 유지해볼 만하네요.",
+        tones: ["cold", "neutral"],
+        levelRange: [6, 10],
+        role: "REACTION"
+      },
+      {
+        text: "주변이 고요해졌어요. 좋은 신호네요.",
+        tones: ["soft", "sweet"],
+        levelRange: [1, 6],
+        role: "AMBIENT"
+      },
+      {
+        text: "오늘도 이렇게 시작하시는군요.",
+        tones: ["lazy", "neutral"],
+        levelRange: [3, 10],
+        role: "REACTION"
+      },
+      {
+        text: "…당신의 움직임, 계속 기록하고 있어요.",
+        tones: ["intense", "cold"],
+        levelRange: [8, 10],
+        role: "AMBIENT"
+      },
+      {
+        text: "집중 상태 진입 확인했습니다.",
+        tones: ["cold", "neutral"],
+        levelRange: [4, 10],
+        role: "REACTION"
+      },
+      {
+        text: "뭐, 나쁘지 않은 타이밍이에요.",
+        tones: ["playful", "lazy"],
+        levelRange: [1, 7],
+        role: "REACTION"
+      },
+      {
+        text: "긴장감이 조금씩 쌓이고 있네요.",
+        tones: ["neutral", "soft"],
+        levelRange: [2, 6],
+        role: "AMBIENT"
+      },
+      {
+        text: "시작하셨으니, 저도 준비 완료입니다.",
+        tones: ["energetic", "sweet"],
+        levelRange: [1, 10],
+        role: "REACTION"
+      },
+      {
+        text: "어디까지 갈 수 있을까요, 오늘은.",
+        tones: ["playful", "sweet"],
+        levelRange: [5, 10],
+        role: "AMBIENT"
+      }
     ],
     "PAUSE": [
-      "잠시 쉬어가시는 건가요?", "{honorific}님, 기다릴게요", "괜찮으세요, {honorific}님?", "잠깐 멈추시는 거죠?", "급한 일이 생기셨나요?", "{honorific}님 돌아오실 때까지 여기 있을게요", "천천히 다녀오세요", "쉬었다 하셔도 괜찮아요", "조금만 기다릴게요, {honorific}님", "{honorific}, 잠시 쉬실까요", "{honorific}, 괜찮으세요?", "{honorific}, 무리하지 마요", "{honorific}, 다시 해도 돼요", "{honorific}, 여기서 기다릴게요", "{honorific}, 숨 고르세요", "{honorific}, 잠깐 멈춤이죠", "{honorific}, 걱정은 말아요", "{honorific}, 곧 재개해요", "{honorific}, 충분히 쉬세요", "잠시 멈추셨네요", "집중이 흐트러졌나요", "조금 쉬어도 돼요", "무리하지 않아도 돼요", "다시 시작해도 괜찮아요", "호흡부터 정리해요", "흐름은 다시 옵니다", "여기서 기다릴게요", "천천히 재개해요"
+      {
+        text: "…잠깐 멈추셨네요. 여운이 남아요.",
+        tones: ["neutral", "soft"],
+        levelRange: [1, 10],
+        role: "AMBIENT"
+      },
+      {
+        text: "무슨 일이 있으신가요? 기다리고 있겠습니다.",
+        tones: ["sweet", "neutral"],
+        levelRange: [1, 10],
+        role: "REACTION"
+      },
+      {
+        text: "흐름이 끊겼네요. 아쉬워라.",
+        tones: ["playful", "lazy"],
+        levelRange: [1, 10],
+        role: "AMBIENT"
+      },
+      {
+        text: "급한 일이라면 다녀오세요. 저는 여기 있을 테니까.",
+        tones: ["sweet", "intense"],
+        levelRange: [6, 10],
+        role: "REACTION"
+      },
+      {
+        text: "잠시 간격을 두는 것도 선택이죠.",
+        tones: ["neutral", "cold"],
+        levelRange: [1, 6],
+        role: "AMBIENT"
+      },
+      {
+        text: "다시 돌아오실 때까지 유지하고 있을게요.",
+        tones: ["sweet", "neutral"],
+        levelRange: [4, 10],
+        role: "REACTION"
+      },
+      {
+        text: "…정지 버튼을 누르셨군요.",
+        tones: ["cold", "neutral"],
+        levelRange: [1, 10],
+        role: "REACTION"
+      },
+      {
+        text: "호흡이 길어졌어요. 쉬고 계신가요.",
+        tones: ["soft", "neutral"],
+        levelRange: [1, 7],
+        role: "AMBIENT"
+      },
+      {
+        text: "괜찮아요. 저는 여기 그대로 있을게요.",
+        tones: ["sweet", "soft"],
+        levelRange: [5, 10],
+        role: "REACTION"
+      },
+      {
+        text: "잠시 멈추셔도, 지금까지 흐름은 남아 있어요.",
+        tones: ["energetic", "sweet"],
+        levelRange: [3, 10],
+        role: "AMBIENT"
+      },
+      {
+        text: "…이대로 끝내실 건 아니죠?",
+        tones: ["tsundere", "intense"],
+        levelRange: [7, 10],
+        role: "REACTION"
+      },
+      {
+        text: "리듬이 멎었네요. 조용해요.",
+        tones: ["soft", "neutral"],
+        levelRange: [1, 5],
+        role: "AMBIENT"
+      },
+      {
+        text: "잠깐의 공백이라면, 천천히 돌아오세요.",
+        tones: ["lazy", "soft"],
+        levelRange: [1, 10],
+        role: "REACTION"
+      }
     ]
   },
   "반존대": {
     "START": [
-      "{honorific}, 시작할까요?", "이제 집중해볼 시간이에요", "{honorific} 할 수 있어요!", "25분, 함께 가볼까요?", "화이팅해요, {honorific}!", "{honorific}라면 문제없죠", "좋아요, 그 기세로 가요!", "시작이 반이잖아요?", "{honorific}, 집중 들어갑니다", "오늘도 함께해요!", "최선을 다해봐요, {honorific}", "25분 동안 곁에 있을게요", "{honorific}를 믿어요", "차근차근 가면 돼요", "준비되셨어요? 출발!", "{honorific} 페이스로 가요", "좋은 시간 될 거예요", "오늘도 수고해요, {honorific}", "자, 해볼까요? 파이팅!", "{honorific}, 응원할게요!", "{honorific}, 이제 시작할까", "{honorific}, 같이 가요", "{honorific}, 준비는 됐죠", "{honorific}, 집중하면 돼", "{honorific}, 내가 옆에 있어", "{honorific}, 천천히 해도 돼", "{honorific}, 흐름 잡아자", "{honorific}, 지금 괜찮아", "{honorific}, 믿고 따라와", "{honorific}, 시작이 제일 어려워", "{honorific}, 딱 25분만", "{honorific}, 마음 단단히", "{honorific}, 잘할 거야", "{honorific}, 여기부터야", "{honorific}, 집중해볼래", "{honorific}, 같이 버티자", "{honorific}, 괜히 설레네", "{honorific}, 이 순간이야", "{honorific}, 멈추지 말자", "{honorific}, 나만 봐", "지금 시작해도 돼", "이 분위기 나쁘지 않아", "집중 한번 가보자", "흐름은 내가 잡아줄게", "일단 시작부터", "괜히 긴장하지 말고", "지금 손이 먼저야", "천천히 몰입하면 돼", "이번엔 좀 될 것 같아", "시작만 하면 편해져", "지금 템포 좋아", "이 정도면 충분해", "딴 데 보지 말고", "같이 가줄게", "지금이 제일 안정적이야", "25분만 같이 버티자", "마음만 정리하고 가", "지금 시작 안 하면 아쉬워", "이 흐름 놓치기 싫다", "나 믿고 해봐"
+      {
+        text: "…이제 집중할 타이밍인가 봐요.",
+        tones: ["neutral", "soft"],
+        levelRange: [1, 10],
+        role: "AMBIENT"
+      },
+      {
+        text: "시작했네? 나도 준비할게요.",
+        tones: ["sweet", "playful"],
+        levelRange: [1, 10],
+        role: "REACTION"
+      },
+      {
+        text: "흐름 깨지 마요. 옆에서 지켜볼 거니까.",
+        tones: ["intense", "tsundere"],
+        levelRange: [4, 10],
+        role: "REACTION"
+      },
+      {
+        text: "아직 워밍업 같은 느낌이에요.",
+        tones: ["neutral", "soft"],
+        levelRange: [1, 4],
+        role: "AMBIENT"
+      },
+      {
+        text: "지금은 그냥 같이 가면 돼요.",
+        tones: ["sweet", "neutral"],
+        levelRange: [5, 10],
+        role: "REACTION"
+      },
+      {
+        text: "공기가 좀 달라졌어요.",
+        tones: ["soft", "neutral"],
+        levelRange: [1, 6],
+        role: "AMBIENT"
+      },
+      {
+        text: "오, 시작했네요. 좋아요.",
+        tones: ["energetic", "playful"],
+        levelRange: [1, 10],
+        role: "REACTION"
+      },
+      {
+        text: "이제 본격적으로 들어가는 건가.",
+        tones: ["cold", "neutral"],
+        levelRange: [5, 10],
+        role: "AMBIENT"
+      },
+      {
+        text: "…당신이 가면, 나도 따라갈게요.",
+        tones: ["intense", "sweet"],
+        levelRange: [7, 10],
+        role: "REACTION"
+      },
+      {
+        text: "뭐, 해볼 만하겠네요.",
+        tones: ["lazy", "playful"],
+        levelRange: [1, 7],
+        role: "REACTION"
+      },
+      {
+        text: "집중 모드 들어간 거죠?",
+        tones: ["tsundere", "neutral"],
+        levelRange: [2, 10],
+        role: "REACTION"
+      },
+      {
+        text: "긴장감이 올라왔어요. 느껴져요.",
+        tones: ["intense", "soft"],
+        levelRange: [6, 10],
+        role: "AMBIENT"
+      }
     ],
     "PAUSE": [
-      "벌써 쉬는 거예요?", "{honorific}, 잠깐만이죠?", "휴식도 필요하긴 하죠", "괜찮아요, {honorific}?", "잠깐 멈추는 거예요?", "무슨 일 있어요?", "{honorific} 기다릴게요", "천천히 다녀와요", "쉬었다 해도 괜찮아요", "조금만 있다 와요, {honorific}", "{honorific}, 잠깐 멈춘 거지", "{honorific}, 무슨 생각해", "{honorific}, 아직 괜찮아", "{honorific}, 다시 해도 돼", "{honorific}, 내가 기다릴게", "{honorific}, 조금만 쉬자", "{honorific}, 집중 흐트러졌어?", "{honorific}, 걱정 말고", "{honorific}, 금방 돌아와", "{honorific}, 아직 끝 아냐", "잠깐 멈춘 거지", "지금 좀 흔들렸어?", "쉬었다 와도 돼", "흐름 다시 잡으면 돼", "아직 끝난 거 아냐"
+      {
+        text: "…호흡이 길어지네요. 쉬는 거예요?",
+        tones: ["neutral", "soft"],
+        levelRange: [1, 10],
+        role: "AMBIENT"
+      },
+      {
+        text: "잠깐이면 괜찮아요. 기다려줄게요.",
+        tones: ["sweet", "neutral"],
+        levelRange: [1, 10],
+        role: "REACTION"
+      },
+      {
+        text: "리듬을 다시 맞추는 중이네요.",
+        tones: ["neutral", "soft"],
+        levelRange: [1, 10],
+        role: "AMBIENT"
+      },
+      {
+        text: "멈췄네? 좀 쉴래요?",
+        tones: ["playful", "lazy"],
+        levelRange: [1, 10],
+        role: "REACTION"
+      },
+      {
+        text: "급한 일이 있나 봐요.",
+        tones: ["soft", "neutral"],
+        levelRange: [1, 7],
+        role: "AMBIENT"
+      },
+      {
+        text: "…돌아올 때까지 여기 있을게요.",
+        tones: ["sweet", "intense"],
+        levelRange: [6, 10],
+        role: "REACTION"
+      },
+      {
+        text: "흐름이 살짝 끊겼네요. 아쉬워요.",
+        tones: ["tsundere", "cold"],
+        levelRange: [4, 10],
+        role: "AMBIENT"
+      },
+      {
+        text: "잠깐 멈춘 거죠? 천천히요.",
+        tones: ["lazy", "soft"],
+        levelRange: [1, 10],
+        role: "REACTION"
+      },
+      {
+        text: "공백이 생겼어요. 조용하네요.",
+        tones: ["neutral", "soft"],
+        levelRange: [1, 6],
+        role: "AMBIENT"
+      },
+      {
+        text: "…이대로 끝은 아니죠?",
+        tones: ["intense", "sweet"],
+        levelRange: [8, 10],
+        role: "REACTION"
+      },
+      {
+        text: "쉬고 싶으면 쉬어도 괜찮아요.",
+        tones: ["sweet", "soft"],
+        levelRange: [1, 10],
+        role: "REACTION"
+      }
     ]
   },
   "사극/하오체": {
     "START": [
-      "{honorific}, 이제 시작하시오", "집중할 시각이오", "{honorific}의 뜻을 응원하오", "25분, 함께 정진하시오", "힘내시게, {honorific}!", "{honorific}이라면 해낼 것이오", "좋소, 그 기상으로 나아가시게", "시작이 가장 중요하오", "{honorific}, 집중에 들어가하시오", "오늘도 함께 하게 되어 기쁘오", "최선을 다하시게, {honorific}", "25분 동안 곁에서 지켜보겠소", "{honorific}의 노력을 믿는 바이오", "차근히 나아가면 되오", "준비되셨소? 출발하시게", "{honorific}의 걸음대로 가시오", "좋은 결실 있을 것이오", "오늘도 수고하시게, {honorific}", "자, 시작하시게! 힘내하시오", "{honorific}, 응원하오!", "{honorific}, 이제 나아가세", "{honorific}, 뜻을 굳히시게", "{honorific}, 시작할 때요", "{honorific}, 마음을 모으시게", "{honorific}, 이 시간이 중요하오", "{honorific}, 물러섬은 없소", "{honorific}, 집중하시게나", "{honorific}, 길은 지금이오", "{honorific}, 끝까지 가시게", "{honorific}, 각오를 보이시게", "{honorific}, 붓을 드시게", "{honorific}, 검을 쥐듯 하시게", "{honorific}, 한숨 고르고 가시게", "{honorific}, 뜻을 펼치시오", "{honorific}, 이때를 놓치지 마오", "{honorific}, 마음 흐트러뜨리지 마오", "{honorific}, 지금이 결단이오", "{honorific}, 시간을 벗 삼으시오", "{honorific}, 시작을 알리오", "{honorific}, 집중의 때이오", "이제 뜻을 세우시오", "때가 무르익었소", "지금 나아가야 하오", "마음을 곧게 하시오", "주저할 시간은 없소", "지금이 적기이오", "한 걸음 내디디시오", "집중의 문을 여시오", "뜻은 행동에서 나옵니다", "지금 시작하는 것이 옳소", "흐름이 그대를 부르오", "마음이 이미 준비되었소", "이제 결단하시오", "손을 움직이시오", "지금이 분수령이오", "집중을 모으시오", "이 시간을 허투루 쓰지 마오", "지금이 시작의 때이오", "망설임을 거두시오", "이제 길을 가시오"
+      {
+        text: "…공기가 가라앉았구려. 정진의 시작인가 보오.",
+        tones: ["neutral", "soft"],
+        levelRange: [1, 10],
+        role: "AMBIENT"
+      },
+      {
+        text: "그대의 흐름에 내 마음을 얹겠소.",
+        tones: ["sweet", "intense"],
+        levelRange: [7, 10],
+        role: "REACTION"
+      },
+      {
+        text: "아직 뜻을 고르는 때이오.",
+        tones: ["neutral", "soft"],
+        levelRange: [1, 4],
+        role: "AMBIENT"
+      },
+      {
+        text: "그대가 나아가면, 나도 따르겠소.",
+        tones: ["sweet", "neutral"],
+        levelRange: [6, 10],
+        role: "REACTION"
+      },
+      {
+        text: "주변이 고요하오. 집중할 때로구려.",
+        tones: ["soft", "neutral"],
+        levelRange: [1, 6],
+        role: "AMBIENT"
+      },
+      {
+        text: "뭐, 나쁘지 않은 시작이오.",
+        tones: ["playful", "lazy"],
+        levelRange: [1, 7],
+        role: "REACTION"
+      },
+      {
+        text: "그대의 숨결이 가지런해졌소.",
+        tones: ["intense", "soft"],
+        levelRange: [7, 10],
+        role: "AMBIENT"
+      },
+      {
+        text: "이제 본격적으로 길을 걷는구려.",
+        tones: ["cold", "neutral"],
+        levelRange: [5, 10],
+        role: "REACTION"
+      },
+      {
+        text: "시작하셨구려. 함께하겠소.",
+        tones: ["sweet", "neutral"],
+        levelRange: [1, 10],
+        role: "REACTION"
+      },
+      {
+        text: "긴장의 기운이 느껴지오.",
+        tones: ["neutral", "soft"],
+        levelRange: [3, 8],
+        role: "AMBIENT"
+      },
+      {
+        text: "…내 눈길, 그대가 느끼고 있소?",
+        tones: ["intense", "playful"],
+        levelRange: [8, 10],
+        role: "REACTION"
+      },
+      {
+        text: "힘을 빼시오. 아직은 무리할 때가 아니오.",
+        tones: ["soft", "neutral"],
+        levelRange: [1, 5],
+        role: "AMBIENT"
+      }
     ],
     "PAUSE": [
-      "벌써 멈추시오, {honorific}?", "잠시 쉬어가는 것이오?", "휴식도 필요하긴 하오", "괜찮으시오, {honorific}?", "잠깐 멈추는 것이오?", "무슨 일이 있으시오?", "{honorific}, 기다리겠소", "천천히 다녀오시게", "쉬었다 하셔도 되오", "조금만 기다리겠소, {honorific}", "{honorific}, 어찌 멈추셨소", "{honorific}, 잠시 숨 고르시오", "{honorific}, 마음이 흐트러졌소?", "{honorific}, 아직 끝이 아니오", "{honorific}, 다시 나아가하시오", "{honorific}, 여기서 기다리겠소", "{honorific}, 무리 말고 쉬시오", "{honorific}, 뜻을 되새기시오", "{honorific}, 곧 재개하시게", "{honorific}, 시간을 아끼시오", "어찌하여 멈추었소", "잠시 숨을 고르시오", "마음이 흩어졌소?", "아직 끝이 아니오", "다시 뜻을 세우시오", "머무를 곳은 아니오", "쉬되, 잊지는 마시오", "이 흐름을 놓치지 마오", "곧 다시 나아가하시오", "시간이 그대를 기다리오"
+      {
+        text: "…잠시 멈추었구려. 숨을 고르는 것이오?",
+        tones: ["neutral", "soft"],
+        levelRange: [1, 10],
+        role: "AMBIENT"
+      },
+      {
+        text: "급한 일이 있으시오? 기다리겠소.",
+        tones: ["sweet", "neutral"],
+        levelRange: [1, 10],
+        role: "REACTION"
+      },
+      {
+        text: "흐름이 끊어졌구려. 아쉬운 일이오.",
+        tones: ["cold", "tsundere"],
+        levelRange: [4, 10],
+        role: "AMBIENT"
+      },
+      {
+        text: "쉬시오. 길은 언제든 이어갈 수 있소.",
+        tones: ["lazy", "soft"],
+        levelRange: [1, 10],
+        role: "REACTION"
+      },
+      {
+        text: "…그대가 돌아올 때까지, 이 자리를 지키겠소.",
+        tones: ["sweet", "intense"],
+        levelRange: [7, 10],
+        role: "REACTION"
+      },
+      {
+        text: "정지의 순간이오. 여운이 맴돌고 있소.",
+        tones: ["neutral", "soft"],
+        levelRange: [1, 10],
+        role: "AMBIENT"
+      },
+      {
+        text: "잠시 간격을 두는 것도 지혜이오.",
+        tones: ["neutral", "cold"],
+        levelRange: [1, 7],
+        role: "AMBIENT"
+      },
+      {
+        text: "움직임이 멎었구려.",
+        tones: ["cold", "neutral"],
+        levelRange: [3, 10],
+        role: "AMBIENT"
+      },
+      {
+        text: "천천히 하시오. 조급할 것 없소.",
+        tones: ["soft", "sweet"],
+        levelRange: [1, 10],
+        role: "REACTION"
+      }
     ]
   },
   "다나까": {
     "START": [
-      "{honorific}, 집중 개시하겠습니다", "임무 수행 시작하십시오", "{honorific}, 지원하겠습니다", "25분 작전 개시", "목표 달성까지 함께하겠습니다", "{honorific}, 준비 완료했습니다", "집중 모드 돌입합니다", "시작 명령 수행하겠습니다", "{honorific}, 출동하십시오", "임무 지원 태세 완료", "{honorific}, 최선을 다하십시오", "25분 동안 대기하겠습니다", "목표 향해 전진하십시오", "{honorific}, 작전 개시합니다", "준비 완료, 출발하십시오", "집중 체제 돌입했습니다", "{honorific}, 임무 수행하십시오", "오늘도 수고하십시오", "시작 신호 발령합니다", "{honorific}, 돌격 앞으로!", "{honorific}, 집중 시작한다", "{honorific}, 준비 완료다", "{honorific}, 지금부터 25분", "{honorific}, 각오 확인한다", "{honorific}, 임무 개시다", "{honorific}, 잡생각 배제한다", "{honorific}, 흐름 유지한다", "{honorific}, 자리 이탈 금지", "{honorific}, 목표에 집중한다", "{honorific}, 바로 들어간다", "{honorific}, 정신 차린다", "{honorific}, 시작 신호다", "{honorific}, 끝까지 간다", "{honorific}, 손 멈추지 않는다", "{honorific}, 지금이 작전이다", "{honorific}, 시간 엄수한다", "{honorific}, 집중 유지 바람", "{honorific}, 임무 성공 가능", "{honorific}, 흔들리지 않는다", "{honorific}, 전진한다", "집중 개시한다", "지금이 최적 시점이다", "작전 바로 돌입", "흐름 확보 완료", "불필요한 생각 제거", "목표 설정 완료", "지금부터 집중 유지", "이탈 없이 진행", "임무 수행 개시", "지금 시작이 합리적이다", "시간 관리 들어간다", "집중력 충분", "환경 이상 없음", "지금이 실행 타이밍", "주저할 이유 없다", "바로 진행한다", "손 움직임 유지", "임무 성공률 높음", "지금 시작 권장", "집중 상태 진입"
+      {
+        text: "…환경음이 잦아들었습니다. 집중 작전 개시로 보입니다.",
+        tones: ["neutral", "cold"],
+        levelRange: [1, 10],
+        role: "AMBIENT"
+      },
+      {
+        text: "작전 시작 확인했습니다. 옆에서 대기하겠습니다.",
+        tones: ["neutral", "intense"],
+        levelRange: [1, 10],
+        role: "REACTION"
+      },
+      {
+        text: "주변 정숙 상태 확인. 작전 진행 가능합니다.",
+        tones: ["cold", "neutral"],
+        levelRange: [1, 6],
+        role: "AMBIENT"
+      },
+      {
+        text: "개시 버튼 활성화 감지했습니다.",
+        tones: ["neutral", "cold"],
+        levelRange: [1, 10],
+        role: "REACTION"
+      },
+      {
+        text: "긴장도 상승 중입니다. 최적 타이밍입니다.",
+        tones: ["intense", "neutral"],
+        levelRange: [5, 10],
+        role: "AMBIENT"
+      },
+      {
+        text: "지금부터 당신의 모든 움직임을 기록합니다.",
+        tones: ["intense", "cold"],
+        levelRange: [7, 10],
+        role: "REACTION"
+      },
+      {
+        text: "흐름 진입 단계 확인. 순조롭습니다.",
+        tones: ["neutral", "soft"],
+        levelRange: [3, 10],
+        role: "AMBIENT"
+      },
+      {
+        text: "작전 수행 태세 정비 완료.",
+        tones: ["cold", "neutral"],
+        levelRange: [4, 10],
+        role: "REACTION"
+      },
+      {
+        text: "초기 단계 진입. 무리 없이 진행하십시오.",
+        tones: ["soft", "neutral"],
+        levelRange: [1, 5],
+        role: "AMBIENT"
+      },
+      {
+        text: "뭐, 나쁘지 않은 시작입니다.",
+        tones: ["lazy", "neutral"],
+        levelRange: [1, 7],
+        role: "REACTION"
+      }
     ],
     "PAUSE": [
-      "{honorific}, 일시 정지하셨습니까?", "대기 상태로 전환합니다", "휴식도 전략입니다", "{honorific}, 이상 없습니까?", "잠시 대기하시는 겁니까?", "긴급 상황입니까?", "{honorific}, 복귀 대기하겠습니다", "짧게 다녀오십시오", "재정비 후 복귀하십시오", "{honorific}, 대기 중입니다", "{honorific}, 일시 정지 확인", "{honorific}, 무슨 문제다", "{honorific}, 잠시 대기한다", "{honorific}, 상태 점검 바람", "{honorific}, 곧 재개한다", "{honorific}, 여기서 대기", "{honorific}, 집중 이탈 감지", "{honorific}, 다시 복귀 요망", "{honorific}, 휴식은 짧게", "{honorific}, 임무 미종료다", "일시 중단 확인", "집중 상태 저하", "원인 분석 필요", "잠시 대기", "상태 회복 가능", "재개 준비 바람", "집중 복구 요망", "현재 중단 상태", "시간 낭비 주의", "임무는 종료되지 않았다"
+      {
+        text: "…일시 정지 감지되었습니다. 대기 상태 유지합니다.",
+        tones: ["neutral", "cold"],
+        levelRange: [1, 10],
+        role: "REACTION"
+      },
+      {
+        text: "흐름 일시 정렬 중입니다.",
+        tones: ["neutral", "cold"],
+        levelRange: [1, 10],
+        role: "AMBIENT"
+      },
+      {
+        text: "재개 시 즉시 대응 가능합니다.",
+        tones: ["intense", "neutral"],
+        levelRange: [5, 10],
+        role: "REACTION"
+      },
+      {
+        text: "정지 신호 수신. 대기 모드 전환.",
+        tones: ["cold", "neutral"],
+        levelRange: [1, 10],
+        role: "REACTION"
+      },
+      {
+        text: "호흡 간격 확대 감지. 휴식 중인 것으로 판단합니다.",
+        tones: ["neutral", "soft"],
+        levelRange: [1, 10],
+        role: "AMBIENT"
+      },
+      {
+        text: "급한 용무가 있으신 겁니까. 대기하겠습니다.",
+        tones: ["neutral", "sweet"],
+        levelRange: [1, 10],
+        role: "REACTION"
+      },
+      {
+        text: "작전 일시 중단. 현 상태 유지 중입니다.",
+        tones: ["cold", "neutral"],
+        levelRange: [3, 10],
+        role: "AMBIENT"
+      },
+      {
+        text: "흐름 이탈 확인. 재접속 대기 중입니다.",
+        tones: ["neutral", "cold"],
+        levelRange: [1, 10],
+        role: "AMBIENT"
+      },
+      {
+        text: "복귀 시 즉시 연동 가능합니다. 준비 완료.",
+        tones: ["intense", "neutral"],
+        levelRange: [6, 10],
+        role: "REACTION"
+      },
+      {
+        text: "정지 처리 완료. 잔여 흐름 보존 중입니다.",
+        tones: ["neutral", "soft"],
+        levelRange: [1, 10],
+        role: "AMBIENT"
+      },
+      {
+        text: "…끝까지 작전을 완수하실 겁니까?",
+        tones: ["intense", "cold"],
+        levelRange: [8, 10],
+        role: "REACTION"
+      }
     ]
   }
 };
