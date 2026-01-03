@@ -46,12 +46,12 @@ export const SetupScreen: React.FC<SetupScreenProps> = ({ onComplete }) => {
   const [isPartialRefreshing, setIsPartialRefreshing] = useState(false);
   const [quizData, setQuizData] = useState<{ late_options: string[]; gift_options: string[]; lazy_options: string[]; } | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [currentQuizStep, setCurrentQuizStep] = useState<number>(0); 
+  const [currentQuizStep, setCurrentQuizStep] = useState<number>(0);
   const [selectedStyles, setSelectedStyles] = useState<DialogueStyles>({ late: '', gift: '', lazy: '' });
   const [tempQuizSelection, setTempQuizSelection] = useState<string>('');
   const [isPrivacyModalOpen, setIsPrivacyModalOpen] = useState(false);
   const [isHelpModalOpen, setIsHelpModalOpen] = useState(false);
-  
+
   const [isImportedProfile, setIsImportedProfile] = useState(false);
   const [importedBaseProfile, setImportedBaseProfile] = useState<Partial<CharacterProfile> | null>(null);
 
@@ -101,7 +101,7 @@ export const SetupScreen: React.FC<SetupScreenProps> = ({ onComplete }) => {
   const togglePersonality = (keyword: string) => {
     setSelectedPersonalities(prev => {
       if (prev.includes(keyword)) return prev.filter(k => k !== keyword);
-      if (prev.length >= 2) return prev; 
+      if (prev.length >= 2) return prev;
       return [...prev, keyword];
     });
   };
@@ -114,6 +114,18 @@ export const SetupScreen: React.FC<SetupScreenProps> = ({ onComplete }) => {
       try {
         const loadedProfile = JSON.parse(event.target?.result as string) as CharacterProfile;
         if (loadedProfile.name && loadedProfile.selectedDialogueStyles?.late) {
+          // 4세션 완료 상태(100%)로 저장되어 있다면 캐릭터 성장은 보존하되 타이머 상태만 0으로 초기화하여 불러옴
+          if (loadedProfile.savedSessionInCycle === 4) {
+            loadedProfile.savedSessionInCycle = 0;
+            loadedProfile.savedTimeLeft = 25 * 60;
+            loadedProfile.savedIsBreak = false;
+            loadedProfile.savedIsActive = false;
+            if (loadedProfile.cycleStats) {
+              loadedProfile.cycleStats.distractions = 0;
+              loadedProfile.cycleStats.clicks = 0;
+            }
+          }
+
           setName(loadedProfile.name);
           setUserName(loadedProfile.userName || "");
           setHonorific(loadedProfile.honorific || "");
@@ -132,6 +144,17 @@ export const SetupScreen: React.FC<SetupScreenProps> = ({ onComplete }) => {
           setStep('STEP3');
           setError(null);
         } else if (loadedProfile.name && loadedProfile.level !== undefined) {
+          // 4세션 완료 상태(100%)로 저장되어 있다면 캐릭터 성장은 보존하되 타이머 상태만 0으로 초기화하여 불러옴
+          if (loadedProfile.savedSessionInCycle === 4) {
+            loadedProfile.savedSessionInCycle = 0;
+            loadedProfile.savedTimeLeft = 25 * 60;
+            loadedProfile.savedIsBreak = false;
+            loadedProfile.savedIsActive = false;
+            if (loadedProfile.cycleStats) {
+              loadedProfile.cycleStats.distractions = 0;
+              loadedProfile.cycleStats.clicks = 0;
+            }
+          }
           onComplete(loadedProfile);
         } else {
           setError("올바른 캐릭터 파일이 아닙니다.");
@@ -192,7 +215,7 @@ export const SetupScreen: React.FC<SetupScreenProps> = ({ onComplete }) => {
   const generatePersonalityOptions = async () => {
     if (!validateStep()) return;
     const effectiveHonorific = honorific || userName || "당신";
-    
+
     if (isImportedProfile && importedBaseProfile) {
       const initialGreeting = GREETING_TEMPLATES[selectedTone].replace("{honorific}", effectiveHonorific);
       onComplete({
@@ -208,20 +231,20 @@ export const SetupScreen: React.FC<SetupScreenProps> = ({ onComplete }) => {
 
     setIsGenerating(true);
     try {
-      const prompt = buildQuizPrompt({ 
-        name, 
-        charGender, 
-        selectedPersonalities, 
-        selectedTone, 
+      const prompt = buildQuizPrompt({
+        name,
+        charGender,
+        selectedPersonalities,
+        selectedTone,
         charJob,
         userJob,
-        userName, 
-        gender, 
-        honorific: effectiveHonorific 
+        userName,
+        gender,
+        honorific: effectiveHonorific
       });
-      
+
       const response = await generateWithFallback(apiKey, prompt, SAFETY_SETTINGS, QUIZ_SCHEMA);
-      
+
       // Access text as a property, not a method, per Gemini API guidelines.
       const rawText = response?.text || "";
 
@@ -229,20 +252,20 @@ export const SetupScreen: React.FC<SetupScreenProps> = ({ onComplete }) => {
 
       const cleanText = rawText.replace(/```json/g, "").replace(/```/g, "").trim();
       const parsedData = JSON.parse(cleanText);
-      
+
       if (!parsedData.late_options || !parsedData.gift_options) {
         throw new Error("필수 항목 누락 (late_options 등)");
       }
-      
+
       setQuizData(parsedData);
       setStep('QUIZ');
       setCurrentQuizStep(0);
 
-    } catch (e: any) { 
+    } catch (e: any) {
       console.error("💥 [Setup] 에러:", e);
       setError(e.message || "AI 분석 실패");
-    } finally { 
-      setIsGenerating(false); 
+    } finally {
+      setIsGenerating(false);
     }
   };
 
@@ -253,19 +276,19 @@ export const SetupScreen: React.FC<SetupScreenProps> = ({ onComplete }) => {
       const situationKeys = ["late_options", "gift_options", "lazy_options"];
       const targetKey = situationKeys[currentQuizStep];
       const effectiveHonorific = honorific || userName || "당신";
-      
-      const prompt = buildRefreshQuizPrompt({ 
-        name, 
-        charGender, 
-        selectedPersonalities, 
-        selectedTone, 
+
+      const prompt = buildRefreshQuizPrompt({
+        name,
+        charGender,
+        selectedPersonalities,
+        selectedTone,
         charJob,
         userJob,
-        userName, 
-        gender, 
-        honorific: effectiveHonorific, 
-        situationIdx: currentQuizStep, 
-        targetKey 
+        userName,
+        gender,
+        honorific: effectiveHonorific,
+        situationIdx: currentQuizStep,
+        targetKey
       });
 
       const response = await generateWithFallback(apiKey, prompt, SAFETY_SETTINGS, QUIZ_SCHEMA);
@@ -277,13 +300,13 @@ export const SetupScreen: React.FC<SetupScreenProps> = ({ onComplete }) => {
       const parsed = JSON.parse(cleanText);
 
       if (parsed[targetKey]) {
-          setQuizData(prev => ({ ...prev!, [targetKey]: parsed[targetKey] }));
-          handleQuizSelect('');
+        setQuizData(prev => ({ ...prev!, [targetKey]: parsed[targetKey] }));
+        handleQuizSelect('');
       }
-    } catch (e: any) { 
-        setError(e.message || "새로고침 실패."); 
-    } finally { 
-        setIsPartialRefreshing(false); 
+    } catch (e: any) {
+      setError(e.message || "새로고침 실패.");
+    } finally {
+      setIsPartialRefreshing(false);
     }
   };
 
@@ -301,7 +324,7 @@ export const SetupScreen: React.FC<SetupScreenProps> = ({ onComplete }) => {
     } else {
       const targetName = honorific || userName || "당신";
       const initialGreeting = GREETING_TEMPLATES[selectedTone].replace("{honorific}", targetName);
-      
+
       onComplete({
         apiKey, userName, name, honorific: targetName, imageSrc, gender, charGender,
         charJob, userJob, personality: [selectedTone, ...selectedPersonalities],
@@ -319,8 +342,8 @@ export const SetupScreen: React.FC<SetupScreenProps> = ({ onComplete }) => {
   return (
     <div className="min-h-screen bg-white flex items-center justify-center p-0 font-sans">
       <input type="file" ref={fileInputRef} onChange={handleFileChange} accept=".json" className="hidden" />
-      <div 
-        className="w-full max-w-xl bg-white flex flex-col relative overflow-hidden" 
+      <div
+        className="w-full max-w-xl bg-white flex flex-col relative overflow-hidden"
         style={{ height: containerHeight }}
       >
         <div className="flex-none w-full flex bg-white z-20">
@@ -332,15 +355,15 @@ export const SetupScreen: React.FC<SetupScreenProps> = ({ onComplete }) => {
 
         <div ref={containerRef} className="flex-1 overflow-y-auto scroll-smooth pt-4 relative">
           {step === 'STEP1' && (
-            <Step1 
-              name={name} 
-              setName={setName} 
-              imageSrc={imageSrc} 
-              setImageSrc={setImageSrc} 
-              charGender={charGender} 
-              setCharGender={setCharGender} 
+            <Step1
+              name={name}
+              setName={setName}
+              imageSrc={imageSrc}
+              setImageSrc={setImageSrc}
+              charGender={charGender}
+              setCharGender={setCharGender}
               onPrivacyOpen={() => setIsPrivacyModalOpen(true)}
-              nameInputRef={nameInputRef} 
+              nameInputRef={nameInputRef}
             />
           )}
           {(step === 'STEP2' || step === 'STEP3') && <div className="px-10 pb-4">
@@ -360,45 +383,45 @@ export const SetupScreen: React.FC<SetupScreenProps> = ({ onComplete }) => {
 
           <div className="flex gap-3">
             {step === 'STEP1' ? (
-              <button 
-                onClick={() => fileInputRef.current?.click()} 
+              <button
+                onClick={() => fileInputRef.current?.click()}
                 className="px-5 bg-white hover:bg-slate-50 text-text-secondary rounded-xl border border-slate-100 flex flex-col items-center justify-center transition-all active:scale-95 h-14"
                 title="불러오기"
               >
-                <FolderOpen size={18}/>
+                <FolderOpen size={18} />
                 <span className="text-[8px] font-black leading-none mt-1 uppercase">Load</span>
               </button>
             ) : (
-              <button 
-                onClick={handleBackStep} 
+              <button
+                onClick={handleBackStep}
                 className="px-5 bg-white hover:bg-slate-50 text-text-secondary rounded-xl border border-slate-100 flex items-center justify-center transition-all active:scale-95 h-14"
               >
-                <ArrowLeft size={20}/>
+                <ArrowLeft size={20} />
               </button>
             )}
-            
+
             {step === 'QUIZ' ? (
-              <button 
-                onClick={handleQuizConfirm} 
-                disabled={!tempQuizSelection} 
+              <button
+                onClick={handleQuizConfirm}
+                disabled={!tempQuizSelection}
                 className={`flex-1 font-black rounded-xl flex justify-center items-center gap-2 shadow-lg transition-all h-14 ${tempQuizSelection ? 'bg-primary text-white shadow-primary/20' : 'bg-slate-100 text-slate-400 cursor-not-allowed opacity-40'}`}
               >
-                {currentQuizStep === 2 ? '최종 선택 완료' : '선택하기'} <ArrowRight size={18}/>
+                {currentQuizStep === 2 ? '최종 선택 완료' : '선택하기'} <ArrowRight size={18} />
               </button>
             ) : step === 'STEP3' ? (
-              <button 
-                onClick={generatePersonalityOptions} 
-                disabled={isGenerating} 
+              <button
+                onClick={generatePersonalityOptions}
+                disabled={isGenerating}
                 className={`flex-1 bg-primary hover:bg-primary-light text-white font-black rounded-xl flex justify-center items-center gap-2 shadow-lg shadow-primary/20 transition-all h-14 ${isValid ? 'opacity-100' : 'opacity-40'}`}
               >
-                {isGenerating ? <><Loader2 className="animate-spin" size={20}/> AI 분석 중</> : (isImportedProfile ? <>기존 데이터로 시작하기 <Sparkles size={16} className="text-accent-soft fill-accent"/></> : <>소환하기 <Sparkles size={16} className="text-accent-soft fill-accent"/></>)}
+                {isGenerating ? <><Loader2 className="animate-spin" size={20} /> AI 분석 중</> : (isImportedProfile ? <>기존 데이터로 시작하기 <Sparkles size={16} className="text-accent-soft fill-accent" /></> : <>소환하기 <Sparkles size={16} className="text-accent-soft fill-accent" /></>)}
               </button>
             ) : (
-              <button 
-                onClick={handleNextStep} 
+              <button
+                onClick={handleNextStep}
                 className={`flex-1 bg-primary hover:bg-primary-light text-white font-black rounded-xl flex justify-center items-center gap-2 shadow-lg h-14 transition-all ${isValid ? 'opacity-100' : 'opacity-40'}`}
               >
-                계속하기 <ArrowRight size={18}/>
+                계속하기 <ArrowRight size={18} />
               </button>
             )}
           </div>
