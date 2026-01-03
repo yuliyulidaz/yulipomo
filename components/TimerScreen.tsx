@@ -200,18 +200,17 @@ export const TimerScreen: React.FC<TimerScreenProps> = ({
     }
 
     const handlePopState = (e: PopStateEvent) => {
-      // 2. 뒤로가기 감지 시 (해시가 사라지거나 변경됨)
-      // 안드로이드 제스처 뒤로가기는 preventDefault로 막을 수 없음 (이미 이동함)
-      // 따라서 다시 밀어넣는 방식(Trap)을 사용
+      // 2. 뒤로가기 감지
+      // 안드로이드에서 popstate 직후 동기적 pushState가 무시되는 경우를 방지하기 위해 setTimeout 사용
+      console.log('Popstate event detected. Preventing exit and re-trapping history.');
+      e.preventDefault(); // Prevent default browser back action
+      setTimeout(() => {
+        // 모달 열기
+        setShowExitModal(true);
 
-      e.preventDefault();
-
-      // 모달이 이미 켜져있는지 확인 (중복 방지)
-      // setShowExitModal 함수형 업데이트를 사용하여 최신 상태 참조 불필요 (단, 여기서는 로직 단순화)
-      setShowExitModal(true);
-
-      // 3. 다시 '#timer' 상태를 밀어넣어 제자리 유지 (함정 재설치)
-      window.history.pushState({ page: 'timer' }, "", window.location.pathname + "#timer");
+        // 함정 재설치
+        window.history.pushState({ page: 'timer' }, "", window.location.pathname + "#timer");
+      }, 10);
     };
 
     window.addEventListener('popstate', handlePopState);
