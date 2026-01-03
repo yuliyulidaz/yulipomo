@@ -193,32 +193,32 @@ export const TimerScreen: React.FC<TimerScreenProps> = ({
 
   // Android 물리 뒤로가기 버튼 처리 (앱 종료 방지)
   useEffect(() => {
-    // 1. 진입 시 히스토리 스택에 '#timer' 해시 추가 (강제 히스토리 생성)
-    // 현재 URL에 이미 #timer가 없다면 추가
+    // 1. 진입 시 히스토리 스택에 '#timer' 해시 추가
     if (window.location.hash !== '#timer') {
       window.history.pushState({ page: 'timer' }, "", window.location.pathname + "#timer");
     }
 
-    const handlePopState = (e: PopStateEvent) => {
-      // 2. 뒤로가기 감지
-      // 안드로이드에서 popstate 직후 동기적 pushState가 무시되는 경우를 방지하기 위해 setTimeout 사용
-      console.log('Popstate event detected. Preventing exit and re-trapping history.');
-      e.preventDefault(); // Prevent default browser back action
-      setTimeout(() => {
-        // 모달 열기
-        setShowExitModal(true);
+    const handlePopState = () => {
+      // 2. 뒤로가기 감지 시 (이미 URL은 뒤로 간 상태)
 
-        // 함정 재설치
-        window.history.pushState({ page: 'timer' }, "", window.location.pathname + "#timer");
-      }, 10);
+      // 모달 열기
+      setShowExitModal(true);
+
+      // Add a dummy history.forward() call just in case (some browsers handle it).
+      window.history.forward();
+
+      // 3. 다시 강제로 앞으로 밀어넣기 (Trap)
+      // 이전 상태로 되돌아가는 것을 막기 위해 다시 현재 상태를 스택에 쌓음
+      window.history.pushState({ page: 'timer' }, "", window.location.pathname + "#timer");
     };
 
     window.addEventListener('popstate', handlePopState);
 
     return () => {
       window.removeEventListener('popstate', handlePopState);
-      // 언마운트 시 뒤로가기를 하면 자연스럽게 나갈 수 있도록 굳이 hash를 지우지 않음
-      // 혹은 필요하다면 history.back()을 호출할 수도 있지만, SPA에서는 그대로 두는 편이 안전
+      // 컴포넌트 언마운트 시 처리:
+      // 뒤로가기로 나가는 경우(onReset 등)에는 괜찮지만,
+      // 그 외의 경우 해시가 남아있을 수 있음. 하지만 SPA에서는 큰 문제 없음.
     };
   }, []);
 
