@@ -360,7 +360,7 @@ export const TimerScreen: React.FC<TimerScreenProps> = ({
   const overallProgressPercent = calculateOverallProgress(sessionInCycle, isBreak, timeLeft);
 
   return (
-    <div className={`relative w-full h-[100dvh] flex transition-colors duration-700 overflow-hidden font-sans select-none ${isDarkMode ? 'bg-[#0B0E14] text-slate-100' : 'bg-background text-text-primary'}`}>
+    <div className={`relative w-full min-h-[100dvh] flex transition-colors duration-700 font-sans select-none ${isDarkMode ? 'bg-[#0B0E14] text-slate-100' : 'bg-background text-text-primary'}`}>
       <EnergySavingOverlay isVisible={isBatterySaving} />
 
       {showOnboarding && <OnboardingGuide isDarkMode={isDarkMode} characterName={profile.name} targets={{ settings: settingsBtnRef, character: characterBoxRef, reset: resetBtnRef, start: startBtnRef, affinity: affinityRef }} onClose={(never) => { if (never) localStorage.setItem('pomodoro_onboarding_done', 'true'); setShowOnboarding(false); }} />}
@@ -401,7 +401,7 @@ export const TimerScreen: React.FC<TimerScreenProps> = ({
       <ReleaseNotesModal isOpen={showReleaseNotes} onClose={() => setShowReleaseNotes(false)} isDarkMode={isDarkMode} />
       {(isApiKeyModalOpen || showExitModal || showAffinityGuide || isPrivacyModalOpen || showHistoryModal || showReleaseNotes) && <div className="fixed inset-0 z-[45] bg-transparent" onClick={() => { setIsApiKeyModalOpen(false); setShowExitModal(false); setShowAffinityGuide(false); setIsPrivacyModalOpen(false); setShowHistoryModal(false); setShowReleaseNotes(false); }} />}
 
-      <main className="w-full h-full flex flex-col items-center justify-center relative p-4 md:p-8">
+      <main className="w-full min-h-[100dvh] flex flex-col items-center justify-center relative p-4 md:p-8 pt-8 pb-32">
         <TopBadge ref={affinityRef} level={profile.level} title={levelTitle} isAdminMode={isAdminMode} isDarkMode={isDarkMode} onBadgeClick={() => setShowAffinityGuide(true)} />
         <div className={`w-full max-w-[450px] backdrop-blur-xl border p-6 md:p-8 rounded-[40px] shadow-[0_20px_50px_rgba(74,95,122,0.1)] flex flex-col items-center gap-6 md:gap-8 animate-in fade-in zoom-in duration-500 relative transition-colors duration-700 ${isDarkMode ? 'bg-[#161B22]/90 border-[#30363D]' : 'bg-surface/90 border-border'} ${isApiKeyModalOpen || isSettingsOpen ? 'overflow-visible z-50' : 'overflow-hidden'}`}>
           {isSettingsOpen && <div className="fixed inset-0 z-40 bg-black/[0.02] backdrop-blur-[1.2px] cursor-default animate-in fade-in duration-300" onClick={(e) => { e.stopPropagation(); setIsSettingsOpen(false); }} />}

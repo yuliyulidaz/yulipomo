@@ -122,6 +122,8 @@ function App() {
     }
   }, [profile]);
 
+
+
   const handleSetupComplete = (newProfile: CharacterProfile) => {
     setProfile(newProfile);
   };
@@ -191,7 +193,7 @@ function App() {
   }, []);
 
   return (
-    <div className="w-full h-[100dvh] bg-[#f8fafc] overflow-hidden">
+    <div className="w-full min-h-[100dvh] bg-[#f8fafc] overflow-x-hidden">
       {!profile ? (
         <SetupScreen onComplete={handleSetupComplete} />
       ) : (

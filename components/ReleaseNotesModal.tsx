@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Bell, Camera, AlarmClock, Monitor, Sparkles } from 'lucide-react';
+import { Bell, Camera, AlarmClock, Monitor, Sparkles, Smartphone } from 'lucide-react';
 
 interface ReleaseNotesModalProps {
     isOpen: boolean;
@@ -8,6 +8,18 @@ interface ReleaseNotesModalProps {
 }
 
 const RELEASES = [
+    {
+        version: 'v1.1.1',
+        date: '2024.01',
+        features: [
+            {
+                icon: <Smartphone size={16} />,
+                color: 'sky',
+                title: '작은 폰에서도 답답하지 않게',
+                desc: '작은 화면에서도 버튼이 잘리지 않도록 전체 스크롤을 개선했습니다.'
+            }
+        ]
+    },
     {
         version: 'v1.1.0',
         date: '2024.01',
@@ -53,7 +65,7 @@ export const ReleaseNotesModal: React.FC<ReleaseNotesModalProps> = ({
     onClose,
     isDarkMode
 }) => {
-    const [activeVersion, setActiveVersion] = useState<string>('v1.1.0');
+    const [activeVersion, setActiveVersion] = useState<string>(LATEST_VERSION);
 
     useEffect(() => {
         if (!isOpen) return;
