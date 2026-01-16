@@ -9,6 +9,18 @@ interface ReleaseNotesModalProps {
 
 const RELEASES = [
     {
+        version: 'v1.1.2',
+        date: '2024.01',
+        features: [
+            {
+                icon: <AlarmClock size={16} />,
+                color: 'amber',
+                title: '볼륨 조절 기능 추가',
+                desc: '알람 버튼을 누르면 바로 4단계로 볼륨을 조절할 수 있습니다.'
+            }
+        ]
+    },
+    {
         version: 'v1.1.1',
         date: '2024.01',
         features: [
