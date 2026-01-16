@@ -1,6 +1,7 @@
 // Singleton AudioContext to avoid autoplay policy restrictions
 let audioContext: AudioContext | null = null;
 let audioBuffer: AudioBuffer | null = null;
+let activeSource: AudioBufferSourceNode | null = null; // 현재 재생 중인 소스 추적
 
 const getAudioContext = () => {
     if (!audioContext) {
@@ -57,6 +58,15 @@ export const playSuccessSound = async (isSoundEnabled: boolean, volumeLevel: num
     const buffer = await loadSound(ctx);
     if (!buffer) return;
 
+    // 이전 소리가 재생 중이면 중지
+    if (activeSource) {
+        try {
+            activeSource.stop();
+        } catch (e) {
+            // 이미 멈춘 경우 등 무시
+        }
+    }
+
     // Volume mapping: 1 -> 0.25, 2 -> 0.5, 3 -> 0.8, 4 -> 1.0
     const volumeMap = [0.25, 0.5, 0.8, 1.0];
     const masterVolume = volumeMap[Math.min(Math.max(volumeLevel, 1), 4) - 1] || 0.1;
@@ -72,6 +82,14 @@ export const playSuccessSound = async (isSoundEnabled: boolean, volumeLevel: num
     gainNode.connect(ctx.destination);
 
     source.start(0);
+    activeSource = source; // 현재 소스로 등록
+
+    // 재생이 끝나면 activeSource 해제 (메모리 누수 방지 및 로직 정리)
+    source.onended = () => {
+        if (activeSource === source) {
+            activeSource = null;
+        }
+    };
 
     // Haptic Feedback: Sync with notes (3 short pulses)
     if (navigator.vibrate) {

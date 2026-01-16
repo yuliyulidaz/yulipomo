@@ -114,19 +114,27 @@ export const SettingsMenu: React.FC<SettingsMenuProps> = ({ isOpen, setIsOpen, i
             </div>
 
             {/* 2. Volume Slider Section (Visible only when Enabled) */}
-            <div className={`flex-1 flex items-center justify-between pr-3 pl-1 h-full transition-opacity duration-300 ${isSoundEnabled ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}>
-              {[1, 2, 3, 4].map((level) => (
-                <div
-                  key={level}
-                  onClick={() => onVolumeChange?.(level)}
-                  className="w-6 h-full flex items-center justify-center cursor-pointer group/bar"
-                >
-                  <div className={`w-1.5 rounded-full transition-all duration-300 ${soundVolume && soundVolume >= level
-                    ? 'bg-rose-400 h-6'
-                    : `bg-rose-200/50 h-3 group-hover/bar:h-5 group-hover/bar:bg-rose-300 ${isDarkMode ? 'bg-rose-900/40' : ''}`
-                    }`} />
-                </div>
-              ))}
+            <div className={`flex-1 flex items-center justify-between pr-3 pl-1 h-full transition-opacity duration-300 ${isSoundEnabled ? 'opacity-100' : 'opacity-40 grayscale'}`}>
+              {[1, 2, 3, 4].map((level) => {
+                const heightPercent = 30 + (level - 1) * 15; // 30, 45, 60, 75
+                const isActive = soundVolume && soundVolume >= level;
+
+                return (
+                  <div
+                    key={level}
+                    onClick={() => isSoundEnabled && onVolumeChange?.(level)}
+                    className={`w-6 h-full flex items-center justify-center cursor-pointer group/bar ${!isSoundEnabled ? 'cursor-not-allowed' : ''}`}
+                  >
+                    <div
+                      className={`w-1.5 rounded-full transition-all duration-300 ${isActive
+                        ? (isSoundEnabled ? 'bg-rose-400' : (isDarkMode ? 'bg-slate-600' : 'bg-slate-400'))
+                        : (isDarkMode ? 'bg-slate-800' : 'bg-slate-200')
+                        }`}
+                      style={{ height: `${heightPercent}%` }}
+                    />
+                  </div>
+                );
+              })}
             </div>
           </div>
         </div>
