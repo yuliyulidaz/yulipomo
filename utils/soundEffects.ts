@@ -1,11 +1,27 @@
 // Singleton AudioContext to avoid autoplay policy restrictions
 let audioContext: AudioContext | null = null;
+let audioBuffer: AudioBuffer | null = null;
 
 const getAudioContext = () => {
     if (!audioContext) {
         audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
     }
     return audioContext;
+};
+
+// 소리 파일 로드 및 디코딩
+const loadSound = async (ctx: AudioContext) => {
+    if (audioBuffer) return audioBuffer;
+
+    try {
+        const response = await fetch('/sound.mp3');
+        const arrayBuffer = await response.arrayBuffer();
+        audioBuffer = await ctx.decodeAudioData(arrayBuffer);
+        return audioBuffer;
+    } catch (e) {
+        console.error("Failed to load sound:", e);
+        return null;
+    }
 };
 
 // iOS 등에서 사용자 액션(클릭 등)이 있을 때 미리 오디오 컨텍스트를 깨워두는 함수
@@ -17,6 +33,10 @@ export const initAudioContext = async () => {
         } catch (e) {
             console.error("Audio resume failed:", e);
         }
+    }
+    // 미리 로드 (프리로드)
+    if (!audioBuffer) {
+        loadSound(ctx);
     }
 };
 
@@ -34,39 +54,24 @@ export const playSuccessSound = async (isSoundEnabled: boolean, volumeLevel: num
         }
     }
 
-    const now = ctx.currentTime;
+    const buffer = await loadSound(ctx);
+    if (!buffer) return;
 
     // Volume mapping: 1 -> 0.25, 2 -> 0.5, 3 -> 0.8, 4 -> 1.0
     const volumeMap = [0.25, 0.5, 0.8, 1.0];
-    // Ensure index is valid (volumeLevel 1-based index 0-3)
     const masterVolume = volumeMap[Math.min(Math.max(volumeLevel, 1), 4) - 1] || 0.1;
 
-    // Define Notes: C5, E5, G5 (Major Triad)
-    const notes = [
-        { freq: 523.25, time: 0.0 }, // C5
-        { freq: 659.25, time: 0.1 }, // E5
-        { freq: 783.99, time: 0.2 }  // G5
-    ];
+    // Create Source and Gain Node
+    const source = ctx.createBufferSource();
+    source.buffer = buffer;
 
-    notes.forEach(({ freq, time }) => {
-        const osc = ctx.createOscillator();
-        const gain = ctx.createGain();
+    const gainNode = ctx.createGain();
+    gainNode.gain.value = masterVolume;
 
-        osc.type = 'sine';
-        osc.frequency.value = freq;
+    source.connect(gainNode);
+    gainNode.connect(ctx.destination);
 
-        const startTime = now + time;
-
-        gain.gain.setValueAtTime(0, startTime);
-        gain.gain.linearRampToValueAtTime(masterVolume, startTime + 0.05); // Attack
-        gain.gain.exponentialRampToValueAtTime(0.01, startTime + 0.8); // Smooth Decay
-
-        osc.connect(gain);
-        gain.connect(ctx.destination);
-
-        osc.start(startTime);
-        osc.stop(startTime + 1.0);
-    });
+    source.start(0);
 
     // Haptic Feedback: Sync with notes (3 short pulses)
     if (navigator.vibrate) {
